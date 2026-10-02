@@ -1,0 +1,14 @@
+APIS
+- Playas: Intendencia Montevideo
+- Clima: Open Meteo
+- Mapa: OpenFreeMap
+
+
+Performante
+Playa 3d (tree.js)?
+
+me gustaria que sea un mapa donde peudas buscar las playa, y aparezcan los datos, un icono como cabina de guardavida que adjunto que tenga una bandera en 3d del color que esta (tree.js) lo mas performante posible
+
+
+ubicacion
+ir en bondi

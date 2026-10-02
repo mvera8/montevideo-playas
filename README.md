@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Playas UY
 
-## Getting Started
+Mapa 3D de las playas de Montevideo: buscador, casillas de guardavidas con su bandera
+flameando (color real de la IM, dirección según el viento) y temperatura de aire y agua por playa.
 
-First, run the development server:
+- Playas y guardavidas: [Montevideo API de la IM](https://api.montevideo.gub.uy/apidocs/beaches) (OAuth2 client_credentials).
+- Clima: [Open-Meteo](https://open-meteo.com) (forecast + marine, sin API key). La IM no publica clima.
+
+## Configuración
 
 ```bash
+cp .env.example .env.local   # completar IM_CLIENT_ID e IM_CLIENT_SECRET
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sin credenciales la página muestra una lista de playas de respaldo con clima pero sin guardavidas.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Endpoint | Devuelve |
+| --- | --- |
+| `GET /api/playas` | Playas con sus casillas de guardavidas y clima |
+| `GET /api/guardavidas` | Casillas (lista plana) y estado de la temporada |
+| `GET /api/clima` | Clima actual en Montevideo |
+| `GET /api/clima/[playa]` | Clima en una playa, p. ej. `/api/clima/pocitos` |
 
-## Learn More
+Si la IM informa vencimiento de la bandera, se respeta; si no lo informa, la bandera solo
+se considera válida en temporada (15/11 – 30/04). Fuera de temporada aparecen grises ("sin servicio").
 
-To learn more about Next.js, take a look at the following resources:
+## Mapa 3D
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Mapa: [MapLibre GL](https://maplibre.org) con tiles de [OpenFreeMap](https://openfreemap.org) (sin API key).
+- Casillas: Three.js renderizado **dentro del contexto WebGL del mapa** (custom layer).
+  Todas las casillas son un `InstancedMesh` y todas las banderas otro → 2 draw calls en total.
+  El flameo es un vertex shader; solo se anima a zoom ≥ 13, a 30 fps, y se pausa con la pestaña oculta
+  o con `prefers-reduced-motion`.
+- El worker de MapLibre se copia a `public/maplibre` en `postinstall`.
+- La IM agrupa casillas por código de playa (`beach`); su endpoint `/beaches` devuelve casillas, no playas.
+- `?playa=pocitos` en la URL abre directamente esa playa.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Código
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/lib/im.ts` — token OAuth2 (cacheado) y llamadas a la IM
+- `src/lib/weather.ts` — Open-Meteo, todas las playas en 2 requests
+- `src/lib/playas.ts` — une playas + casillas + clima, lógica de temporada
+- `src/components/mapa/Mapa.tsx` — mapa, buscador y panel de detalle
+- `src/components/mapa/capa-casillas.ts` — capa Three.js (instancing + shader de bandera)
+- `src/components/mapa/modelo.ts` — geometría low-poly de la casilla
+- `src/app/page.tsx` — página principal
