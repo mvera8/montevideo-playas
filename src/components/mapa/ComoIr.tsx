@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Opcion, Punto, Tramo } from "@/lib/transporte/planificador";
 import type { Llegada } from "@/lib/transporte/tiempo-real";
+import { postJson, redondear } from "@/lib/ubicacion";
 
 export type TramoBus = Extract<Tramo, { tipo: "omnibus" }>;
 export type LlegadasPorTramo = Record<string, Llegada[]>; // "variante:parada" → llegadas
@@ -48,15 +50,11 @@ export default function ComoIr({
   useEffect(() => {
     if (!origen) return;
     const ctrl = new AbortController();
-    const q = new URLSearchParams({
-      desde: `${origen.lat.toFixed(6)},${origen.lon.toFixed(6)}`,
-      hasta: `${destino.lat.toFixed(6)},${destino.lon.toFixed(6)}`,
-    });
     // eslint-disable-next-line react-hooks/set-state-in-effect -- estado de carga de un fetch
     setEstado({ tipo: "cargando" });
     setElegida(0);
     setLlegadas({});
-    fetch(`/api/como-ir?${q}`, { signal: ctrl.signal })
+    postJson("/api/como-ir", { desde: redondear(origen), hasta: destino }, ctrl.signal)
       .then(async (r) => {
         const json = await r.json();
         if (!r.ok) throw new Error(json.error ?? "Error");
@@ -132,6 +130,12 @@ export default function ComoIr({
           </div>
           {eligiendoEnMapa && <p className="text-xs text-sky-700 dark:text-sky-300">Tocá el mapa donde estás.</p>}
           {errorUbicacion && <p className="text-xs text-red-600">{errorUbicacion}</p>}
+          <p className="text-[11px] text-slate-500">
+            Tu ubicación se usa solo para calcular el viaje y no se guarda.{" "}
+            <Link href="/privacidad#ubicacion" className="underline">
+              Privacidad
+            </Link>
+          </p>
         </div>
       )}
 

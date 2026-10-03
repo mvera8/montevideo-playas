@@ -24,8 +24,8 @@ Sin credenciales la página muestra una lista de playas de respaldo con clima pe
 | `GET /api/clima` | Clima actual en Montevideo |
 | `GET /api/clima/[playa]` | Clima en una playa, p. ej. `/api/clima/pocitos` |
 | `GET /api/pronostico/[playa]` | Pronóstico hora a hora (hoy y mañana) y mejor franja para ir |
-| `GET /api/viajes?desde=lat,lon` | Minutos y líneas para llegar ahora a cada playa (para el ranking) |
-| `GET /api/como-ir?desde=lat,lon&hasta=lat,lon` | Opciones en ómnibus (directas o con 1 trasbordo) |
+| `POST /api/viajes` `{desde:{lat,lon}}` | Minutos y líneas para llegar ahora a cada playa (para el ranking) |
+| `POST /api/como-ir` `{desde, hasta}` | Opciones en ómnibus (directas o con 1 trasbordo) |
 | `GET /api/omnibus/llegadas?tramos=variante:parada,...` | Estimación en vivo de los próximos ómnibus |
 
 Si la IM informa vencimiento de la bandera, se respeta; si no lo informa, la bandera solo
@@ -41,6 +41,26 @@ se considera válida en temporada (15/11 – 30/04). Fuera de temporada aparecen
 - El worker de MapLibre se copia a `public/maplibre` en `postinstall`.
 - La IM agrupa casillas por código de playa (`beach`); su endpoint `/beaches` devuelve casillas, no playas.
 - `?playa=pocitos` en la URL abre directamente esa playa.
+
+## Calidad del agua
+
+Datos abiertos de la IM ([monitoreo de agua de playas](https://catalogodatos.gub.uy/dataset/monitoreo-de-agua-de-playas)):
+muestreos de todo el año por punto (enterococos, cianobacterias, temperatura medida) y la media
+geométrica de 5 muestras que publica la IM. `src/lib/calidad-agua.ts` los cruza por playa.
+
+- **Frecuencia**: la IM muestrea cada punto cada ~4 días (p90: 7) todo el año; regenera el CSV una
+  vez por día y publica con ~1 semana de demora. Un análisis con más de 21 días se muestra como
+  "sin muestreo reciente" (`DIAS_VIGENCIA`).
+- **Actualización sin cron**: cada 3 h un `HEAD` (~100 ms) compara el ETag; solo si cambió se
+  descarga. El servidor de la IM no soporta Range ni pedidos condicionales, pero el CSV viene del más
+  nuevo al más viejo: se lee en streaming y se corta la descarga al llegar a datos de más de 120 días
+  (~48 KB en vez de 2,2 MB).
+
+- Criterio del **Decreto 226/025** (la IM lo aplica desde el 27/03/2026): supera el límite si la media
+  de 5 muestras (≤ 40 días) pasa 200 enterococos/100 ml o una muestra pasa 500.
+- Es un cálculo con datos públicos: la **habilitación oficial** la comunica la IM (bandera sanitaria).
+- Datos con más de 21 días se muestran como "sin muestreo reciente".
+- Entra en el ranking: agua fuera de límite resta 30; cianobacterias restan o descartan la playa.
 
 ## ¿A qué playa voy? y mejor horario
 
@@ -69,6 +89,14 @@ un solo servicio): `IM_TRANSPORTE_CLIENT_ID` / `IM_TRANSPORTE_CLIENT_SECRET`.
   (en este feed `shape_id` = `lineVariantId`). `/buses` se consulta como máximo cada 15 s para
   todos los usuarios, por el límite de uso de la IM.
 - No contempla feriados ni horarios especiales.
+
+## Legal y privacidad
+
+- Páginas `/terminos` (incluye fuentes y licencias) y `/privacidad`. Completar los datos de
+  `src/lib/sitio.ts` (responsable, contacto, hosting) antes de publicar.
+- Las rutas que reciben la ubicación usan **POST** (nunca la ubicación en la URL), responden
+  `Cache-Control: no-store` y no registran coordenadas. El cliente la redondea a ~100 m.
+- **Open-Meteo** gratis es solo para uso no comercial: para un uso comercial hace falta un plan pago.
 
 ## Código
 

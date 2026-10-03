@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Playa, Temporada } from "@/lib/playas";
 import { recomendar, type Viaje } from "@/lib/recomendacion";
 import type { Punto } from "@/lib/transporte/planificador";
+import { postJson, redondear } from "@/lib/ubicacion";
 import { BadgeCalidad, Motivos } from "./Motivos";
 
 type Props = {
@@ -24,7 +26,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
   useEffect(() => {
     if (!origen) return;
     const ctrl = new AbortController();
-    fetch(`/api/viajes?desde=${origen.lat.toFixed(6)},${origen.lon.toFixed(6)}`, { signal: ctrl.signal })
+    postJson("/api/viajes", { desde: redondear(origen) }, ctrl.signal)
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => json && setViajes({ para: origen, datos: json.viajes }))
       .catch(() => {});
@@ -125,6 +127,14 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
           </button>
         )}
       </div>
+      {!origen && (
+        <p className="mt-2 text-[11px] text-slate-500">
+          Tu ubicación se usa solo para calcular el viaje y no se guarda.{" "}
+          <Link href="/privacidad#ubicacion" className="underline">
+            Privacidad
+          </Link>
+        </p>
+      )}
       {calculando && <p className="mt-2 text-xs text-slate-500">Calculando cuánto tardás a cada playa…</p>}
 
       {lista.length > 0 && (

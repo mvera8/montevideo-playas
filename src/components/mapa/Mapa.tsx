@@ -17,9 +17,11 @@ import type { Opcion, Punto } from "@/lib/transporte/planificador";
 import { CapaCasillas, type CasillaMapa } from "./capa-casillas";
 import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./ComoIr";
 import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
+import CalidadAgua from "./CalidadAgua";
 import Pronostico from "./Pronostico";
 import SelectorTema from "./SelectorTema";
-import { aplicarTema, estiloConTema, temaPorClima, type Tema } from "./temas";
+import Lluvia from "./Lluvia";
+import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
 
 // Copiado por scripts/copiar-worker-maplibre.mjs (postinstall).
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
@@ -96,7 +98,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   const [temaManual, setTemaManual] = useState<Tema | null>(() => {
     try {
       const t = localStorage.getItem("tema");
-      return t === "soleado" || t === "nublado" || t === "noche" ? t : null;
+      return t === "soleado" || t === "nublado" || t === "lluvia" || t === "noche" ? t : null;
     } catch {
       return null;
     }
@@ -104,6 +106,9 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   const temaAuto = temaPorClima(climaCiudad);
   const tema = temaManual ?? temaAuto;
   const temaRef = useRef(tema);
+  // Efecto de lluvia: si llueve de verdad (en automático, también de noche) o si se eligió el tema a mano.
+  const lloviendo = intensidadLluvia(climaCiudad?.weatherCode);
+  const lluvia = temaManual === null ? lloviendo : temaManual === "lluvia" ? (lloviendo ?? "lluvia") : null;
   useEffect(() => {
     abiertoRef.current = abierto;
     try {
@@ -180,7 +185,10 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
         [-56.7, -35.15],
         [-55.7, -34.6],
       ],
-      attributionControl: { compact: true },
+      attributionControl: {
+        compact: true,
+        customAttribution: '<a href="/terminos#fuentes">Fuentes</a>: Intendencia de Montevideo · Open-Meteo',
+      },
     });
     // El estilo se carga ya recoloreado con el tema (sin parpadeo del estilo base).
     map.setStyle(ESTILO, { transformStyle: (_prev, next) => estiloConTema(next, temaRef.current) });
@@ -538,6 +546,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   return (
     <div className="relative h-dvh w-full overflow-hidden">
       <div ref={contenedor} className="h-full w-full" />
+      {lluvia && <Lluvia intensidad={lluvia} oscuro={tema === "noche"} />}
 
       {/* Botón flotante para plegar/desplegar el panel (al lado del buscador) */}
       <button
@@ -715,7 +724,11 @@ function Detalle({
       {c && (
         <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
           <Dato label="Aire" value={grados(c.airTemp)} sub={`ST ${grados(c.feelsLike)}`} />
-          <Dato label="Agua" value={grados(c.waterTemp)} sub={c.waveHeight != null ? `Olas ${c.waveHeight.toFixed(1)} m` : ""} />
+          <Dato
+            label="Agua"
+            value={grados(playa.agua?.temperatura?.valor ?? c.waterTemp)}
+            sub={playa.agua?.temperatura ? "medida IM" : c.waveHeight != null ? `Olas ${c.waveHeight.toFixed(1)} m` : ""}
+          />
           <Dato label="Viento" value={`${Math.round(c.windSpeed)}`} sub={`km/h ${c.windDirectionLabel}`} />
           <Dato label="Hoy" value={`${grados(c.min)}/${grados(c.max)}`} sub={c.description} />
           <Dato label="UV" value={c.uvIndex.toFixed(0)} sub={c.uvIndex >= 6 ? "Alto" : c.uvIndex >= 3 ? "Moderado" : "Bajo"} />
@@ -723,6 +736,7 @@ function Detalle({
         </div>
       )}
 
+      <CalidadAgua agua={playa.agua} />
       <Pronostico slug={playa.slug} />
 
       <h3 className="mt-5 mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">

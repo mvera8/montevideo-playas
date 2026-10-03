@@ -35,3 +35,32 @@ body {
     transform: none;
   }
 }
+
+/* Lluvia: cada capa baja exactamente un mosaico por ciclo (loop sin saltos). */
+@keyframes caer {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, var(--tile), 0);
+  }
+}
+
+/* Tormenta: un destello muy sutil cada tanto. */
+@keyframes relampago {
+  0%,
+  91%,
+  93.5%,
+  100% {
+    opacity: 0;
+  }
+  92% {
+    opacity: 0.16;
+  }
+  94.5% {
+    opacity: 0.1;
+  }
+  95.5% {
+    opacity: 0;
+  }
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { SITIO } from "@/lib/sitio";
 import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Punto } from "@/lib/transporte/planificador";
 import type { Weather } from "@/lib/weather";
@@ -106,11 +108,22 @@ export default function PanelGeneral({
         <ul className="grid grid-cols-2 gap-2.5">
           {playas.map((p) => (
             <li key={p.slug}>
-              <TarjetaPlaya playa={p} onClick={() => onElegir(p)} />
+              <TarjetaPlaya playa={p} temporadaActiva={temporada.activa} onClick={() => onElegir(p)} />
             </li>
           ))}
         </ul>
       )}
+
+      <footer className="px-1 pb-2 pt-1 text-[11px] leading-relaxed text-slate-500">
+        Información orientativa: {SITIO.nombre} no es un sitio oficial. En la playa, seguí siempre a los guardavidas.{" "}
+        <Link href="/terminos" className="underline">
+          Términos y fuentes
+        </Link>{" "}
+        ·{" "}
+        <Link href="/privacidad" className="underline">
+          Privacidad
+        </Link>
+      </footer>
     </div>
   );
 }
@@ -231,8 +244,15 @@ function BotonEstado({ estado, n, activo, onClick }: { estado: EstadoBandera; n:
   );
 }
 
-function TarjetaPlaya({ playa, onClick }: { playa: Playa; onClick: () => void }) {
+const AGUA = {
+  apta: { label: "Agua ok", color: "#1f9d4c", titulo: "Agua dentro de los límites (último análisis de la IM)" },
+  "no-apta": { label: "Agua ✗", color: "#ea580c", titulo: "El agua supera el límite del Decreto 226/025" },
+  "sin-datos": { label: "Sin análisis", color: "#c9ced4", titulo: "Sin muestreo reciente de la IM" },
+} as const;
+
+function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; temporadaActiva: boolean; onClick: () => void }) {
   const estado = estadoPlaya(playa);
+  const agua = playa.agua?.estado ?? "sin-datos";
   const c = playa.clima;
   const n = playa.guardavidas.length;
   return (
@@ -257,14 +277,34 @@ function TarjetaPlaya({ playa, onClick }: { playa: Playa; onClick: () => void })
       <div className="mt-auto flex w-full items-end justify-between">
         <span>
           <span className="block text-lg font-semibold leading-none tabular-nums">{grados(c?.airTemp)}</span>
-          <span className="block text-[11px] text-slate-500">agua {grados(c?.waterTemp)}</span>
+          <span className="block text-[11px] text-slate-500">agua {grados(playa.agua?.temperatura?.valor ?? c?.waterTemp)}</span>
         </span>
-        <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: ESTADOS[estado].color }} />
-          {ESTADOS[estado].label}
-        </span>
+        {/* Fuera de temporada no hay banderas: mostramos la calidad del agua. */}
+        {temporadaActiva ? (
+          <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: ESTADOS[estado].color }} />
+            {ESTADOS[estado].label}
+            <GotaAgua estado={agua} />
+          </span>
+        ) : (
+          <span
+            title={AGUA[agua].titulo}
+            className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+          >
+            <GotaAgua estado={agua} />
+            {AGUA[agua].label}
+          </span>
+        )}
       </div>
     </button>
+  );
+}
+
+function GotaAgua({ estado }: { estado: keyof typeof AGUA }) {
+  return (
+    <svg viewBox="0 0 10 12" className="h-2.5 w-2" aria-label={AGUA[estado].titulo} role="img">
+      <path d="M5 0.5C5 0.5 1 5.2 1 7.6a4 4 0 0 0 8 0C9 5.2 5 0.5 5 0.5Z" fill={AGUA[estado].color} />
+    </svg>
   );
 }
 
