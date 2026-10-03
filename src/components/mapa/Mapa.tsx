@@ -10,16 +10,20 @@ import {
   type MapLayerMouseEvent,
   setWorkerUrl,
 } from "maplibre-gl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Weather } from "@/lib/weather";
+import type { Opcion, Punto } from "@/lib/transporte/planificador";
 import { CapaCasillas, type CasillaMapa } from "./capa-casillas";
+import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./ComoIr";
 
 // Copiado por scripts/copiar-worker-maplibre.mjs (postinstall).
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
 const ESTILO = "https://tiles.openfreemap.org/styles/positron";
 const CENTRO: [number, number] = [-56.17, -34.9];
+const COLOR_RUTA = "#0b6bcb";
+const VACIO = { type: "FeatureCollection" as const, features: [] };
 
 type Props = {
   playas: Playa[];
@@ -80,8 +84,32 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   });
   const [casillaId, setCasillaId] = useState<string | null>(null);
 
+  // Cómo ir: origen del usuario (GPS o tocando el mapa) y opción elegida.
+  const [origen, setOrigen] = useState<Punto | null>(null);
+  const [eligiendo, setEligiendo] = useState(false);
+  const [ubicando, setUbicando] = useState(false);
+  const [errorUbicacion, setErrorUbicacion] = useState<string | null>(null);
+  const [ruta, setRuta] = useState<{ opcion: Opcion | null; llegadas: LlegadasPorTramo }>({
+    opcion: null,
+    llegadas: {},
+  });
+  const eligiendoRef = useRef(false);
+  useEffect(() => {
+    eligiendoRef.current = eligiendo;
+  }, [eligiendo]);
+  const onOpcion = useCallback((opcion: Opcion | null, llegadas: LlegadasPorTramo) => {
+    setRuta({ opcion, llegadas });
+  }, []);
+
   const casillas = useMemo(() => aCasillas(playas), [playas]);
   const playa = playas.find((p) => p.slug === slug) ?? null;
+
+  // Destino del "cómo ir": la casilla elegida o, si no hay, el centro de la playa.
+  const destino = useMemo<Punto | null>(() => {
+    const c = casillas.find((x) => x.id === casillaId);
+    if (c) return { lat: c.lat, lon: c.lng };
+    return playa ? { lat: playa.lat, lon: playa.lon } : null;
+  }, [casillas, casillaId, playa]);
 
   const resultados = useMemo(() => {
     const q = normalizar(busqueda.trim());
@@ -178,7 +206,102 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
         paint: { "text-color": "#0f3a52", "text-halo-color": "#ffffff", "text-halo-width": 1.6 },
       });
 
+      // Recorrido del "cómo ir" (debajo de las casillas 3D) y ómnibus en vivo.
+      map.addSource("ruta", { type: "geojson", data: VACIO });
+      map.addSource("vivo", { type: "geojson", data: VACIO });
+      map.addLayer(
+        {
+          id: "ruta-pie",
+          type: "line",
+          source: "ruta",
+          filter: ["==", ["get", "tipo"], "pie"],
+          layout: { "line-cap": "round" },
+          paint: { "line-color": "#475569", "line-width": 3, "line-dasharray": [0.1, 2] },
+        },
+        capa.id,
+      );
+      map.addLayer(
+        {
+          id: "ruta-bus-borde",
+          type: "line",
+          source: "ruta",
+          filter: ["==", ["get", "tipo"], "bus"],
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#ffffff", "line-width": 9 },
+        },
+        capa.id,
+      );
+      map.addLayer(
+        {
+          id: "ruta-bus",
+          type: "line",
+          source: "ruta",
+          filter: ["==", ["get", "tipo"], "bus"],
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": COLOR_RUTA, "line-width": 5 },
+        },
+        capa.id,
+      );
+      map.addLayer({
+        id: "ruta-puntos",
+        type: "circle",
+        source: "ruta",
+        filter: ["in", ["get", "tipo"], ["literal", ["parada", "origen"]]],
+        paint: {
+          "circle-radius": ["match", ["get", "tipo"], "origen", 8, 6],
+          "circle-color": ["match", ["get", "tipo"], "origen", "#2563eb", "#ffffff"],
+          "circle-stroke-color": ["match", ["get", "tipo"], "origen", "#ffffff", COLOR_RUTA],
+          "circle-stroke-width": 3,
+        },
+      });
+      map.addLayer({
+        id: "ruta-paradas-nombres",
+        type: "symbol",
+        source: "ruta",
+        filter: ["==", ["get", "tipo"], "parada"],
+        layout: {
+          "text-field": ["get", "nombre"],
+          "text-font": ["Noto Sans Bold"],
+          "text-size": 11,
+          "text-anchor": "left",
+          "text-offset": [0.9, 0],
+          "text-max-width": 12,
+        },
+        paint: { "text-color": COLOR_RUTA, "text-halo-color": "#ffffff", "text-halo-width": 1.6 },
+      });
+      map.addLayer({
+        id: "vivo",
+        type: "circle",
+        source: "vivo",
+        paint: {
+          "circle-radius": 11,
+          "circle-color": "#059669",
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 2,
+        },
+      });
+      map.addLayer({
+        id: "vivo-linea",
+        type: "symbol",
+        source: "vivo",
+        layout: {
+          "text-field": ["get", "linea"],
+          "text-font": ["Noto Sans Bold"],
+          "text-size": 10,
+          "text-allow-overlap": true,
+        },
+        paint: { "text-color": "#ffffff" },
+      });
+
+      // En modo "elegir en el mapa", el próximo toque fija el origen.
+      map.on("click", (e) => {
+        if (!eligiendoRef.current) return;
+        setOrigen({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+        setEligiendo(false);
+      });
+
       map.on("click", "casillas-hit", (e: MapLayerMouseEvent) => {
+        if (eligiendoRef.current) return;
         const f = e.features?.[0];
         if (!f) return;
         setSlug(f.properties.slug as string);
@@ -221,6 +344,69 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
     });
   }, [listo, casillas, playas]);
 
+  // Recorrido elegido → mapa (y encuadre).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !listo) return;
+    type F = GeoJSON.Feature<GeoJSON.Geometry, Record<string, string>>;
+    const features: F[] = [];
+    const punto = (lon: number, lat: number, props: Record<string, string>): F => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [lon, lat] },
+      properties: props,
+    });
+    if (origen) features.push(punto(origen.lon, origen.lat, { tipo: "origen" }));
+    for (const t of ruta.opcion?.tramos ?? []) {
+      if (t.tipo === "caminar") {
+        features.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: [[t.desde.lon, t.desde.lat], [t.hasta.lon, t.hasta.lat]] },
+          properties: { tipo: "pie" },
+        });
+      } else {
+        features.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: t.geometria },
+          properties: { tipo: "bus", linea: t.linea },
+        });
+        features.push(punto(t.subida.lon, t.subida.lat, { tipo: "parada", nombre: `Subí: ${t.subida.nombre}` }));
+        features.push(punto(t.bajada.lon, t.bajada.lat, { tipo: "parada", nombre: `Bajá: ${t.bajada.nombre}` }));
+      }
+    }
+    (map.getSource("ruta") as GeoJSONSource).setData({ type: "FeatureCollection", features });
+
+    if (ruta.opcion) {
+      const coords = features.flatMap((f) =>
+        f.geometry.type === "Point"
+          ? [f.geometry.coordinates as [number, number]]
+          : (f.geometry as GeoJSON.LineString).coordinates as [number, number][],
+      );
+      const lons = coords.map((c) => c[0]);
+      const lats = coords.map((c) => c[1]);
+      map.fitBounds(
+        [
+          [Math.min(...lons), Math.min(...lats)],
+          [Math.max(...lons), Math.max(...lats)],
+        ],
+        { padding: padding(60), pitch: 40, maxZoom: 16, duration: 1200 },
+      );
+    }
+  }, [listo, origen, ruta.opcion]);
+
+  // Ómnibus en vivo de la opción elegida.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !listo) return;
+    const buses = ((ruta.opcion?.tramos.filter((t) => t.tipo === "omnibus") ?? []) as TramoBus[]).flatMap((t) =>
+      (ruta.llegadas[claveTramo(t)] ?? []).map((l) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [l.lon, l.lat] },
+        properties: { linea: t.linea },
+      })),
+    );
+    (map.getSource("vivo") as GeoJSONSource).setData({ type: "FeatureCollection", features: buses });
+  }, [listo, ruta]);
+
   // Selección → cámara, resaltado y URL.
   useEffect(() => {
     capaRef.current?.setSeleccion(casillaId);
@@ -236,14 +422,11 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
     if (!map || !listo || !playa) return;
     const objetivo = casillas.find((c) => c.id === casillaId) ?? playa;
     const lng = "lng" in objetivo ? objetivo.lng : objetivo.lon;
-    const escritorio = window.matchMedia("(min-width: 768px)").matches;
     map.flyTo({
       center: [lng, objetivo.lat],
       zoom: casillaId ? 16.5 : 15.2,
       pitch: 60,
-      padding: escritorio
-        ? { left: 400, top: 0, right: 0, bottom: 0 }
-        : { left: 0, top: 0, right: 0, bottom: window.innerHeight * 0.45 },
+      padding: padding(0),
       essential: true,
     });
   }, [slug, casillaId, listo, playa, casillas]);
@@ -258,6 +441,29 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   function cerrar() {
     setSlug(null);
     setCasillaId(null);
+    setEligiendo(false);
+    setRuta({ opcion: null, llegadas: {} });
+  }
+
+  function usarUbicacion() {
+    if (!navigator.geolocation) {
+      setErrorUbicacion("Tu navegador no permite obtener la ubicación. Elegila en el mapa.");
+      return;
+    }
+    setUbicando(true);
+    setErrorUbicacion(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUbicando(false);
+        setOrigen({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      },
+      () => {
+        setUbicando(false);
+        setErrorUbicacion("No pudimos obtener tu ubicación. Tocá el mapa para elegir el origen.");
+        setEligiendo(true);
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
   }
 
   return (
@@ -332,7 +538,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
 
         {/* Detalle de la playa */}
         {playa && !abierto && (
-          <section className="pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:rounded-2xl md:shadow-lg dark:bg-slate-900 dark:ring-white/10">
+          <section className="pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:shadow-lg dark:bg-slate-900 dark:ring-white/10">
             <Detalle
               playa={playa}
               temporada={temporada}
@@ -340,11 +546,38 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
               onCasilla={setCasillaId}
               onCerrar={cerrar}
             />
+            {destino && (
+              <ComoIr
+                destino={destino}
+                origen={origen}
+                eligiendoEnMapa={eligiendo}
+                ubicando={ubicando}
+                errorUbicacion={errorUbicacion}
+                onUsarUbicacion={usarUbicacion}
+                onElegirEnMapa={() => {
+                  setErrorUbicacion(null);
+                  setEligiendo(true);
+                }}
+                onCambiarOrigen={() => {
+                  setOrigen(null);
+                  setRuta({ opcion: null, llegadas: {} });
+                }}
+                onOpcion={onOpcion}
+              />
+            )}
           </section>
         )}
       </aside>
     </div>
   );
+}
+
+// Margen para que el panel no tape lo que se encuadra (izquierda en escritorio, abajo en móvil).
+function padding(extra: number) {
+  const escritorio = window.matchMedia("(min-width: 768px)").matches;
+  return escritorio
+    ? { left: 400 + extra, top: extra, right: 50 + extra, bottom: extra } // derecha: controles del mapa
+    : { left: extra / 2, top: 70 + extra / 2, right: extra / 2, bottom: window.innerHeight * 0.45 + extra / 2 };
 }
 
 function PuntosBanderas({ g }: { g: Guardavidas[] }) {
