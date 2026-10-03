@@ -89,7 +89,12 @@ Lógica pura en `src/lib/recomendacion.ts` (sirve en cliente y servidor):
 - **Ranking (0–100)**: bandera vigente (roja/negra la descartan), bandera sanitaria, viento según
   la **orientación de cada playa** (de frente = olas y frío; de tierra = reparada), sensación
   térmica, lluvia, olas, si es de noche y, con la ubicación del usuario, el tiempo de viaje.
-  Las orientaciones son aproximadas y están en la tabla `ORIENTACION`.
+  La orientación (hacia dónde está el agua) se calcula **por casilla** con la línea de costa de
+  OpenStreetMap (`natural=coastline`: el agua queda a la derecha del trazo) y se guarda en
+  `src/data/orientaciones.json`. La costa no cambia, así que no se consulta en runtime: regenerar con
+  `npm run orientaciones` si la IM agrega o mueve casillas (Overpass suele dar 504; el script
+  reintenta). Las casillas que falten usan la tabla `ORIENTACION` como respaldo. La playa usa el
+  promedio circular de sus casillas. Las casillas 3D se giran con ese rumbo: frente y rampa al agua.
 - **Mejor horario**: puntaje por hora (sensación, lluvia, UV, viento de frente, ráfagas,
   tormenta) y la mejor franja de 2–4 h de sol, hoy o mañana. Gráfico en
   `src/components/mapa/Pronostico.tsx`.

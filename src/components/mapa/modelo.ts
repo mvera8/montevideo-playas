@@ -9,8 +9,9 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-// Casilla de guardavidas de Montevideo (modelo low-poly, unidades = metros, Y arriba,
-// frente hacia +Z que en el mapa es el sur → mirando al Río de la Plata).
+// Casilla de guardavidas de Montevideo (modelo low-poly, unidades = metros, Y arriba).
+// El frente (vidrios, toldo y rampa) mira hacia +Z; la capa rota cada casilla para que
+// ese frente apunte al agua según la orientación de su playa.
 // Todas las piezas se fusionan en UNA geometría con colores por vértice, así todas
 // las casillas del mapa se dibujan en un único draw call con InstancedMesh.
 
@@ -116,25 +117,28 @@ export function crearGeometriaCasilla(): BufferGeometry {
   P.push(toldo(2.4, 0.9, [1.5, yTecho - 0.12, -0.5], -0.55, Math.PI / 2));
   P.push(toldo(2.4, 0.9, [-1.5, yTecho - 0.12, -0.5], -0.55, -Math.PI / 2));
 
-  // Baranda del deck.
+  // Baranda del deck, con una abertura al frente-izquierda para la rampa (x de -2.05 a -0.7).
   const yB = hPiso + 1.0;
-  P.push(caja(4.2, 0.07, 0.07, METAL, [0, yB, 2.35]));
-  P.push(caja(4.2, 0.07, 0.07, METAL, [0, yB - 0.45, 2.35]));
+  const frente = 2.35;
+  for (const y of [yB, yB - 0.45]) P.push(caja(2.75, 0.07, 0.07, METAL, [0.675, y, frente]));
   for (const x of [-2.05, 2.05]) {
     P.push(caja(0.07, 0.07, 1.6, METAL, [x, yB, 1.6]));
     P.push(caja(0.07, 0.07, 1.6, METAL, [x, yB - 0.45, 1.6]));
   }
-  for (const x of [-2.05, -0.7, 0.7, 2.05]) P.push(caja(0.08, 1.0, 0.08, METAL, [x, hPiso + 0.5, 2.35]));
+  for (const x of [-2.05, -0.7, 0.7, 2.05]) P.push(caja(0.08, 1.0, 0.08, METAL, [x, hPiso + 0.5, frente]));
   for (const x of [-2.05, 2.05]) P.push(caja(0.08, 1.0, 0.08, METAL, [x, hPiso + 0.5, 0.85]));
 
-  // Rampa de madera desde el costado hasta la arena.
+  // Rampa de madera: baja desde el frente del deck hacia +Z, o sea hacia el agua
+  // (la capa gira cada casilla para que su frente mire al río).
   const largo = 4.2;
   const pend = Math.asin(hPiso / largo);
-  P.push(
-    caja(largo, 0.1, 1.0, MADERA, [-2.1 - (Math.cos(pend) * largo) / 2, hPiso / 2, 1.6], {
-      z: pend,
-    }),
-  );
+  const xRampa = -1.375; // centrada en la abertura de la baranda
+  P.push(caja(1.0, 0.1, largo, MADERA, [xRampa, hPiso / 2, frente + (Math.cos(pend) * largo) / 2], { x: pend }));
+  // Pasamanos de la rampa.
+  for (const dx of [-0.5, 0.5])
+    P.push(
+      caja(0.05, 0.05, largo, METAL, [xRampa + dx, hPiso / 2 + 0.9, frente + (Math.cos(pend) * largo) / 2], { x: pend }),
+    );
 
   // Mástil de la bandera.
   const mastil = new CylinderGeometry(0.05, 0.07, MASTIL_POS.y + 0.2, 6, 1);

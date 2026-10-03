@@ -4,8 +4,10 @@
 
 import type { Playa, Temporada } from "./playas";
 
-// Hacia dónde mira cada playa (rumbo desde la arena hacia el agua, en grados).
-// Aproximado a partir de la línea de costa; la costa este mira al SSE y la oeste al SO.
+// Respaldo: hacia dónde mira cada playa (rumbo desde la arena hacia el agua, en grados), a ojo.
+// La orientación real se calcula por casilla con la línea de costa de OSM
+// (scripts/calcular-orientaciones.mjs → src/data/orientaciones.json); esta tabla solo se usa
+// para casillas nuevas que todavía no están en ese archivo.
 const ORIENTACION: Record<string, number> = {
   "punta-espinillo": 225,
   "la-colorada": 215,
@@ -28,7 +30,7 @@ const ORIENTACION: Record<string, number> = {
   carrasco: 160,
 };
 
-export const orientacion = (slug: string) => ORIENTACION[slug] ?? 180;
+export const orientacionRespaldo = (slug: string) => ORIENTACION[slug] ?? 180;
 
 const PUNTOS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
 export const puntoCardinal = (deg: number) => PUNTOS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
@@ -36,8 +38,9 @@ export const puntoCardinal = (deg: number) => PUNTOS[Math.round((((deg % 360) + 
 export type ExposicionViento = { tipo: "frente" | "lateral" | "tierra"; factor: number };
 
 /** factor: 1 = viento de frente puro (desde el agua), -1 = de tierra puro. */
-export function exposicion(slug: string, vientoDesde: number): ExposicionViento {
-  const d = Math.abs(((vientoDesde - orientacion(slug) + 540) % 360) - 180); // 0 = desde el agua
+/** `orientacion`: rumbo desde la arena hacia el agua (ver Playa.orientacion). */
+export function exposicion(orientacion: number, vientoDesde: number): ExposicionViento {
+  const d = Math.abs(((vientoDesde - orientacion + 540) % 360) - 180); // 0 = desde el agua
   const factor = Math.cos((d * Math.PI) / 180);
   return { tipo: d < 60 ? "frente" : d > 120 ? "tierra" : "lateral", factor };
 }
@@ -108,7 +111,7 @@ export function recomendar(
 
       if (c) {
         // Viento según orientación de la playa.
-        const e = exposicion(p.slug, c.windDirection);
+        const e = exposicion(p.orientacion, c.windDirection);
         const desde = puntoCardinal(c.windDirection);
         if (c.windSpeed < 10) {
           s += 5;
@@ -187,13 +190,13 @@ export type Franja = {
   motivos: Motivo[];
 };
 
-export function puntajeHora(slug: string, h: Hora) {
+export function puntajeHora(orientacion: number, h: Hora) {
   let s = 100;
   if (h.sensacion < 24) s -= (24 - h.sensacion) * 4;
   if (h.sensacion > 31) s -= (h.sensacion - 31) * 4;
   s -= h.lluvia * 0.6;
   if (h.uv > 7) s -= (h.uv - 7) * 6;
-  const e = exposicion(slug, h.vientoDesde);
+  const e = exposicion(orientacion, h.vientoDesde);
   if (e.factor > 0 && h.viento >= 10) s -= Math.min(30, h.viento * e.factor);
   if (h.rafagas > 40) s -= 15;
   if (h.code >= 95) s -= 60;
@@ -205,7 +208,7 @@ export function puntajeHora(slug: string, h: Hora) {
  * Mejor franja de 2 a 4 horas de luz entre `desde` y la puesta del sol.
  * `horas` debe estar ordenado; `luz` son pares [amanecer, atardecer] ISO por día.
  */
-export function mejorFranja(slug: string, horas: Hora[], ahoraIso: string, luz: [string, string][]): Franja | null {
+export function mejorFranja(orientacion: number, horas: Hora[], ahoraIso: string, luz: [string, string][]): Franja | null {
   // Horas completas con sol: empiezan después del amanecer y terminan antes del atardecer.
   const deDia = (h: Hora) =>
     h.hora >= ahoraIso.slice(0, 13) &&
@@ -215,7 +218,7 @@ export function mejorFranja(slug: string, horas: Hora[], ahoraIso: string, luz: 
   const dias = [...new Set(horas.filter(deDia).map((h) => h.hora.slice(0, 10)))];
   for (const dia of dias.slice(0, 2)) {
     const lista = horas.filter((h) => deDia(h) && h.hora.startsWith(dia));
-    const puntos = lista.map((h) => puntajeHora(slug, h));
+    const puntos = lista.map((h) => puntajeHora(orientacion, h));
     let mejor: { i: number; n: number; prom: number } | null = null;
     for (let n = 4; n >= 2; n--)
       for (let i = 0; i + n <= lista.length; i++) {
@@ -232,7 +235,7 @@ export function mejorFranja(slug: string, horas: Hora[], ahoraIso: string, luz: 
     motivos.push(lluvia <= 20 ? { texto: "Sin lluvia", tono: "bien" } : { texto: `Lluvia ${lluvia}%`, tono: "mal" });
     const uv = Math.max(...tramo.map((h) => h.uv));
     motivos.push(uv <= 5 ? { texto: `UV ${Math.round(uv)}`, tono: "bien" } : { texto: `UV ${Math.round(uv)}: protegete`, tono: "info" });
-    const e = exposicion(slug, tramo[0].vientoDesde);
+    const e = exposicion(orientacion, tramo[0].vientoDesde);
     if (e.tipo === "tierra") motivos.push({ texto: "Reparada del viento", tono: "bien" });
     else if (e.tipo === "frente" && prom((h) => h.viento) >= 15) motivos.push({ texto: "Viento de frente", tono: "mal" });
 
