@@ -29,21 +29,35 @@ export type ImLifeguardStation = {
 
 export class ImConfigError extends Error {}
 
-export function hasImCredentials() {
-  return Boolean(process.env.IM_CLIENT_ID && process.env.IM_CLIENT_SECRET);
+// Cada aplicación del portal de la IM está asociada a un solo servicio,
+// así que Playas y Transporte usan credenciales distintas.
+export type ImServicio = "playas" | "transporte";
+
+const CREDENCIALES: Record<ImServicio, { id: string; secret: string }> = {
+  playas: { id: "IM_CLIENT_ID", secret: "IM_CLIENT_SECRET" },
+  transporte: { id: "IM_TRANSPORTE_CLIENT_ID", secret: "IM_TRANSPORTE_CLIENT_SECRET" },
+};
+
+export function hasImCredentials(servicio: ImServicio = "playas") {
+  const c = CREDENCIALES[servicio];
+  return Boolean(process.env[c.id] && process.env[c.secret]);
 }
 
-let cachedToken: { value: string; expiresAt: number } | null = null;
+const tokens = new Map<ImServicio, { value: string; expiresAt: number }>();
 
-async function getToken(): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now()) return cachedToken.value;
+export function invalidarToken(servicio: ImServicio) {
+  tokens.delete(servicio);
+}
 
-  const clientId = process.env.IM_CLIENT_ID;
-  const clientSecret = process.env.IM_CLIENT_SECRET;
+export async function getToken(servicio: ImServicio = "playas"): Promise<string> {
+  const cached = tokens.get(servicio);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const c = CREDENCIALES[servicio];
+  const clientId = process.env[c.id];
+  const clientSecret = process.env[c.secret];
   if (!clientId || !clientSecret) {
-    throw new ImConfigError(
-      "Faltan IM_CLIENT_ID / IM_CLIENT_SECRET en .env.local",
-    );
+    throw new ImConfigError(`Faltan ${c.id} / ${c.secret} en .env.local`);
   }
 
   const res = await fetch(process.env.IM_TOKEN_URL || DEFAULT_TOKEN_URL, {
@@ -62,7 +76,7 @@ async function getToken(): Promise<string> {
   const json = (await res.json()) as { access_token: string; expires_in?: number };
   // Renovamos 30s antes de que expire.
   const ttl = Math.max((json.expires_in ?? 300) - 30, 30) * 1000;
-  cachedToken = { value: json.access_token, expiresAt: Date.now() + ttl };
+  tokens.set(servicio, { value: json.access_token, expiresAt: Date.now() + ttl });
   return json.access_token;
 }
 
@@ -72,7 +86,7 @@ async function imGet<T>(path: string): Promise<T> {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     next: { revalidate: 300 },
   });
-  if (res.status === 401) cachedToken = null;
+  if (res.status === 401) invalidarToken("playas");
   if (!res.ok) {
     throw new Error(`IM ${path} falló (${res.status}): ${await res.text()}`);
   }

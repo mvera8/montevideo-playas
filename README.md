@@ -23,6 +23,8 @@ Sin credenciales la página muestra una lista de playas de respaldo con clima pe
 | `GET /api/guardavidas` | Casillas (lista plana) y estado de la temporada |
 | `GET /api/clima` | Clima actual en Montevideo |
 | `GET /api/clima/[playa]` | Clima en una playa, p. ej. `/api/clima/pocitos` |
+| `GET /api/como-ir?desde=lat,lon&hasta=lat,lon` | Opciones en ómnibus (directas o con 1 trasbordo) |
+| `GET /api/omnibus/llegadas?tramos=variante:parada,...` | Estimación en vivo de los próximos ómnibus |
 
 Si la IM informa vencimiento de la bandera, se respeta; si no lo informa, la bandera solo
 se considera válida en temporada (15/11 – 30/04). Fuera de temporada aparecen grises ("sin servicio").
@@ -38,12 +40,30 @@ se considera válida en temporada (15/11 – 30/04). Fuera de temporada aparecen
 - La IM agrupa casillas por código de playa (`beach`); su endpoint `/beaches` devuelve casillas, no playas.
 - `?playa=pocitos` en la URL abre directamente esa playa.
 
+## Cómo ir en ómnibus
+
+La API de transporte de la IM requiere **otra aplicación** en el portal (cada app se asocia a
+un solo servicio): `IM_TRANSPORTE_CLIENT_ID` / `IM_TRANSPORTE_CLIENT_SECRET`.
+
+- La IM no ofrece ruteo: el planificador (`src/lib/transporte/planificador.ts`) usa el **GTFS**
+  del STM (paradas, horarios y recorridos). Busca viajes directos y con un trasbordo, con paradas
+  a ≤ 900 m del origen y ≤ 800 m de la playa, y ordena por hora de llegada.
+- El GTFS (~17 MB) se descarga una vez por versión, se guarda en el directorio temporal y se
+  procesa en streaming (~2 s). `src/instrumentation.ts` lo precarga al iniciar el servidor.
+- En vivo: `upcomingbuses` de la IM devuelve vacío, así que la llegada se estima proyectando la
+  posición GPS de cada ómnibus (`/buses`) sobre el recorrido de su variante
+  (en este feed `shape_id` = `lineVariantId`). `/buses` se consulta como máximo cada 15 s para
+  todos los usuarios, por el límite de uso de la IM.
+- No contempla feriados ni horarios especiales.
+
 ## Código
 
 - `src/lib/im.ts` — token OAuth2 (cacheado) y llamadas a la IM
 - `src/lib/weather.ts` — Open-Meteo, todas las playas en 2 requests
 - `src/lib/playas.ts` — une playas + casillas + clima, lógica de temporada
+- `src/lib/transporte/` — GTFS, planificador y tiempo real
 - `src/components/mapa/Mapa.tsx` — mapa, buscador y panel de detalle
+- `src/components/mapa/ComoIr.tsx` — UI de "cómo llegar en ómnibus"
 - `src/components/mapa/capa-casillas.ts` — capa Three.js (instancing + shader de bandera)
 - `src/components/mapa/modelo.ts` — geometría low-poly de la casilla
 - `src/app/page.tsx` — página principal
