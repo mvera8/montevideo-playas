@@ -1,5 +1,6 @@
 import MapaCliente from "@/components/mapa/MapaCliente";
 import { getPlayas } from "@/lib/playas";
+import { SITIO } from "@/lib/sitio";
 import { getMontevideoWeather } from "@/lib/weather";
 
 export const revalidate = 300;
@@ -12,7 +13,7 @@ export default async function Home() {
 
   return (
     <main className="h-dvh">
-      <h1 className="sr-only">Playas y guardavidas de Montevideo</h1>
+      <h1 className="sr-only">{SITIO.marca}: playas, guardavidas y calidad del agua</h1>
       <MapaCliente
         playas={playas}
         temporada={temporada}

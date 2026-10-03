@@ -126,9 +126,12 @@ function Punto({ punto, varios }: { punto: PuntoAgua; varios: boolean }) {
 // Enterococos por muestra con los dos límites del decreto como referencia.
 function Grafico({ muestras }: { muestras: Muestra[] }) {
   const [activa, setActiva] = useState<number | null>(null);
-  const W = 300, L = 4, R = 50, T = 8, H = 56, XB = 14;
+  const W = 300, L = 4, R = 50, T = 12, H = 56, XB = 14;
   const vals = muestras.map((m) => m.enterococos ?? 0);
-  const max = Math.max(LIMITE_MUESTRA * 1.15, ...vals);
+  // Eje acotado: una muestra extrema (p. ej. 6600) no debe aplastar al resto. Las que pasan
+  // el tope se recortan y muestran su valor arriba.
+  const TOPE = LIMITE_MUESTRA * 2.2;
+  const max = Math.min(Math.max(LIMITE_MUESTRA * 1.15, ...vals), TOPE);
   const y = (v: number) => T + H - (v / max) * H;
   const paso = (W - L - R) / muestras.length;
   const m = activa != null ? muestras[activa] : null;
@@ -153,8 +156,9 @@ function Grafico({ muestras }: { muestras: Muestra[] }) {
         ))}
         {muestras.map((mu, i) => {
           const v = mu.enterococos;
-          const alto = v == null ? 0 : Math.max(1.5, (v / max) * H);
+          const alto = v == null ? 0 : Math.max(1.5, (Math.min(v, max) / max) * H);
           const supera = v != null && v > LIMITE_MUESTRA;
+          const recortada = v != null && v > max;
           return (
             <g key={mu.fecha} onPointerEnter={() => setActiva(i)} onPointerDown={() => setActiva(i)}>
               <rect x={L + i * paso} y={T} width={paso} height={H} fill="transparent" />
@@ -167,6 +171,11 @@ function Grafico({ muestras }: { muestras: Muestra[] }) {
                 opacity={mu.representativa ? 1 : 0.45}
                 className={supera ? "fill-orange-600 dark:fill-orange-500" : "fill-sky-400 dark:fill-sky-500"}
               />
+              {recortada && (
+                <text x={L + (i + 0.5) * paso} y={T - 1} textAnchor="middle" className="fill-orange-700 text-[8px] font-semibold dark:fill-orange-400">
+                  {v}↑
+                </text>
+              )}
             </g>
           );
         })}

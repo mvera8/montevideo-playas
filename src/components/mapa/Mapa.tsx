@@ -5,6 +5,7 @@ import {
   GeolocateControl,
   Map as MapLibreMap,
   NavigationControl,
+  Popup,
   type GeoJSONSource,
   type LngLatBoundsLike,
   type MapLayerMouseEvent,
@@ -19,6 +20,10 @@ import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./Como
 import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import CalidadAgua from "./CalidadAgua";
 import Pronostico from "./Pronostico";
+import ServiciosCerca from "./ServiciosCerca";
+import { cargarIconos, contenidoPopup } from "./servicios-mapa";
+import type { Servicio } from "@/lib/servicios";
+import { SITIO } from "@/lib/sitio";
 import SelectorTema from "./SelectorTema";
 import Lluvia from "./Lluvia";
 import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
@@ -140,6 +145,17 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   }, []);
 
   const casillas = useMemo(() => aCasillas(playas), [playas]);
+  // Servicios de todas las playas, sin repetir (uno puede quedar cerca de dos playas).
+  const servicios = useMemo(() => {
+    const m = new Map<string, Servicio>();
+    for (const p of playas) for (const s of p.servicios) if (!m.has(s.id)) m.set(s.id, s);
+    return m;
+  }, [playas]);
+  const serviciosRef = useRef(servicios);
+  useEffect(() => {
+    serviciosRef.current = servicios;
+  }, [servicios]);
+  const popupRef = useRef<Popup | null>(null);
   const playa = playas.find((p) => p.slug === slug) ?? null;
 
   // Destino del "cómo ir": la casilla elegida o, si no hay, el centro de la playa.
@@ -343,6 +359,29 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
         setEligiendo(false);
       });
 
+      // Baños, bebederos y duchas cerca de las playas (íconos desde zoom 13,5).
+      cargarIconos(map);
+      map.addSource("servicios", { type: "geojson", data: VACIO });
+      map.addLayer({
+        id: "servicios",
+        type: "symbol",
+        source: "servicios",
+        minzoom: 13.5,
+        layout: {
+          "icon-image": ["concat", "servicio-", ["get", "tipo"]],
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 13.5, 0.75, 17, 1.1],
+          "icon-allow-overlap": true,
+        },
+        // Datos viejos (OSM sin actualizar en más de 2 años) se ven más tenues.
+        paint: { "icon-opacity": ["case", ["get", "viejo"], 0.5, 1] },
+      });
+      map.on("click", "servicios", (e: MapLayerMouseEvent) => {
+        const s = serviciosRef.current.get(e.features?.[0]?.properties.id as string);
+        if (s) abrirPopup(map, s, popupRef);
+      });
+      map.on("mouseenter", "servicios", () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", "servicios", () => (map.getCanvas().style.cursor = ""));
+
       map.on("click", "casillas-hit", (e: MapLayerMouseEvent) => {
         if (eligiendoRef.current) return;
         const f = e.features?.[0];
@@ -385,6 +424,27 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       if (t) localStorage.setItem("tema", t);
       else localStorage.removeItem("tema");
     } catch {}
+  }
+
+  // Servicios → mapa.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!listo || !map) return;
+    (map.getSource("servicios") as GeoJSONSource).setData({
+      type: "FeatureCollection",
+      features: [...servicios.values()].map((s) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [s.lon, s.lat] },
+        properties: { id: s.id, tipo: s.tipo, viejo: s.viejo },
+      })),
+    });
+  }, [listo, servicios]);
+
+  function verServicio(s: Servicio) {
+    const map = mapRef.current;
+    if (!map) return;
+    map.flyTo({ center: [s.lon, s.lat], zoom: 17, pitch: 50, padding: padding(0, abiertoRef.current), essential: true });
+    map.once("moveend", () => abrirPopup(map, s, popupRef));
   }
 
   // Datos → capa 3D y fuentes GeoJSON.
@@ -511,6 +571,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   }
 
   function cerrar() {
+    popupRef.current?.remove();
     setSlug(null);
     setCasillaId(null);
     setEligiendo(false);
@@ -585,6 +646,16 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
         </span>
       </button>
 
+      {/* Marca flotante a la derecha del botón del panel (se desplaza junto con él). */}
+      <p
+        className={`pointer-events-none absolute left-3 top-[72px] z-20 flex h-12 items-center gap-1 rounded-2xl bg-white/95 px-4 text-sm font-semibold tracking-tight text-slate-900 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate] duration-300 ease-out motion-reduce:transition-none md:left-[72px] md:top-4 dark:bg-slate-900/95 dark:text-white dark:ring-white/10 ${
+          abierto ? "md:translate-x-[356px]" : ""
+        }`}
+      >
+        {SITIO.nombre}
+        <span className="font-normal text-slate-500 dark:text-slate-400">· {SITIO.alcance}</span>
+      </p>
+
       <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
 
       <aside
@@ -651,6 +722,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
               casillaId={casillaId}
               onCasilla={setCasillaId}
               onCerrar={cerrar}
+              onVerServicio={verServicio}
             />
             {destino && (
               <ComoIr
@@ -678,6 +750,15 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   );
 }
 
+// Un solo popup abierto a la vez.
+function abrirPopup(map: MapLibreMap, s: Servicio, ref: { current: Popup | null }) {
+  ref.current?.remove();
+  ref.current = new Popup({ offset: 14, maxWidth: "260px" })
+    .setLngLat([s.lon, s.lat])
+    .setDOMContent(contenidoPopup(s))
+    .addTo(map);
+}
+
 // Margen para que el panel no tape lo que se encuadra (izquierda en escritorio, abajo en móvil).
 function padding(extra: number, panelAbierto: boolean) {
   const escritorio = window.matchMedia("(min-width: 768px)").matches;
@@ -697,12 +778,14 @@ function Detalle({
   casillaId,
   onCasilla,
   onCerrar,
+  onVerServicio,
 }: {
   playa: Playa;
   temporada: Temporada;
   casillaId: string | null;
   onCasilla: (id: string) => void;
   onCerrar: () => void;
+  onVerServicio: (s: Servicio) => void;
 }) {
   const c = playa.clima;
   return (
@@ -790,6 +873,8 @@ function Detalle({
           })}
         </ul>
       )}
+
+      <ServiciosCerca servicios={playa.servicios} onVer={onVerServicio} />
     </>
   );
 }

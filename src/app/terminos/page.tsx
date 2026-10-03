@@ -22,6 +22,12 @@ const FUENTES = [
     licencia: "Datos abiertos, Licencia de Datos Abiertos – Uruguay.",
   },
   {
+    nombre: "Intendencia de Montevideo — Equipamiento urbano",
+    url: "https://catalogodatos.gub.uy/dataset/equipamiento-urbano-espacios-publicos",
+    usa: "Baños y bebederos públicos (solo los activos).",
+    licencia: "Datos abiertos, Licencia de Datos Abiertos – Uruguay.",
+  },
+  {
     nombre: "Open-Meteo",
     url: "https://open-meteo.com",
     usa: "Clima actual, pronóstico por hora, temperatura del agua modelada y olas.",
@@ -31,7 +37,7 @@ const FUENTES = [
   {
     nombre: "OpenStreetMap, OpenMapTiles y OpenFreeMap",
     url: "https://www.openstreetmap.org/copyright",
-    usa: "Mapa base (calles, costa, edificios).",
+    usa: "Mapa base (calles, costa, edificios) y baños, bebederos y duchas cargados por la comunidad.",
     licencia: "© colaboradores de OpenStreetMap, bajo licencia ODbL.",
   },
   {
@@ -101,6 +107,15 @@ export default function Terminos() {
         “¿A qué playa voy?” y “Mejor horario” son un puntaje propio que combina bandera, calidad del agua, viento según
         la orientación aproximada de cada playa, temperatura, lluvia y tiempo de viaje. Es una sugerencia, no una
         garantía de que la playa esté en buenas condiciones.
+      </p>
+
+      <h3>Baños, bebederos y duchas</h3>
+      <p>
+        Combinamos el registro oficial de la Intendencia (solo los marcados como activos) con datos de OpenStreetMap,
+        que carga la comunidad. Pueden estar cerrados, fuera de horario o haber dejado de existir; los baños químicos
+        suelen instalarse solo en temporada. Para los de OpenStreetMap mostramos la fecha de la última verificación o
+        edición, y marcamos como “dato viejo” los que no se actualizan hace más de dos años. Los de la Intendencia no
+        traen fecha por punto.
       </p>
 
       <h3>Cómo llegar en ómnibus</h3>

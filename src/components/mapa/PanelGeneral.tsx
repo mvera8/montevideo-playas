@@ -5,6 +5,7 @@ import { SITIO } from "@/lib/sitio";
 import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Punto } from "@/lib/transporte/planificador";
 import type { Weather } from "@/lib/weather";
+import ClimaAhora from "./ClimaAhora";
 import Recomendador from "./Recomendador";
 
 export type EstadoBandera = NonNullable<Guardavidas["bandera"]> | "sin-datos";
@@ -66,7 +67,7 @@ export default function PanelGeneral({
 }: Props) {
   return (
     <div className="space-y-3">
-      {climaCiudad && <ClimaCiudad clima={climaCiudad} />}
+      {climaCiudad && <ClimaAhora clima={climaCiudad} ciudad={SITIO.alcance} />}
       {!temporada.activa && <FueraDeTemporada temporada={temporada} />}
       {fuente === "respaldo" && (
         <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800">
@@ -124,22 +125,6 @@ export default function PanelGeneral({
           Privacidad
         </Link>
       </footer>
-    </div>
-  );
-}
-
-function ClimaCiudad({ clima }: { clima: Weather }) {
-  return (
-    <div className="rounded-2xl bg-sky-600 p-4 text-white shadow-sm dark:bg-sky-900">
-      <p className="text-xs uppercase tracking-wider text-sky-100">Montevideo ahora</p>
-      <div className="mt-1 flex items-end justify-between">
-        <p className="text-4xl font-semibold tabular-nums">{grados(clima.airTemp)}</p>
-        <p className="text-right text-sm text-sky-100">
-          {clima.description}
-          <br />
-          Agua {grados(clima.waterTemp)} · Viento {Math.round(clima.windSpeed)} km/h {clima.windDirectionLabel}
-        </p>
-      </div>
     </div>
   );
 }

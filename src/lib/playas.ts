@@ -6,6 +6,7 @@ import {
   type SafetyFlag,
 } from "./im";
 import { getCalidadAgua, type CalidadAgua } from "./calidad-agua";
+import { getServicios, serviciosCerca, type Servicio } from "./servicios";
 import { getWeatherForPoints, type Weather } from "./weather";
 
 export type Guardavidas = {
@@ -29,6 +30,7 @@ export type Playa = {
   guardavidas: Guardavidas[];
   clima: Weather | null;
   agua: CalidadAgua | null; // calidad del agua (datos abiertos de la IM)
+  servicios: Servicio[]; // baños y bebederos públicos cercanos (IM)
 };
 
 export type PlayasResult = {
@@ -149,19 +151,25 @@ const RESPALDO: { nombre: string; lat: number; lon: number }[] = [
   { nombre: "Miramar", lat: -34.8775, lon: -56.0355 },
 ];
 
-// Suma clima (Open-Meteo) y calidad del agua (IM) a cada playa, en paralelo.
-async function withClima(playas: Omit<Playa, "clima" | "agua">[]): Promise<Playa[]> {
-  const [clima, agua] = await Promise.all([
+// Suma clima (Open-Meteo), calidad del agua y servicios cercanos (IM) a cada playa, en paralelo.
+async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios">[]): Promise<Playa[]> {
+  const [clima, agua, servicios] = await Promise.all([
     getWeatherForPoints(playas.map((p) => ({ lat: p.lat, lon: p.lon }))).catch((e) => {
       console.error(e);
       return [] as Weather[];
     }),
     getCalidadAgua(),
+    getServicios(),
   ]);
-  return playas.map((p, i) => ({ ...p, clima: clima[i] ?? null, agua: agua.get(p.slug) ?? null }));
+  return playas.map((p, i) => ({
+    ...p,
+    clima: clima[i] ?? null,
+    agua: agua.get(p.slug) ?? null,
+    servicios: serviciosCerca(servicios, p.guardavidas.length ? p.guardavidas : [p]),
+  }));
 }
 
-function respaldo(): Omit<Playa, "clima" | "agua">[] {
+function respaldo(): Omit<Playa, "clima" | "agua" | "servicios">[] {
   return RESPALDO.map((b) => ({
     slug: slugify(b.nombre),
     nombre: b.nombre,

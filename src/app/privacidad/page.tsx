@@ -85,8 +85,9 @@ export default function Privacidad() {
         registro.
       </p>
       <p>
-        El clima, los datos de playas, la calidad del agua y los horarios de ómnibus los consultamos desde nuestro
-        servidor (Open-Meteo e Intendencia de Montevideo), sin enviarles ningún dato tuyo.
+        El clima, los datos de playas, la calidad del agua, los baños y bebederos y los horarios de ómnibus los
+        consultamos desde nuestro servidor (Open-Meteo, Intendencia de Montevideo y OpenStreetMap), sin enviarles ningún
+        dato tuyo.
       </p>
 
       <h2 id="finalidad">Para qué usamos los datos</h2>

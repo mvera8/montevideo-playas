@@ -37,6 +37,7 @@ CASILLAS
 - Como llegar
 - Horarios
 - Calidad del agua
+- Servicios cerca
 
 pastillas flotantes tipo table of content?
 como accordiones?

@@ -30,7 +30,7 @@ export default function PaginaLegal({
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-10">
-        <p className="text-sm font-medium uppercase tracking-wider text-sky-700 dark:text-sky-300">{SITIO.nombre}</p>
+        <p className="text-sm font-medium uppercase tracking-wider text-sky-700 dark:text-sky-300">{SITIO.marca}</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">{titulo}</h1>
         <p className="mt-3 text-lg text-slate-600 dark:text-slate-400">{bajada}</p>
         <p className="mt-2 text-sm text-slate-500">Última actualización: {SITIO.actualizado}</p>

@@ -62,6 +62,26 @@ geométrica de 5 muestras que publica la IM. `src/lib/calidad-agua.ts` los cruza
 - Datos con más de 21 días se muestran como "sin muestreo reciente".
 - Entra en el ranking: agua fuera de límite resta 30; cianobacterias restan o descartan la playa.
 
+## Baños, bebederos y duchas cercanos
+
+`src/lib/servicios.ts` combina dos fuentes, a menos de 600 m de las casillas de cada playa:
+
+- **IM** ([equipamiento urbano](https://catalogodatos.gub.uy/dataset/equipamiento-urbano-espacios-publicos)):
+  shapefile en UTM 21S (se convierte a lat/lon), solo los marcados como activos. Cubre sobre todo plazas
+  y parques. No se muestran sus observaciones porque varias están desactualizadas (p. ej. "cerrado por Covid").
+- **OpenStreetMap** (Overpass, una consulta por día): baños de la rambla, químicos de temporada, bebederos
+  y duchas. Se descartan los cerrados o privados, y los que están a menos de 40 m de uno de la IM.
+
+- **Fechas**: OSM se pide con `out center meta`. Se usa `check_date`/`survey:date` ("verificado") o,
+  si no hay, la última edición ("editado"); con más de 2 años (`DIAS_VIGENCIA_OSM`) se avisa "dato viejo"
+  y el ícono se ve tenue. Cerca de las playas ninguno tiene `check_date` (medido 10/2026): varios baños
+  fijos no se editan desde 2017-2023. La IM no trae fecha por punto (regenera el registro a diario).
+- **Overpass** a veces responde 504/429 (saturado): un reintento a los 2 s; si falla, quedan los datos
+  anteriores. Los espejos públicos probados (kumi.systems, private.coffee) no respondieron.
+
+Cache en memoria de 24 h; si una fuente falla se sigue con la otra. En el mapa: íconos desde zoom 13,5
+con popup (armado con DOM/textContent, los datos de OSM son texto libre).
+
 ## ¿A qué playa voy? y mejor horario
 
 Lógica pura en `src/lib/recomendacion.ts` (sirve en cliente y servidor):
@@ -109,3 +129,24 @@ un solo servicio): `IM_TRANSPORTE_CLIENT_ID` / `IM_TRANSPORTE_CLIENT_SECRET`.
 - `src/components/mapa/capa-casillas.ts` — capa Three.js (instancing + shader de bandera)
 - `src/components/mapa/modelo.ts` — geometría low-poly de la casilla
 - `src/app/page.tsx` — página principal
+
+## Extender a todo Uruguay (investigado 10/2026, no integrado)
+
+Fuentes nacionales verificadas, para cuando se quiera cubrir otros departamentos:
+
+- **GeoServer del Ministerio de Ambiente** (WFS, GeoJSON, sin clave):
+  `https://www.ambiente.gub.uy/geoserver/u19600217/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=u19600217:<capa>&outputFormat=application/json&srsName=EPSG:4326`
+  - `c388` **Playas**: 237 playas con nombre y departamento (Rocha 68, Maldonado 41, Canelones 38,
+    Colonia 36, Montevideo 19, …). ~55 KB.
+  - `c919` **Banderas sanitarias**: 347 puntos (187 activos) de la Red de Monitoreo de Playas
+    (14 intendencias). Solo se carga del 1/12 al 31/3; fuera de temporada no hay clasificación.
+  - `c1529` **Estaciones de monitoreo de calidad de agua**: 111 estaciones de programa "Playa" en
+    15 departamentos, con series históricas embebidas en el campo `json`. Pesa **8,8 MB**: filtrar
+    con `CQL_FILTER=nombre_programa='Playa'` y `propertyName`. Casi todas miden coliformes
+    termotolerantes (`TermoTMF`); **enterococos solo 23 estaciones** (el Decreto 226/025 usa
+    enterococos). Fuera de temporada el muestreo es mensual o se corta: varios departamentos tienen
+    el último dato en marzo.
+- **Sin fuente abierta encontrada**: casillas y banderas de seguridad de guardavidas fuera de
+  Montevideo. Canelones tiene la app propia SIMAS (82 torres) pero sin API pública conocida.
+- Ya son nacionales: clima (Open-Meteo), mapa y servicios (OpenStreetMap). El transporte (GTFS STM)
+  es solo Montevideo; el MTOP publica horarios interdepartamentales en el catálogo de datos abiertos.
