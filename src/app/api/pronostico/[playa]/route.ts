@@ -14,7 +14,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/pronostico/[pla
     // Desde la hora actual hasta el final de mañana.
     const proximas = horas.filter((h) => h.hora >= ahora.slice(0, 13));
     return Response.json(
-      { ahora, horas: proximas, luz, mejor: mejorFranja(slug, horas, ahora, luz) },
+      { ahora, horas: proximas, luz, mejor: mejorFranja(playa.orientacion, horas, ahora, luz) },
       { headers: { "Cache-Control": "public, max-age=600" } },
     );
   } catch (e) {

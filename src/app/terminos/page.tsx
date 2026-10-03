@@ -105,7 +105,7 @@ export default function Terminos() {
       <h3>Recomendaciones</h3>
       <p>
         “¿A qué playa voy?” y “Mejor horario” son un puntaje propio que combina bandera, calidad del agua, viento según
-        la orientación aproximada de cada playa, temperatura, lluvia y tiempo de viaje. Es una sugerencia, no una
+        hacia dónde mira cada playa (calculado con la línea de costa de OpenStreetMap), temperatura, lluvia y tiempo de viaje. Es una sugerencia, no una
         garantía de que la playa esté en buenas condiciones.
       </p>
 

@@ -1,0 +1,166 @@
+{
+  "generado": "2026-10-03",
+  "fuente": "Línea de costa de OpenStreetMap (natural=coastline) y casillas de la Intendencia de Montevideo",
+  "casillas": {
+    "MVD:lifeguardstation:1": {
+      "nombre": "Martí",
+      "rumbo": 124,
+      "metrosCosta": 47
+    },
+    "MVD:lifeguardstation:3": {
+      "nombre": "Buxareo",
+      "rumbo": 159,
+      "metrosCosta": 44
+    },
+    "MVD:lifeguardstation:2": {
+      "nombre": "Pereira",
+      "rumbo": 136,
+      "metrosCosta": 48
+    },
+    "MVD:lifeguardstation:4": {
+      "nombre": "Ramírez",
+      "rumbo": 248,
+      "metrosCosta": 27
+    },
+    "MVD:lifeguardstation:19": {
+      "nombre": "Mississipi",
+      "rumbo": 161,
+      "metrosCosta": 38
+    },
+    "MVD:lifeguardstation:12": {
+      "nombre": "Batlle y Ordóñez",
+      "rumbo": 136,
+      "metrosCosta": 37
+    },
+    "MVD:lifeguardstation:17": {
+      "nombre": "Río de la Plata",
+      "rumbo": 200,
+      "metrosCosta": 50
+    },
+    "MVD:lifeguardstation:5": {
+      "nombre": "Polonia",
+      "rumbo": 164,
+      "metrosCosta": 57
+    },
+    "MVD:lifeguardstation:6": {
+      "nombre": "Bogotá",
+      "rumbo": 161,
+      "metrosCosta": 47
+    },
+    "MVD:lifeguardstation:11": {
+      "nombre": "Punta Espinillo",
+      "rumbo": 220,
+      "metrosCosta": 57
+    },
+    "MVD:lifeguardstation:14": {
+      "nombre": "Solano López",
+      "rumbo": 145,
+      "metrosCosta": 34
+    },
+    "MVD:lifeguardstation:23": {
+      "nombre": "San Marino",
+      "rumbo": 211,
+      "metrosCosta": 56
+    },
+    "MVD:lifeguardstation:9": {
+      "nombre": "Pajas Blancas",
+      "rumbo": 202,
+      "metrosCosta": 56
+    },
+    "MVD:lifeguardstation:13": {
+      "nombre": "Arrascaeta",
+      "rumbo": 158,
+      "metrosCosta": 35
+    },
+    "MVD:lifeguardstation:21": {
+      "nombre": "Los Ingleses",
+      "rumbo": 203,
+      "metrosCosta": 43
+    },
+    "MVD:lifeguardstation:10": {
+      "nombre": "La Colorada",
+      "rumbo": 215,
+      "metrosCosta": 35
+    },
+    "MVD:lifeguardstation:15": {
+      "nombre": "Hipólito Irigoyen",
+      "rumbo": 177,
+      "metrosCosta": 44
+    },
+    "MVD:lifeguardstation:16": {
+      "nombre": "18 de Diciembre",
+      "rumbo": 176,
+      "metrosCosta": 49
+    },
+    "MVD:lifeguardstation:7": {
+      "nombre": "Frigonal",
+      "rumbo": 197,
+      "metrosCosta": 35
+    },
+    "MVD:lifeguardstation:26": {
+      "nombre": "Arocena",
+      "rumbo": 141,
+      "metrosCosta": 69
+    },
+    "MVD:lifeguardstation:24": {
+      "nombre": "Podestá",
+      "rumbo": 181,
+      "metrosCosta": 35
+    },
+    "MVD:lifeguardstation:22": {
+      "nombre": "Belastiqui",
+      "rumbo": 174,
+      "metrosCosta": 37
+    },
+    "MVD:lifeguardstation:27": {
+      "nombre": "Cartagena",
+      "rumbo": 153,
+      "metrosCosta": 75
+    },
+    "MVD:lifeguardstation:8": {
+      "nombre": "Punta Yeguas",
+      "rumbo": 148,
+      "metrosCosta": 48
+    },
+    "MVD:lifeguardstation:28": {
+      "nombre": "Santa Catalina",
+      "rumbo": 190,
+      "metrosCosta": 65
+    },
+    "MVD:lifeguardstation:20": {
+      "nombre": "Gallinal",
+      "rumbo": 167,
+      "metrosCosta": 46
+    },
+    "MVD:lifeguardstation:18": {
+      "nombre": "Brava",
+      "rumbo": 150,
+      "metrosCosta": 33
+    },
+    "MVD:lifeguardstation:25": {
+      "nombre": "Bolivia",
+      "rumbo": 138,
+      "metrosCosta": 74
+    },
+    "MVD:lifeguardstation:29": {
+      "nombre": "Punta Yeguas Chica",
+      "rumbo": 145,
+      "metrosCosta": 52
+    },
+    "MVD:lifeguardstation:30": {
+      "nombre": "Zabala",
+      "rumbo": 225,
+      "metrosCosta": 122
+    },
+    "MVD:lifeguardstation:31": {
+      "nombre": "Los Cilindros",
+      "rumbo": 230,
+      "metrosCosta": 5
+    },
+    "MVD:lifeguardstation:32": {
+      "nombre": "Nariño",
+      "rumbo": 152,
+      "metrosCosta": 78
+    }
+  }
+}

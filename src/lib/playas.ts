@@ -5,7 +5,9 @@ import {
   type ImLifeguardStation,
   type SafetyFlag,
 } from "./im";
+import orientaciones from "@/data/orientaciones.json";
 import { getCalidadAgua, type CalidadAgua } from "./calidad-agua";
+import { orientacionRespaldo } from "./recomendacion";
 import { getServicios, serviciosCerca, type Servicio } from "./servicios";
 import { getWeatherForPoints, type Weather } from "./weather";
 
@@ -17,6 +19,9 @@ export type Guardavidas = {
   lon: number;
   comoIr: string | null;
   // Banderas: null cuando no hay dato vigente (expirado o fuera de temporada).
+  // Rumbo desde la casilla hacia el agua (0 = norte). Precalculado con la costa de OSM
+  // (npm run orientaciones); null si la casilla es nueva y todavía no está calculada.
+  orientacion: number | null;
   bandera: Exclude<SafetyFlag, "noData"> | null;
   banderaSanitaria: { activa: boolean; causa: string | null } | null;
 };
@@ -29,6 +34,7 @@ export type Playa = {
   lon: number;
   guardavidas: Guardavidas[];
   clima: Weather | null;
+  orientacion: number; // hacia dónde mira la playa (promedio circular de sus casillas)
   agua: CalidadAgua | null; // calidad del agua (datos abiertos de la IM)
   servicios: Servicio[]; // baños y bebederos públicos cercanos (IM)
 };
@@ -129,6 +135,7 @@ function toGuardavidas(s: ImLifeguardStation, temporadaActiva: boolean): Guardav
     lat,
     lon,
     comoIr: s.linkComoIr ?? null,
+    orientacion: (orientaciones.casillas as Record<string, { rumbo: number }>)[s.id]?.rumbo ?? null,
     bandera,
     banderaSanitaria,
   };
@@ -151,8 +158,18 @@ const RESPALDO: { nombre: string; lat: number; lon: number }[] = [
   { nombre: "Miramar", lat: -34.8775, lon: -56.0355 },
 ];
 
+/** Promedio de ángulos (rumbos en grados): el promedio común falla cerca de 0°/360°. */
+function promedioCircular(rumbos: (number | null)[]): number | null {
+  const v = rumbos.filter((r): r is number => r != null);
+  if (!v.length) return null;
+  const rad = v.map((r) => (r * Math.PI) / 180);
+  const x = rad.reduce((t, r) => t + Math.sin(r), 0);
+  const y = rad.reduce((t, r) => t + Math.cos(r), 0);
+  return Math.round(((Math.atan2(x, y) * 180) / Math.PI + 360) % 360);
+}
+
 // Suma clima (Open-Meteo), calidad del agua y servicios cercanos (IM) a cada playa, en paralelo.
-async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios">[]): Promise<Playa[]> {
+async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios" | "orientacion">[]): Promise<Playa[]> {
   const [clima, agua, servicios] = await Promise.all([
     getWeatherForPoints(playas.map((p) => ({ lat: p.lat, lon: p.lon }))).catch((e) => {
       console.error(e);
@@ -165,11 +182,12 @@ async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios">[]):
     ...p,
     clima: clima[i] ?? null,
     agua: agua.get(p.slug) ?? null,
+    orientacion: promedioCircular(p.guardavidas.map((g) => g.orientacion)) ?? orientacionRespaldo(p.slug),
     servicios: serviciosCerca(servicios, p.guardavidas.length ? p.guardavidas : [p]),
   }));
 }
 
-function respaldo(): Omit<Playa, "clima" | "agua" | "servicios">[] {
+function respaldo(): Omit<Playa, "clima" | "agua" | "servicios" | "orientacion">[] {
   return RESPALDO.map((b) => ({
     slug: slugify(b.nombre),
     nombre: b.nombre,

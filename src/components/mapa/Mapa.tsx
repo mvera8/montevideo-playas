@@ -68,7 +68,9 @@ function aCasillas(playas: Playa[]): (CasillaMapa & { slug: string; nombre: stri
   return playas.flatMap((p) => {
     const viento = { vientoDeg: p.clima?.windDirection ?? null, vientoKmh: p.clima?.windSpeed ?? null };
     if (p.guardavidas.length === 0)
-      return [{ id: `playa:${p.slug}`, slug: p.slug, nombre: p.nombre, lng: p.lon, lat: p.lat, bandera: null, ...viento }];
+      return [
+        { id: `playa:${p.slug}`, slug: p.slug, nombre: p.nombre, lng: p.lon, lat: p.lat, bandera: null, orientacion: p.orientacion, ...viento },
+      ];
     return p.guardavidas.map((g) => ({
       id: g.id,
       slug: p.slug,
@@ -76,6 +78,7 @@ function aCasillas(playas: Playa[]): (CasillaMapa & { slug: string; nombre: stri
       lng: g.lon,
       lat: g.lat,
       bandera: g.bandera,
+      orientacion: g.orientacion ?? p.orientacion, // el frente y la rampa apuntan al agua
       ...viento,
     }));
   });

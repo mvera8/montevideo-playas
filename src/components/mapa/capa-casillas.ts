@@ -29,6 +29,7 @@ export type CasillaMapa = {
   bandera: "green" | "yellow" | "red" | "black" | null;
   vientoDeg: number | null; // de dónde sopla (0 = norte)
   vientoKmh: number | null;
+  orientacion: number; // rumbo hacia el agua (0 = norte, 180 = sur): hacia ahí mira el frente
 };
 
 const COLORES: Record<NonNullable<CasillaMapa["bandera"]> | "none", string> = {
@@ -245,19 +246,26 @@ export class CapaCasillas implements CustomLayerInterface {
     const bandera = new Matrix4();
     const mastil = new Matrix4().makeTranslation(MASTIL_POS.x, MASTIL_POS.y, MASTIL_POS.z);
     const rot = new Matrix4();
+    const giro = new Matrix4();
+    const giroInverso = new Matrix4();
 
     this.casillas.forEach((c, i) => {
       const m = MercatorCoordinate.fromLngLat([c.lng, c.lat], 0);
       const x = (m.x - this.origen.x) / this.escalaMerc;
       const z = (m.y - this.origen.y) / this.escalaMerc;
       const s = escalaBase * (c.id === this.seleccion ? 1.4 : 1);
-      base.makeScale(s, s, s).setPosition(x, 0, z);
+      // El frente del modelo (+Z) mira al sur (rumbo 180°); girar para que mire al agua.
+      const angulo = ((180 - c.orientacion) * Math.PI) / 180;
+      giro.makeRotationY(angulo);
+      giroInverso.makeRotationY(-angulo);
+      base.makeScale(s, s, s).premultiply(giro).setPosition(x, 0, z);
       this.casillasMesh!.setMatrixAt(i, base);
 
-      // La bandera apunta hacia donde va el viento (rumbo = origen + 180°).
+      // La bandera apunta hacia donde va el viento (rumbo = origen + 180°), independiente del giro
+      // de la casilla: se deshace el giro antes de aplicar el del viento.
       const rumbo = (((c.vientoDeg ?? 135) + 180) * Math.PI) / 180;
       rot.makeRotationY(Math.PI / 2 - rumbo);
-      bandera.copy(base).multiply(mastil).multiply(rot);
+      bandera.copy(base).multiply(mastil).multiply(giroInverso).multiply(rot);
       this.banderasMesh!.setMatrixAt(i, bandera);
     });
     this.casillasMesh!.instanceMatrix.needsUpdate = true;
