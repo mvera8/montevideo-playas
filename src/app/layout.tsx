@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SITIO } from "@/lib/sitio";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Playas de Montevideo",
-  description: "Playas, guardavidas, banderas y temperatura del agua en Montevideo",
+  title: SITIO.marca,
+  description: `Playas, guardavidas, calidad del agua y clima en ${SITIO.alcance}.`,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

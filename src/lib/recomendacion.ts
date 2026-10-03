@@ -90,6 +90,22 @@ export function recomendar(
         motivos.push({ texto: "Bandera sanitaria", tono: "mal" });
       }
 
+      // Calidad del agua (muestreos de la IM, criterio Decreto 226/025).
+      if (p.agua?.estado === "no-apta") {
+        s -= 30;
+        motivos.push({ texto: "Agua fuera de límite", tono: "mal" });
+      } else if (p.agua?.estado === "apta") {
+        s += 3;
+        motivos.push({ texto: "Agua dentro de límites", tono: "bien" });
+      }
+      if (p.agua?.ciano === "espuma") {
+        tope = Math.min(tope, 10);
+        motivos.push({ texto: "Cianobacterias (espuma)", tono: "mal" });
+      } else if (p.agua?.ciano === "presencia") {
+        s -= 20;
+        motivos.push({ texto: "Cianobacterias", tono: "mal" });
+      }
+
       if (c) {
         // Viento según orientación de la playa.
         const e = exposicion(p.slug, c.windDirection);

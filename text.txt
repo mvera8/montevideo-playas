@@ -15,7 +15,36 @@ me gustaria esconder el sidebar de la izquierda con un boton de cruz o expandir 
 
 me gustaria que el mapa tenga colores dependiendo el estado del tiempo, ejemplo si esta soleado que el agua sea vea bien colores brillosos o si esta templado o gris que los colores sean mas apagados y si es de noche que el mapa sea oscuro con luces, adjunto referencias
 
+la calidad del agua cada cuanto se mide en la info que obtenemos, si pasan mas de 6 meses de la ultima informacion, no sirve.
+necesitaria una skill o algo para actualizar esa data?
+
+-
+
 girar casetas de guardavidas 3d apuntando al agua
+
+------
+
+LEGAL:
+
+Antes de publicar, completá los datos marcados en src/lib/sitio.ts: quién es el responsable, un correo de contacto y dónde está alojado el sitio. Hoy aparecen como "[COMPLETAR: …]" en las páginas, para que no se escapen.
+
+Open-Meteo gratis es solo para uso no comercial (lo confirmé en sus términos). Si la app va a tener publicidad o un fin comercial, vas a necesitar su plan pago o cambiar de proveedor del clima. OpenFreeMap sí permite uso comercial.
+
+----
+
+CASILLAS
+- Casillas
+- Como llegar
+- Horarios
+- Calidad del agua
+- Servicios cerca
+
+pastillas flotantes tipo table of content?
+como accordiones?
+
+----
+
+Subscribción email playa por dia?
 
 ----
 

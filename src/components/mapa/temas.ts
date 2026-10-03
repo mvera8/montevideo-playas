@@ -6,18 +6,31 @@ import type { Weather } from "@/lib/weather";
 // - nublado: monocromo apagado, calles como líneas finas (estilo póster)
 // - noche:   fondo negro, avenidas ámbar con resplandor y edificios como luces
 
-export type Tema = "soleado" | "nublado" | "noche";
+export type Tema = "soleado" | "nublado" | "lluvia" | "noche";
 
 export const TEMAS: Record<Tema, { label: string; icono: string }> = {
   soleado: { label: "Soleado", icono: "☀️" },
   nublado: { label: "Nublado", icono: "☁️" },
+  lluvia: { label: "Lluvia", icono: "🌧️" },
   noche: { label: "Noche", icono: "🌙" },
 };
 
+export type IntensidadLluvia = "llovizna" | "lluvia" | "tormenta";
+
+/** Códigos WMO: 51-57 llovizna, 61-67 y 80-82 lluvia/chaparrones, 95-99 tormenta. */
+export function intensidadLluvia(code: number | undefined): IntensidadLluvia | null {
+  if (code == null) return null;
+  if (code >= 95) return "tormenta";
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return "lluvia";
+  if (code >= 51 && code <= 57) return "llovizna";
+  return null;
+}
+
 export function temaPorClima(c: Weather | null): Tema {
   if (!c) return "soleado";
-  if (!c.isDay) return "noche";
-  return c.weatherCode <= 2 ? "soleado" : "nublado"; // 3 = cubierto; 45+ niebla, llovizna, lluvia
+  if (!c.isDay) return "noche"; // de noche manda la noche; la lluvia se ve con el efecto
+  if (intensidadLluvia(c.weatherCode)) return "lluvia";
+  return c.weatherCode <= 2 ? "soleado" : "nublado"; // 3 = cubierto, 45/48 niebla
 }
 
 type Paleta = {
@@ -94,6 +107,31 @@ const PALETAS: Record<Tema, Paleta> = {
     resplandor: 0,
     etiqueta: "#2f3a44",
     etiquetaHalo: "#f3f3f1",
+  },
+  lluvia: {
+    // Ciudad mojada: grises fríos, agua color acero y calles más claras (asfalto que refleja).
+    fondo: "#d6dce2",
+    residencial: "#d1d7dd",
+    parque: "#c4cfc8",
+    bosque: "#bdc9c1",
+    agua: "#7b8fa3",
+    edificio: "#c9d0d7",
+    edificioBorde: "#b7c0c9",
+    sendero: "#e0e5ea",
+    viaMenor: "#edf1f5",
+    viaMayor: "#f5f8fa",
+    viaMayorBorde: "#aeb8c2",
+    autopista: "#ffffff",
+    autopistaBorde: "#98a5b2",
+    tren: "#b2bcc6",
+    limite: "#94a0ab",
+    texto: "#2f3b47",
+    textoCalle: "#55616d",
+    textoAgua: "#1f3346",
+    halo: "#dfe5ea",
+    resplandor: 0,
+    etiqueta: "#1c2f3f",
+    etiquetaHalo: "#e3e8ed",
   },
   noche: {
     fondo: "#0a0b0e",

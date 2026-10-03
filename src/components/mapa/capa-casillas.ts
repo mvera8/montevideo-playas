@@ -142,10 +142,11 @@ export class CapaCasillas implements CustomLayerInterface {
   }
 
   /** Luz según el tema: sol de catálogo, nublado difuso o noche cálida (rambla iluminada). */
-  setLuz(luz: "soleado" | "nublado" | "noche") {
+  setLuz(luz: "soleado" | "nublado" | "lluvia" | "noche") {
     const L = {
       soleado: { cielo: "#ffffff", suelo: "#efe4c8", ci: 2.8, sol: "#fffaf0", si: 1.3 },
       nublado: { cielo: "#e6ebf0", suelo: "#d9d6cf", ci: 2.6, sol: "#ffffff", si: 0.5 },
+      lluvia: { cielo: "#cdd7e2", suelo: "#a9b2bb", ci: 2.1, sol: "#e8eef5", si: 0.3 },
       noche: { cielo: "#8fa3d9", suelo: "#3a2a10", ci: 0.9, sol: "#ffc56e", si: 0.9 },
     }[luz];
     this.cielo.color.set(L.cielo);
