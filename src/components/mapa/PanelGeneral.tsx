@@ -1,7 +1,9 @@
 "use client";
 
 import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
+import type { Punto } from "@/lib/transporte/planificador";
 import type { Weather } from "@/lib/weather";
+import Recomendador from "./Recomendador";
 
 export type EstadoBandera = NonNullable<Guardavidas["bandera"]> | "sin-datos";
 
@@ -40,6 +42,9 @@ type Props = {
   filtro: EstadoBandera | null;
   onFiltro: (f: EstadoBandera | null) => void;
   onElegir: (p: Playa) => void;
+  origen: Punto | null;
+  ubicando: boolean;
+  onUsarUbicacion: () => void;
 };
 
 export default function PanelGeneral({
@@ -53,6 +58,9 @@ export default function PanelGeneral({
   filtro,
   onFiltro,
   onElegir,
+  origen,
+  ubicando,
+  onUsarUbicacion,
 }: Props) {
   return (
     <div className="space-y-3">
@@ -64,7 +72,16 @@ export default function PanelGeneral({
           {error && <span className="mt-1 block text-xs opacity-80">{error}</span>}
         </div>
       )}
-      <ResumenBanderas playas={todas} filtro={filtro} onFiltro={onFiltro} />
+      <Recomendador
+        playas={todas}
+        temporada={temporada}
+        origen={origen}
+        ubicando={ubicando}
+        onUsarUbicacion={onUsarUbicacion}
+        onElegir={onElegir}
+      />
+      {/* Fuera de temporada no hay banderas: el resumen vuelve el 15/11. */}
+      {temporada.activa && <ResumenBanderas playas={todas} filtro={filtro} onFiltro={onFiltro} />}
 
       <div className="flex items-center justify-between px-1 pt-1">
         <h2 className="text-xs font-medium uppercase tracking-wider text-slate-500">

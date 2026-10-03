@@ -3,10 +3,33 @@ APIS
 - Clima: Open Meteo
 - Mapa: OpenFreeMap
 
-
 Performante
 Playa 3d (tree.js)?
 
 me gustaria que sea un mapa donde peudas buscar las playa, y aparezcan los datos, un icono como cabina de guardavida que adjunto que tenga una bandera en 3d del color que esta (tree.js) lo mas performante posible
 
 si agrego mi ubicacion y elijo una playa, podes hacer un como ir de omnibus? tambien tiene ese servicio la intendencia
+
+me gustaria esconder el sidebar de la izquierda con un boton de cruz o expandir al lado del buscador que flte fuera del sidebar
+
+me gustaria que el mapa tenga colores dependiendo el estado del tiempo, ejemplo si esta soleado que el agua sea vea bien colores brillosos o si esta templado o gris que los colores sean mas apagados y si es de noche que el mapa sea oscuro con luces, adjunto referencias
+
+
+
+----
+
+APIs o datos nuevos
+
+4. Servicios en cada playa con OpenStreetMap: baños, duchas, bajadas accesibles, estacionamiento, bicisendas y kioscos cerca de cada playa. Es gratis, no pide clave y se pueden mostrar como íconos en el mapa.
+
+5. Calidad del agua y cianobacterias: la IM publica monitoreos de las playas y alertas de cianobacterias en verano. Ya tomamos la bandera sanitaria de la API, pero el detalle (coliformes, fecha del último muestreo) haría la app más confiable. Tengo que revisar si está disponible como API o solo como datos abiertos o en la web de la IM.
+
+6. Alertas meteorológicas de INUMET (tormentas fuertes, vientos), para mostrar una alerta arriba del panel. También tengo que confirmar cómo las publica.
+
+7. Accesibilidad: la IM tiene un programa de playas accesibles, con sillas anfibias y pasarelas, en algunas playas. Aunque sea con datos cargados a mano, permitiría filtrar las playas "accesibles". Ninguna otra app lo muestra junto con el ómnibus de piso bajo, que ya detectamos en vivo.
+
+Producto
+
+8. App instalable (PWA): se instala en el celular como app y guarda la última info para cuando hay poca señal en la rambla.
+
+9. Reportes de la gente, con moderación: aguas vivas, si la playa está llena, estado de la arena. Es lo único que ninguna API oficial va a darte, pero necesita moderación y un mínimo de usuarios para servir.

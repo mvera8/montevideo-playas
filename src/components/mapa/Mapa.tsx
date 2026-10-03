@@ -17,6 +17,7 @@ import type { Opcion, Punto } from "@/lib/transporte/planificador";
 import { CapaCasillas, type CasillaMapa } from "./capa-casillas";
 import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./ComoIr";
 import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
+import Pronostico from "./Pronostico";
 
 // Copiado por scripts/copiar-worker-maplibre.mjs (postinstall).
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
@@ -513,6 +514,9 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
               filtro={filtro}
               onFiltro={setFiltro}
               onElegir={elegirPlaya}
+              origen={origen}
+              ubicando={ubicando}
+              onUsarUbicacion={usarUbicacion}
             />
           </section>
         )}
@@ -601,6 +605,8 @@ function Detalle({
           <Dato label="Humedad" value={`${c.humidity}%`} />
         </div>
       )}
+
+      <Pronostico slug={playa.slug} />
 
       <h3 className="mt-5 mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
         Casillas de guardavidas ({playa.guardavidas.length})

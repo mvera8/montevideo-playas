@@ -23,6 +23,8 @@ Sin credenciales la página muestra una lista de playas de respaldo con clima pe
 | `GET /api/guardavidas` | Casillas (lista plana) y estado de la temporada |
 | `GET /api/clima` | Clima actual en Montevideo |
 | `GET /api/clima/[playa]` | Clima en una playa, p. ej. `/api/clima/pocitos` |
+| `GET /api/pronostico/[playa]` | Pronóstico hora a hora (hoy y mañana) y mejor franja para ir |
+| `GET /api/viajes?desde=lat,lon` | Minutos y líneas para llegar ahora a cada playa (para el ranking) |
 | `GET /api/como-ir?desde=lat,lon&hasta=lat,lon` | Opciones en ómnibus (directas o con 1 trasbordo) |
 | `GET /api/omnibus/llegadas?tramos=variante:parada,...` | Estimación en vivo de los próximos ómnibus |
 
@@ -39,6 +41,18 @@ se considera válida en temporada (15/11 – 30/04). Fuera de temporada aparecen
 - El worker de MapLibre se copia a `public/maplibre` en `postinstall`.
 - La IM agrupa casillas por código de playa (`beach`); su endpoint `/beaches` devuelve casillas, no playas.
 - `?playa=pocitos` en la URL abre directamente esa playa.
+
+## ¿A qué playa voy? y mejor horario
+
+Lógica pura en `src/lib/recomendacion.ts` (sirve en cliente y servidor):
+
+- **Ranking (0–100)**: bandera vigente (roja/negra la descartan), bandera sanitaria, viento según
+  la **orientación de cada playa** (de frente = olas y frío; de tierra = reparada), sensación
+  térmica, lluvia, olas, si es de noche y, con la ubicación del usuario, el tiempo de viaje.
+  Las orientaciones son aproximadas y están en la tabla `ORIENTACION`.
+- **Mejor horario**: puntaje por hora (sensación, lluvia, UV, viento de frente, ráfagas,
+  tormenta) y la mejor franja de 2–4 h de sol, hoy o mañana. Gráfico en
+  `src/components/mapa/Pronostico.tsx`.
 
 ## Cómo ir en ómnibus
 
