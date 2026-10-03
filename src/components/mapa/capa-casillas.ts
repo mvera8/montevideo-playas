@@ -65,6 +65,8 @@ export class CapaCasillas implements CustomLayerInterface {
   private zoomAplicado = -1;
   private timer = 0;
   private animar = true;
+  private cielo = new HemisphereLight("#ffffff", "#efe4c8", 2.8);
+  private sol = new DirectionalLight("#fffaf0", 1.3);
 
   constructor(centro: [number, number]) {
     this.origen = MercatorCoordinate.fromLngLat(centro, 0);
@@ -85,10 +87,8 @@ export class CapaCasillas implements CustomLayerInterface {
     this.renderer.autoClear = false;
 
     // Luz "de catálogo": ilumina el frente (que mira al río) para que se lea el amarillo.
-    this.scene.add(new HemisphereLight("#ffffff", "#efe4c8", 2.8));
-    const sol = new DirectionalLight("#fffaf0", 1.3);
-    sol.position.set(0.5, 1, 1.2);
-    this.scene.add(sol);
+    this.sol.position.set(0.5, 1, 1.2);
+    this.scene.add(this.cielo, this.sol);
 
     this.banderaMat = new ShaderMaterial({
       side: DoubleSide,
@@ -139,6 +139,21 @@ export class CapaCasillas implements CustomLayerInterface {
   setCasillas(casillas: CasillaMapa[]) {
     this.casillas = casillas;
     if (this.renderer) this.construirMeshes();
+  }
+
+  /** Luz según el tema: sol de catálogo, nublado difuso o noche cálida (rambla iluminada). */
+  setLuz(luz: "soleado" | "nublado" | "noche") {
+    const L = {
+      soleado: { cielo: "#ffffff", suelo: "#efe4c8", ci: 2.8, sol: "#fffaf0", si: 1.3 },
+      nublado: { cielo: "#e6ebf0", suelo: "#d9d6cf", ci: 2.6, sol: "#ffffff", si: 0.5 },
+      noche: { cielo: "#8fa3d9", suelo: "#3a2a10", ci: 0.9, sol: "#ffc56e", si: 0.9 },
+    }[luz];
+    this.cielo.color.set(L.cielo);
+    this.cielo.groundColor.set(L.suelo);
+    this.cielo.intensity = L.ci;
+    this.sol.color.set(L.sol);
+    this.sol.intensity = L.si;
+    this.map?.triggerRepaint();
   }
 
   setSeleccion(id: string | null) {
