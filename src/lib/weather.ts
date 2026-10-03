@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Hora } from "./recomendacion";
+
 // Clima vía Open-Meteo (gratis, sin API key). La IM no publica una API de clima.
 // Forecast: temperatura del aire, viento, UV. Marine: temperatura del agua y olas.
 
@@ -129,4 +131,83 @@ export async function getWeatherForPoints(points: Point[]): Promise<Weather[]> {
 export async function getMontevideoWeather() {
   const [w] = await getWeatherForPoints([MONTEVIDEO]);
   return w;
+}
+
+// ---------- pronóstico por hora (una playa) ----------
+
+type HourlyForecast = {
+  hourly: {
+    time: string[];
+    temperature_2m: number[];
+    apparent_temperature: number[];
+    precipitation_probability: (number | null)[];
+    uv_index: (number | null)[];
+    wind_speed_10m: number[];
+    wind_gusts_10m: number[];
+    wind_direction_10m: number[];
+    weather_code: number[];
+  };
+  daily: { time: string[]; sunrise: string[]; sunset: string[] };
+};
+
+type HourlyMarine = { hourly: { time: string[]; wave_height: (number | null)[] } };
+
+export type Pronostico = {
+  ahora: string; // ISO local Montevideo, "YYYY-MM-DDTHH:mm"
+  horas: Hora[];
+  luz: [string, string][]; // [amanecer, atardecer] por día
+};
+
+/** Hoy y mañana, hora a hora, para un punto. Cacheado 30 min. */
+export async function getPronostico(lat: number, lon: number): Promise<Pronostico> {
+  const coords = { latitude: lat.toFixed(4), longitude: lon.toFixed(4), timezone: TZ, forecast_days: "2" };
+  const [f, m] = await Promise.all([
+    fetch(
+      `https://api.open-meteo.com/v1/forecast?${new URLSearchParams({
+        ...coords,
+        hourly:
+          "temperature_2m,apparent_temperature,precipitation_probability,uv_index,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code",
+        daily: "sunrise,sunset",
+      })}`,
+      { next: { revalidate: 1800 } },
+    ).then((r) => {
+      if (!r.ok) throw new Error(`Open-Meteo falló (${r.status})`);
+      return r.json() as Promise<HourlyForecast>;
+    }),
+    fetch(`https://marine-api.open-meteo.com/v1/marine?${new URLSearchParams({ ...coords, hourly: "wave_height" })}`, {
+      next: { revalidate: 1800 },
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<HourlyMarine>) : null))
+      .catch(() => null),
+  ]);
+
+  const olas = new Map(m?.hourly.time.map((t, i) => [t, m.hourly.wave_height[i]]) ?? []);
+  const h = f.hourly;
+  const ahora = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+    .format(new Date())
+    .replace(" ", "T");
+
+  return {
+    ahora,
+    horas: h.time.map((t, i) => ({
+      hora: t,
+      temp: h.temperature_2m[i],
+      sensacion: h.apparent_temperature[i],
+      lluvia: h.precipitation_probability[i] ?? 0,
+      uv: h.uv_index[i] ?? 0,
+      viento: h.wind_speed_10m[i],
+      rafagas: h.wind_gusts_10m[i],
+      vientoDesde: h.wind_direction_10m[i],
+      code: h.weather_code[i],
+      olas: olas.get(t) ?? null,
+    })),
+    luz: f.daily.time.map((_, i) => [f.daily.sunrise[i], f.daily.sunset[i]]),
+  };
 }

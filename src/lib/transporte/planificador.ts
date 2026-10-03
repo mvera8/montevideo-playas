@@ -130,7 +130,11 @@ type Candidato = {
   caminatas: number[]; // metros: [origen→subida, (bajada→subida2), bajada→destino]
 };
 
-export async function planificar(origen: Punto, destino: Punto, fecha = new Date()): Promise<Opcion[]> {
+export async function planificar(
+  origen: Punto,
+  destino: Punto,
+  { fecha = new Date(), trasbordos = true }: { fecha?: Date; trasbordos?: boolean } = {},
+): Promise<Opcion[]> {
   const ix = await getIndice();
   const { dia, minutos: ahora } = ahoraMvd(fecha);
   const servicios = serviciosVigentes(ix, dia);
@@ -191,6 +195,7 @@ export async function planificar(origen: Punto, destino: Punto, fecha = new Date
       }
 
       // Un trasbordo.
+      if (!trasbordos) continue;
       for (let k = pos1 + 1; k < pat1.paradas.length; k++) {
         const viaje1 = pat1.minutos[k] - pat1.minutos[pos1];
         if (viaje1 > MAX_VIAJE) break;
