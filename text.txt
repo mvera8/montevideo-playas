@@ -11,10 +11,11 @@ me gustaria que sea un mapa donde peudas buscar las playa, y aparezcan los datos
 si agrego mi ubicacion y elijo una playa, podes hacer un como ir de omnibus? tambien tiene ese servicio la intendencia
 
 me gustaria esconder el sidebar de la izquierda con un boton de cruz o expandir al lado del buscador que flte fuera del sidebar
+(y una animacion en abrir y cerrar)
 
 me gustaria que el mapa tenga colores dependiendo el estado del tiempo, ejemplo si esta soleado que el agua sea vea bien colores brillosos o si esta templado o gris que los colores sean mas apagados y si es de noche que el mapa sea oscuro con luces, adjunto referencias
 
-
+girar casetas de guardavidas 3d apuntando al agua
 
 ----
 

@@ -18,6 +18,8 @@ import { CapaCasillas, type CasillaMapa } from "./capa-casillas";
 import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./ComoIr";
 import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import Pronostico from "./Pronostico";
+import SelectorTema from "./SelectorTema";
+import { aplicarTema, estiloConTema, temaPorClima, type Tema } from "./temas";
 
 // Copiado por scripts/copiar-worker-maplibre.mjs (postinstall).
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
@@ -89,6 +91,19 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
     }
   });
   const abiertoRef = useRef(abierto);
+
+  // Tema del mapa: automático según el clima, o elegido a mano (se recuerda).
+  const [temaManual, setTemaManual] = useState<Tema | null>(() => {
+    try {
+      const t = localStorage.getItem("tema");
+      return t === "soleado" || t === "nublado" || t === "noche" ? t : null;
+    } catch {
+      return null;
+    }
+  });
+  const temaAuto = temaPorClima(climaCiudad);
+  const tema = temaManual ?? temaAuto;
+  const temaRef = useRef(tema);
   useEffect(() => {
     abiertoRef.current = abierto;
     try {
@@ -157,7 +172,6 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
 
     const map = new MapLibreMap({
       container: contenedor.current,
-      style: ESTILO,
       bounds,
       fitBoundsOptions: { padding: padding(40, abiertoRef.current) },
       pitch: 50,
@@ -168,6 +182,8 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       ],
       attributionControl: { compact: true },
     });
+    // El estilo se carga ya recoloreado con el tema (sin parpadeo del estilo base).
+    map.setStyle(ESTILO, { transformStyle: (_prev, next) => estiloConTema(next, temaRef.current) });
     map.addControl(new NavigationControl({ visualizePitch: true }), "bottom-right");
     map.addControl(
       new GeolocateControl({ positionOptions: { enableHighAccuracy: true } }),
@@ -331,6 +347,8 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       });
       map.on("mouseenter", "casillas-hit", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "casillas-hit", () => (map.getCanvas().style.cursor = ""));
+      aplicarTema(map, temaRef.current); // colorea también nuestras capas de texto
+      capa.setLuz(temaRef.current);
       setListo(true);
     });
 
@@ -342,6 +360,24 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Cambio de tema en caliente (los colores hacen un fundido de 0,8 s).
+  useEffect(() => {
+    if (temaRef.current === tema) return;
+    temaRef.current = tema;
+    const map = mapRef.current;
+    if (!map || !listo) return;
+    aplicarTema(map, tema);
+    capaRef.current?.setLuz(tema);
+  }, [tema, listo]);
+
+  function elegirTema(t: Tema | null) {
+    setTemaManual(t);
+    try {
+      if (t) localStorage.setItem("tema", t);
+      else localStorage.removeItem("tema");
+    } catch {}
+  }
 
   // Datos → capa 3D y fuentes GeoJSON.
   useEffect(() => {
@@ -539,6 +575,8 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
           </svg>
         </span>
       </button>
+
+      <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
 
       <aside
         id="panel-lateral"
