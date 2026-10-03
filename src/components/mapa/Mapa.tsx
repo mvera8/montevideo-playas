@@ -79,6 +79,22 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   const [listo, setListo] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<EstadoBandera | null>(null);
+
+  // Panel lateral (hoja inferior en móvil) plegable; se recuerda por navegador.
+  const [abierto, setAbierto] = useState(() => {
+    try {
+      return localStorage.getItem("panel") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const abiertoRef = useRef(abierto);
+  useEffect(() => {
+    abiertoRef.current = abierto;
+    try {
+      localStorage.setItem("panel", abierto ? "1" : "0");
+    } catch {}
+  }, [abierto]);
   // El componente solo corre en el cliente (ssr: false), así que podemos leer la URL acá.
   const [slug, setSlug] = useState<string | null>(() => {
     const inicial = new URLSearchParams(window.location.search).get("playa");
@@ -143,7 +159,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       container: contenedor.current,
       style: ESTILO,
       bounds,
-      fitBoundsOptions: { padding: padding(40) },
+      fitBoundsOptions: { padding: padding(40, abiertoRef.current) },
       pitch: 50,
       maxPitch: 70,
       maxBounds: [
@@ -309,6 +325,9 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
         if (!f) return;
         setSlug(f.properties.slug as string);
         setCasillaId(f.properties.id as string);
+        // Tocar una casilla con el panel cerrado lo abre para ver el detalle.
+        abiertoRef.current = true;
+        setAbierto(true);
       });
       map.on("mouseenter", "casillas-hit", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "casillas-hit", () => (map.getCanvas().style.cursor = ""));
@@ -391,7 +410,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
           [Math.min(...lons), Math.min(...lats)],
           [Math.max(...lons), Math.max(...lats)],
         ],
-        { padding: padding(60), pitch: 40, maxZoom: 16, duration: 1200 },
+        { padding: padding(60, abiertoRef.current), pitch: 40, maxZoom: 16, duration: 1200 },
       );
     }
   }, [listo, origen, ruta.opcion]);
@@ -429,7 +448,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       center: [lng, objetivo.lat],
       zoom: casillaId ? 16.5 : 15.2,
       pitch: 60,
-      padding: padding(0),
+      padding: padding(0, abiertoRef.current),
       essential: true,
     });
   }, [slug, casillaId, listo, playa, casillas]);
@@ -438,6 +457,13 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
     setSlug(p.slug);
     setCasillaId(p.guardavidas.length ? null : `playa:${p.slug}`);
     setBusqueda("");
+  }
+
+  function alternarPanel(valor = !abierto) {
+    abiertoRef.current = valor;
+    setAbierto(valor);
+    // El mapa acompaña: recentra en el área que queda visible.
+    mapRef.current?.easeTo({ padding: padding(0, valor), duration: 300 });
   }
 
   function cerrar() {
@@ -468,13 +494,60 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
     );
   }
 
+  // En móvil la hoja inferior baja al plegar; en escritorio se mueve todo el panel.
+  const hoja = `transition-[translate,visibility] duration-300 ease-out motion-reduce:transition-none ${
+    abierto ? "" : "max-md:invisible max-md:translate-y-[110%]"
+  }`;
+
   return (
     <div className="relative h-dvh w-full overflow-hidden">
       <div ref={contenedor} className="h-full w-full" />
 
-      <aside className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-3 p-3 md:inset-y-0 md:right-auto md:w-[380px] md:p-4">
+      {/* Botón flotante para plegar/desplegar el panel (al lado del buscador) */}
+      <button
+        onClick={() => alternarPanel()}
+        aria-expanded={abierto}
+        aria-controls="panel-lateral"
+        aria-label={abierto ? "Ocultar panel" : "Mostrar panel"}
+        title={abierto ? "Ocultar panel" : "Mostrar panel"}
+        className={`absolute right-3 top-3 z-20 grid h-12 w-12 place-items-center rounded-2xl bg-white/95 text-slate-600 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate,color] duration-300 ease-out hover:text-slate-900 motion-reduce:transition-none md:left-4 md:right-auto md:top-4 dark:bg-slate-900/95 dark:text-slate-300 dark:ring-white/10 dark:hover:text-white ${
+          abierto ? "md:translate-x-[356px]" : ""
+        }`}
+      >
+        <span className="relative h-5 w-5" aria-hidden>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            className={`absolute inset-0 transition duration-300 motion-reduce:transition-none ${abierto ? "rotate-0 opacity-100" : "-rotate-90 opacity-0"}`}
+          >
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`absolute inset-0 transition duration-300 motion-reduce:transition-none ${abierto ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`}
+          >
+            <rect x="3" y="4" width="18" height="16" rx="3" />
+            <path d="M9 4v16M13.5 10l2 2-2 2" />
+          </svg>
+        </span>
+      </button>
+
+      <aside
+        id="panel-lateral"
+        className={`pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-3 p-3 transition-[translate,visibility] duration-300 ease-out motion-reduce:transition-none md:inset-y-0 md:right-auto md:w-[380px] md:p-4 ${
+          abierto ? "" : "md:invisible md:-translate-x-[calc(100%+1rem)]"
+        }`}
+      >
         {/* Buscador: filtra el listado de playas */}
-        <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/95 px-4 py-3 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/95 dark:ring-white/10">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/95 px-4 py-3 shadow-lg ring-1 ring-black/5 backdrop-blur max-md:mr-14 dark:bg-slate-900/95 dark:ring-white/10">
           <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-3.5-3.5" />
@@ -484,6 +557,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
             onChange={(e) => {
               setBusqueda(e.target.value);
               if (playa) cerrar(); // buscar vuelve al listado
+              if (!abierto) alternarPanel(true);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && busqueda && resultados[0]) elegirPlaya(resultados[0]);
@@ -502,7 +576,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
 
         {/* Panel general (sin playa seleccionada) */}
         {!playa && (
-          <section className="pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-slate-50 p-3 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:bg-transparent md:p-0 md:shadow-none md:ring-0 dark:bg-slate-950 md:dark:bg-transparent">
+          <section className={`${hoja} pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-slate-50 p-3 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:bg-transparent md:p-0 md:shadow-none md:ring-0 dark:bg-slate-950 md:dark:bg-transparent`}>
             <PanelGeneral
               playas={resultados}
               todas={playas}
@@ -523,7 +597,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
 
         {/* Detalle de la playa */}
         {playa && (
-          <section className="pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:shadow-lg dark:bg-slate-900 dark:ring-white/10">
+          <section className={`${hoja} pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:shadow-lg dark:bg-slate-900 dark:ring-white/10`}>
             <Detalle
               playa={playa}
               temporada={temporada}
@@ -558,11 +632,16 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
 }
 
 // Margen para que el panel no tape lo que se encuadra (izquierda en escritorio, abajo en móvil).
-function padding(extra: number) {
+function padding(extra: number, panelAbierto: boolean) {
   const escritorio = window.matchMedia("(min-width: 768px)").matches;
   return escritorio
-    ? { left: 400 + extra, top: extra, right: 50 + extra, bottom: extra } // derecha: controles del mapa
-    : { left: extra / 2, top: 70 + extra / 2, right: extra / 2, bottom: window.innerHeight * 0.45 + extra / 2 };
+    ? { left: (panelAbierto ? 400 : 0) + extra, top: extra, right: 50 + extra, bottom: extra } // derecha: controles del mapa
+    : {
+        left: extra / 2,
+        top: 70 + extra / 2,
+        right: extra / 2,
+        bottom: (panelAbierto ? window.innerHeight * 0.45 : 0) + extra / 2,
+      };
 }
 
 function Detalle({
