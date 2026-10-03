@@ -36,7 +36,7 @@ export type PlayasResult = {
   playas: Playa[];
 };
 
-export type Temporada = { activa: boolean; inicio: string; fin: string };
+export type Temporada = { activa: boolean; inicio: string; fin: string; diasParaInicio: number };
 
 // Temporada de guardavidas en Montevideo: 15 de noviembre a fin de abril (aprox.).
 // Fuera de temporada la IM no actualiza las banderas.
@@ -51,6 +51,7 @@ export function getTemporada(now = new Date()): Temporada {
   return {
     activa: now >= inicio && now <= fin,
     inicio: proximoInicio.toISOString(),
+    diasParaInicio: Math.max(0, Math.ceil((proximoInicio.getTime() - now.getTime()) / 86_400_000)),
     fin: fin.toISOString(),
   };
 }
