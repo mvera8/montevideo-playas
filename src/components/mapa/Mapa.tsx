@@ -16,6 +16,7 @@ import type { Weather } from "@/lib/weather";
 import type { Opcion, Punto } from "@/lib/transporte/planificador";
 import { CapaCasillas, type CasillaMapa } from "./capa-casillas";
 import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./ComoIr";
+import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 
 // Copiado por scripts/copiar-worker-maplibre.mjs (postinstall).
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
@@ -76,7 +77,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
   const capaRef = useRef<CapaCasillas | null>(null);
   const [listo, setListo] = useState(false);
   const [busqueda, setBusqueda] = useState("");
-  const [abierto, setAbierto] = useState(false);
+  const [filtro, setFiltro] = useState<EstadoBandera | null>(null);
   // El componente solo corre en el cliente (ssr: false), así que podemos leer la URL acá.
   const [slug, setSlug] = useState<string | null>(() => {
     const inicial = new URLSearchParams(window.location.search).get("playa");
@@ -113,13 +114,14 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
 
   const resultados = useMemo(() => {
     const q = normalizar(busqueda.trim());
-    if (!q) return playas;
     return playas.filter(
       (p) =>
-        normalizar(p.nombre).includes(q) ||
-        p.guardavidas.some((g) => normalizar(g.nombre).includes(q)),
+        (!filtro || estadoPlaya(p) === filtro) &&
+        (!q ||
+          normalizar(p.nombre).includes(q) ||
+          p.guardavidas.some((g) => normalizar(g.nombre).includes(q))),
     );
-  }, [busqueda, playas]);
+  }, [busqueda, filtro, playas]);
 
   // Inicializa el mapa una sola vez.
   useEffect(() => {
@@ -140,7 +142,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       container: contenedor.current,
       style: ESTILO,
       bounds,
-      fitBoundsOptions: { padding: 40 },
+      fitBoundsOptions: { padding: padding(40) },
       pitch: 50,
       maxPitch: 70,
       maxBounds: [
@@ -435,7 +437,6 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
     setSlug(p.slug);
     setCasillaId(p.guardavidas.length ? null : `playa:${p.slug}`);
     setBusqueda("");
-    setAbierto(false);
   }
 
   function cerrar() {
@@ -471,73 +472,53 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       <div ref={contenedor} className="h-full w-full" />
 
       <aside className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-3 p-3 md:inset-y-0 md:right-auto md:w-[380px] md:p-4">
-        {/* Buscador */}
-        <div className="pointer-events-auto relative">
-          <div className="flex items-center gap-2 rounded-2xl bg-white/95 px-4 py-3 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/95 dark:ring-white/10">
-            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.5-3.5" />
-            </svg>
-            <input
-              value={busqueda}
-              onChange={(e) => {
-                setBusqueda(e.target.value);
-                setAbierto(true);
-              }}
-              onFocus={() => setAbierto(true)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && resultados[0]) elegirPlaya(resultados[0]);
-                if (e.key === "Escape") setAbierto(false);
-              }}
-              placeholder="Buscar playa o casilla…"
-              aria-label="Buscar playa"
-              className="w-full bg-transparent text-[15px] outline-none placeholder:text-slate-400"
-            />
-            {abierto && (
-              <button onClick={() => setAbierto(false)} className="text-sm text-slate-500" aria-label="Cerrar lista">
-                ✕
-              </button>
-            )}
-          </div>
-
-          {abierto && (
-            <ul className="absolute inset-x-0 top-full mt-2 max-h-[50vh] overflow-y-auto rounded-2xl bg-white/95 py-1 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/95 dark:ring-white/10">
-              {resultados.length === 0 && <li className="px-4 py-3 text-sm text-slate-500">Sin resultados</li>}
-              {resultados.map((p) => (
-                <li key={p.slug}>
-                  <button
-                    onClick={() => elegirPlaya(p)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-sky-50 dark:hover:bg-slate-800"
-                  >
-                    <span>
-                      <span className="block font-medium">{p.nombre}</span>
-                      <span className="block text-xs text-slate-500">
-                        {p.guardavidas.length} {p.guardavidas.length === 1 ? "casilla" : "casillas"}
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <PuntosBanderas g={p.guardavidas} />
-                      <span className="tabular-nums text-sm text-slate-600 dark:text-slate-300">
-                        {grados(p.clima?.airTemp)}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+        {/* Buscador: filtra el listado de playas */}
+        <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/95 px-4 py-3 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/95 dark:ring-white/10">
+          <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            value={busqueda}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              if (playa) cerrar(); // buscar vuelve al listado
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && busqueda && resultados[0]) elegirPlaya(resultados[0]);
+              if (e.key === "Escape") setBusqueda("");
+            }}
+            placeholder="Buscar playa o casilla…"
+            aria-label="Buscar playa"
+            className="w-full bg-transparent text-[15px] outline-none placeholder:text-slate-400"
+          />
+          {busqueda && (
+            <button onClick={() => setBusqueda("")} className="text-sm text-slate-500" aria-label="Borrar búsqueda">
+              ✕
+            </button>
           )}
         </div>
 
-        {/* Avisos y resumen de la ciudad (sin playa seleccionada) */}
-        {!playa && !abierto && (
-          <div className="pointer-events-auto hidden space-y-3 md:block">
-            {climaCiudad && <ResumenCiudad clima={climaCiudad} />}
-            <Avisos temporada={temporada} fuente={fuente} error={error} />
-          </div>
+        {/* Panel general (sin playa seleccionada) */}
+        {!playa && (
+          <section className="pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-slate-50 p-3 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:bg-transparent md:p-0 md:shadow-none md:ring-0 dark:bg-slate-950 md:dark:bg-transparent">
+            <PanelGeneral
+              playas={resultados}
+              todas={playas}
+              temporada={temporada}
+              fuente={fuente}
+              error={error}
+              climaCiudad={climaCiudad}
+              busqueda={busqueda}
+              filtro={filtro}
+              onFiltro={setFiltro}
+              onElegir={elegirPlaya}
+            />
+          </section>
         )}
 
         {/* Detalle de la playa */}
-        {playa && !abierto && (
+        {playa && (
           <section className="pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:shadow-lg dark:bg-slate-900 dark:ring-white/10">
             <Detalle
               playa={playa}
@@ -578,54 +559,6 @@ function padding(extra: number) {
   return escritorio
     ? { left: 400 + extra, top: extra, right: 50 + extra, bottom: extra } // derecha: controles del mapa
     : { left: extra / 2, top: 70 + extra / 2, right: extra / 2, bottom: window.innerHeight * 0.45 + extra / 2 };
-}
-
-function PuntosBanderas({ g }: { g: Guardavidas[] }) {
-  const colores = [...new Set(g.map((x) => x.bandera).filter(Boolean))] as NonNullable<Guardavidas["bandera"]>[];
-  if (!colores.length) return null;
-  return (
-    <span className="flex -space-x-1">
-      {colores.map((c) => (
-        <span key={c} className="h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900" style={{ background: BANDERAS[c].color }} />
-      ))}
-    </span>
-  );
-}
-
-function ResumenCiudad({ clima }: { clima: Weather }) {
-  return (
-    <div className="rounded-2xl bg-sky-600/95 p-4 text-white shadow-lg backdrop-blur dark:bg-sky-900/95">
-      <p className="text-xs uppercase tracking-wider text-sky-100">Montevideo ahora</p>
-      <div className="mt-1 flex items-end justify-between">
-        <p className="text-4xl font-semibold tabular-nums">{grados(clima.airTemp)}</p>
-        <p className="text-right text-sm text-sky-100">
-          {clima.description}
-          <br />
-          Agua {grados(clima.waterTemp)} · Viento {Math.round(clima.windSpeed)} km/h {clima.windDirectionLabel}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function Avisos({ temporada, fuente, error }: Pick<Props, "temporada" | "fuente" | "error">) {
-  return (
-    <>
-      {!temporada.activa && (
-        <div className="rounded-2xl bg-white/95 p-4 text-sm shadow-lg ring-1 ring-black/5 dark:bg-slate-900/95 dark:ring-white/10">
-          <strong>Fuera de temporada.</strong> El servicio de guardavidas comienza el{" "}
-          {fechaFmt.format(new Date(temporada.inicio))}, de 8 a 20 h. Las banderas grises indican que
-          no hay datos vigentes.
-        </div>
-      )}
-      {fuente === "respaldo" && (
-        <div className="rounded-2xl bg-amber-50/95 p-4 text-sm text-amber-900 shadow-lg ring-1 ring-amber-200 dark:bg-amber-950/95 dark:text-amber-200 dark:ring-amber-800">
-          <strong>Sin datos de la Intendencia.</strong> Se muestran playas de respaldo.
-          {error && <span className="mt-1 block text-xs opacity-80">{error}</span>}
-        </div>
-      )}
-    </>
-  );
 }
 
 function Detalle({
