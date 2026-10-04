@@ -74,8 +74,8 @@ export default function Terminos() {
       <h2 id="servicio">El servicio</h2>
       <p>
         {SITIO.nombre} reúne información pública sobre las playas de Montevideo: casillas y banderas, calidad del agua,
-        clima, recomendaciones y cómo llegar en ómnibus. Usarlo es gratuito y no requiere registro. Al usar el sitio
-        aceptás estos términos.
+        clima, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas. Usarlo es gratuito y
+        no requiere registro. Al usar el sitio aceptás estos términos.
       </p>
 
       <h2 id="alcance">Alcance de la información</h2>
@@ -124,6 +124,14 @@ export default function Terminos() {
         posición GPS de los ómnibus. No contemplan feriados, desvíos ni cambios de último momento.
       </p>
 
+      <h3>Me gusta</h3>
+      <p>
+        Los “me gusta” son una función propia del sitio: muestran cuántas personas marcaron que les gusta cada playa, no
+        sus condiciones. <strong>No son una calificación oficial</strong> ni dicen nada sobre la seguridad o la calidad del
+        agua, y no se suman al puntaje de “¿A qué playa voy?”. Se cuentan por temporada (de julio a junio) y en total. El
+        número se actualiza cada pocos minutos y puede no reflejar los últimos cambios.
+      </p>
+
       <h2 id="responsabilidad">Responsabilidad</h2>
       <p>
         El sitio se ofrece “tal cual está”, sin garantías de exactitud, disponibilidad o continuidad. Las decisiones que
@@ -135,7 +143,8 @@ export default function Terminos() {
       <h2 id="uso">Uso aceptable</h2>
       <p>
         No uses el sitio ni sus interfaces de datos de forma automatizada o masiva, ni intentes afectar su funcionamiento.
-        Podemos limitar el acceso ante usos abusivos. Si necesitás los datos para otro proyecto, usá directamente las
+        No infles los “me gusta” con programas, cuentas múltiples ni ningún otro mecanismo: es un gesto por persona.
+        Podemos limitar el acceso, y anular o borrar me gusta, ante usos abusivos. Si necesitás los datos para otro proyecto, usá directamente las
         fuentes oficiales listadas abajo.
       </p>
 

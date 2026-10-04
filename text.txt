@@ -6,21 +6,13 @@ APIS
 Performante
 Playa 3d (tree.js)?
 
-me gustaria que sea un mapa donde peudas buscar las playa, y aparezcan los datos, un icono como cabina de guardavida que adjunto que tenga una bandera en 3d del color que esta (tree.js) lo mas performante posible
+podes pasar este mapa a una pagina "/playas", y deja rla home para hacerla mas diseñada despues
 
-si agrego mi ubicacion y elijo una playa, podes hacer un como ir de omnibus? tambien tiene ese servicio la intendencia
-
-me gustaria esconder el sidebar de la izquierda con un boton de cruz o expandir al lado del buscador que flte fuera del sidebar
-(y una animacion en abrir y cerrar)
-
-me gustaria que el mapa tenga colores dependiendo el estado del tiempo, ejemplo si esta soleado que el agua sea vea bien colores brillosos o si esta templado o gris que los colores sean mas apagados y si es de noche que el mapa sea oscuro con luces, adjunto referencias
-
-la calidad del agua cada cuanto se mide en la info que obtenemos, si pasan mas de 6 meses de la ultima informacion, no sirve.
-necesitaria una skill o algo para actualizar esa data?
-
+Home, diseño como adjunto, boton principal y mas grande que vaya a la pagina de playas y que aparezca varias veces. Destacar que es gratis
 -
 
-Votacion playas
+Votacion playas se termina fin de temporada, pagina contabilizadora
+
 Rey de la playa? - pagina aparte con actuales reyes o reinas, si ya sos rey o reina de una playa no podes ser de otra
 
 ------

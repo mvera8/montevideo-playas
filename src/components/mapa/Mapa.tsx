@@ -19,6 +19,7 @@ import { CapaCasillas, type CasillaMapa } from "./capa-casillas";
 import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./ComoIr";
 import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import CalidadAgua from "./CalidadAgua";
+import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
 import Pronostico from "./Pronostico";
 import ServiciosCerca from "./ServiciosCerca";
 import { cargarIconos, contenidoPopup } from "./servicios-mapa";
@@ -794,9 +795,13 @@ function Detalle({
   return (
     <>
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold">{playa.nombre}</h2>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold">{playa.nombre}</h2>
+            <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
+          </div>
           {playa.descripcion && <p className="text-sm text-slate-500">{playa.descripcion}</p>}
+          <TotalesDetalle slug={playa.slug} inicial={playa.meGusta} />
         </div>
         <button
           onClick={onCerrar}

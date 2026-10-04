@@ -1,6 +1,8 @@
 # Idea pendiente: "Me gusta" en las playas
 
-> Estado: **en pausa, para retomar más adelante**. Planificado el 3/10/2026; no hay nada implementado.
+> Estado: **implementado el 4/10/2026** (ver README → "Me gusta"). Decisiones: cuenta anónima
+> automática (B), solo ❤️ por ahora (⭐ queda para cuando exista la verificación de ubicación del Rey
+> de la playa), totales por temporada y en total.
 > Comparte base de datos y cuentas con [Rey/Reina de la playa](rey-de-la-playa.md): conviene
 > diseñarlas juntas.
 
