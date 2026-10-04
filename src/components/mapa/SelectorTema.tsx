@@ -38,7 +38,7 @@ export default function SelectorTema({ tema, auto, temaAuto, onElegir }: Props) 
     }`;
 
   return (
-    <div ref={ref} className="absolute right-3 top-[72px] z-20 md:right-4 md:top-4">
+    <div ref={ref} className="relative">
       <button
         onClick={() => setAbierto((v) => !v)}
         aria-expanded={abierto}

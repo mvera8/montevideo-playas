@@ -11,6 +11,7 @@ import {
   type MapLayerMouseEvent,
   setWorkerUrl,
 } from "maplibre-gl";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Weather } from "@/lib/weather";
@@ -26,6 +27,7 @@ import { cargarIconos, contenidoPopup } from "./servicios-mapa";
 import type { Servicio } from "@/lib/servicios";
 import { SITIO } from "@/lib/sitio";
 import SelectorTema from "./SelectorTema";
+import MenuSitio from "@/components/MenuSitio";
 import Lluvia from "./Lluvia";
 import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
 
@@ -124,9 +126,12 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       localStorage.setItem("panel", abierto ? "1" : "0");
     } catch {}
   }, [abierto]);
-  // El componente solo corre en el cliente (ssr: false), así que podemos leer la URL acá.
+  // Playa inicial desde ?playa=. useSearchParams (y no window.location) porque al llegar con <Link>
+  // (menú, /favoritas) el componente se renderiza antes de que cambie la URL del navegador. Solo
+  // corre en el cliente (ssr: false), así que no hace falta un Suspense extra.
+  const playaUrl = useSearchParams().get("playa");
   const [slug, setSlug] = useState<string | null>(() => {
-    const inicial = new URLSearchParams(window.location.search).get("playa");
+    const inicial = playaUrl;
     return inicial && playas.some((p) => p.slug === inicial) ? inicial : null;
   });
   const [casillaId, setCasillaId] = useState<string | null>(null);
@@ -660,7 +665,11 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
         <span className="font-normal text-slate-500 dark:text-slate-400">· {SITIO.alcance}</span>
       </p>
 
-      <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
+      {/* Estilo del mapa y menú del sitio, arriba a la derecha */}
+      <div className="absolute right-3 top-[72px] z-20 flex flex-col gap-3 md:right-4 md:top-4 md:flex-row md:gap-2">
+        <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
+        <MenuSitio />
+      </div>
 
       <aside
         id="panel-lateral"

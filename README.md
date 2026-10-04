@@ -147,6 +147,9 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
 - **Plan gratis:** el proyecto se pausa tras 7 días sin actividad; en ese caso no se muestran me
   gusta hasta reactivarlo.
 - No se suma al puntaje de "¿A qué playa voy?" (siempre ganaría Pocitos).
+- **Ranking `/favoritas`:** ordena por me gusta de la temporada (desempate: en total, nombre). Usa
+  los mismos datos de `getPlayas()` que `/playas` (ISR 5 min), sin pedidos extra. Cada playa enlaza
+  a `/playas?playa=<slug>`. Si la base no responde, avisa en vez de mostrar todo en 0.
 
 ## Legal y privacidad
 
@@ -169,6 +172,10 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
 - `src/components/mapa/modelo.ts` — geometría low-poly de la casilla
 - `src/app/page.tsx` — home (placeholder, a diseñar)
 - `src/app/playas/page.tsx` — mapa de playas
+- `src/app/favoritas/page.tsx` — ranking de playas por me gusta
+- `src/lib/navegacion.ts` — enlaces del sitio, compartidos por:
+  - `src/components/MenuSitio.tsx` — menú del mapa (botón ☰ + cajón)
+  - `src/components/EncabezadoSitio.tsx` — encabezado de /favoritas, /terminos y /privacidad
 
 ## Extender a todo Uruguay (investigado 10/2026, no integrado)
 
