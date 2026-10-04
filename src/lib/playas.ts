@@ -176,7 +176,7 @@ function promedioCircular(rumbos: (number | null)[]): number | null {
   return Math.round(((Math.atan2(x, y) * 180) / Math.PI + 360) % 360);
 }
 
-// Suma clima (Open-Meteo), calidad del agua y servicios cercanos (IM) y me gusta (Supabase) a cada
+// Suma clima (MET Norway y NOAA), calidad del agua y servicios cercanos (IM) y me gusta (Supabase) a cada
 // playa, en paralelo.
 async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios" | "orientacion" | "meGusta">[]): Promise<Playa[]> {
   const [clima, agua, servicios, meGusta] = await Promise.all([

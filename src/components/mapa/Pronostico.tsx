@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { puntoCardinal, type Franja, type Hora } from "@/lib/recomendacion";
+import { mm, puntoCardinal, type Franja, type Hora } from "@/lib/recomendacion";
 import { BadgeCalidad, Motivos } from "./Motivos";
 import SeccionPlegable from "./SeccionPlegable";
 
@@ -99,6 +99,8 @@ function Grafico({ datos }: { datos: Datos }) {
   const linea = horas.map((h, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y1(h.sensacion).toFixed(1)}`).join("");
   const iMax = vals.indexOf(Math.max(...vals));
   const iMin = vals.indexOf(Math.min(...vals));
+  // Escala de lluvia: hasta 2 mm/h fija, para que una llovizna no parezca un diluvio.
+  const topeLluvia = Math.max(2, Math.ceil(Math.max(...horas.map((h) => h.lluvia))));
 
   const deNoche = (iso: string) => !datos.luz.some(([sale, pone]) => iso >= sale.slice(0, 13) && iso < pone.slice(0, 13));
   const enMejor = (iso: string) => datos.mejor != null && iso >= datos.mejor.desde && iso < datos.mejor.hasta;
@@ -130,7 +132,7 @@ function Grafico({ datos }: { datos: Datos }) {
         viewBox={`0 0 ${W} ${ALTO}`}
         className="w-full touch-none select-none"
         role="img"
-        aria-label="Sensación térmica y probabilidad de lluvia por hora"
+        aria-label="Sensación térmica y lluvia por hora"
         onPointerMove={mover}
         onPointerDown={mover}
         onPointerLeave={() => setActivo(null)}
@@ -175,20 +177,20 @@ function Grafico({ datos }: { datos: Datos }) {
 
         {/* Lluvia */}
         <text x={0} y={Y2 - 8} className="fill-slate-500 text-[10px]">
-          Probabilidad de lluvia (%)
+          Lluvia (mm)
         </text>
         <line x1={L} x2={W - R} y1={Y2 + H2} y2={Y2 + H2} className="stroke-slate-200 dark:stroke-slate-700" strokeWidth={0.5} />
         <text x={L - 4} y={Y2 + 4} textAnchor="end" className="fill-slate-400 text-[10px]">
-          100
+          {topeLluvia}
         </text>
         {horas.map((hh, i) =>
-          hh.lluvia > 0 ? (
+          hh.lluvia >= 0.05 ? (
             <rect
               key={hh.hora}
               x={L + i * paso + 1}
-              y={Y2 + H2 - (hh.lluvia / 100) * H2}
+              y={Y2 + H2 - (hh.lluvia / topeLluvia) * H2}
               width={paso - 2}
-              height={(hh.lluvia / 100) * H2}
+              height={(hh.lluvia / topeLluvia) * H2}
               rx={1.5}
               className="fill-sky-400 dark:fill-sky-500"
             />
@@ -227,7 +229,7 @@ function Grafico({ datos }: { datos: Datos }) {
           <p>
             {Math.round(h.temp)}° · sensación {Math.round(h.sensacion)}°
           </p>
-          <p>Lluvia {h.lluvia}% · UV {Math.round(h.uv)}</p>
+          <p>Lluvia {mm(h.lluvia)} mm · UV {Math.round(h.uv)}</p>
           <p>
             Viento {Math.round(h.viento)} km/h del {puntoCardinal(h.vientoDesde)}
           </p>
@@ -242,7 +244,7 @@ function Grafico({ datos }: { datos: Datos }) {
             <tr>
               <th className="font-normal">Hora</th>
               <th className="font-normal">ST</th>
-              <th className="font-normal">Lluvia</th>
+              <th className="font-normal">Lluvia (mm)</th>
               <th className="font-normal">UV</th>
               <th className="font-normal">Viento</th>
             </tr>
@@ -252,7 +254,7 @@ function Grafico({ datos }: { datos: Datos }) {
               <tr key={hh.hora} className={enMejor(hh.hora) ? "font-semibold" : ""}>
                 <td>{etiquetaHora(hh.hora)}</td>
                 <td>{Math.round(hh.sensacion)}°</td>
-                <td>{hh.lluvia}%</td>
+                <td>{mm(hh.lluvia)}</td>
                 <td>{Math.round(hh.uv)}</td>
                 <td>
                   {Math.round(hh.viento)} {puntoCardinal(hh.vientoDesde)}

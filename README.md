@@ -4,7 +4,8 @@ Mapa 3D de las playas de Montevideo: buscador, casillas de guardavidas con su ba
 flameando (color real de la IM, dirección según el viento) y temperatura de aire y agua por playa.
 
 - Playas y guardavidas: [Montevideo API de la IM](https://api.montevideo.gub.uy/apidocs/beaches) (OAuth2 client_credentials).
-- Clima: [Open-Meteo](https://open-meteo.com) (forecast + marine, sin API key). La IM no publica clima.
+- Clima: [MET Norway](https://api.met.no) y mar (agua y olas) de NOAA, sin API key y con uso comercial
+  permitido (ver "Clima y mar"). La IM no publica clima.
 
 ## Configuración
 
@@ -61,6 +62,32 @@ geométrica de 5 muestras que publica la IM. `src/lib/calidad-agua.ts` los cruza
 - Es un cálculo con datos públicos: la **habilitación oficial** la comunica la IM (bandera sanitaria).
 - Datos con más de 21 días se muestran como "sin muestreo reciente".
 - Entra en el ranking: agua fuera de límite resta 30; cianobacterias restan o descartan la playa.
+
+## Clima y mar
+
+Todas las fuentes son gratis **también para uso comercial** (con publicidad), citando la fuente.
+Antes se usaba Open-Meteo, que gratis es solo para uso no comercial.
+
+- **Clima — MET Norway** Locationforecast 2.0 (`src/lib/weather.ts`):
+  `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=-34.90&lon=-56.15` (JSON, CC BY 4.0).
+  - Sin API key, pero **exige `User-Agent` con la app y un contacto** (sin eso, 403). Límite: 20
+    pedidos/s; pide respetar `Expires` (~30 min).
+  - Un punto por pedido: se redondea a 0,05° (la grilla global es de ~9 km) y se cachea 30 min, así
+    todas las playas de Montevideo son unos pocos pedidos cada media hora.
+  - ~60 h hora a hora (después cada 6 h), horas en UTC. Se actualiza varias veces por día (`meta.updated_at`).
+  - Fuera de Noruega no trae ráfagas, probabilidad de lluvia (sí mm/h), UV real (solo con cielo
+    despejado) ni amanecer/atardecer: la lluvia se muestra en mm, el UV como máximo posible y el sol se
+    calcula localmente. Mín/máx de "hoy" es de las horas que quedan del día.
+  - El cielo viene como `symbol_code` y se traduce a códigos WMO (`SIMBOLO`).
+- **Temperatura del agua — NOAA OISST v2.1 NRT** (`src/lib/mar.ts`), por ERDDAP:
+  `https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21NrtAgg_LonPM180.csv?sst[(last)][(0.0)][(-35.5):(-34.5)][(-56.5):(-55.5)]`
+  (corchetes codificados). Diaria, 0,25°, ~1 día de demora (medido 04/10/2026). Si tiene más de 4
+  días (`DIAS_VIGENCIA_SST`) no se muestra. Cache 6 h. Si la IM midió la temperatura, manda la de la IM.
+- **Olas — WaveWatch III global de PacIOOS/NOAA** (`src/lib/mar.ts`):
+  `https://pae-paha.pacioos.hawaii.edu/erddap/griddap/ww3_global.csv?Thgt[(desde):(hasta)][(0.0)][(lat)][(lon)]`
+  (longitud 0–360). Hora a hora, 7 días, 0,5°: en el Río de la Plata es la ola de afuera, orientativa. Cache 1 h.
+- En ERDDAP las celdas de tierra vienen como `NaN`: se pide una cajita de ±0,5° y se usa la celda con
+  dato más cercana. Timeout de 10 s; si el mar falla, la app sigue sin agua ni olas.
 
 ## Baños, bebederos y duchas cercanos
 
@@ -188,12 +215,12 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
   `src/lib/sitio.ts` (responsable, contacto, hosting) antes de publicar.
 - Las rutas que reciben la ubicación usan **POST** (nunca la ubicación en la URL), responden
   `Cache-Control: no-store` y no registran coordenadas. El cliente la redondea a ~100 m.
-- **Open-Meteo** gratis es solo para uso no comercial: para un uso comercial hace falta un plan pago.
 
 ## Código
 
 - `src/lib/im.ts` — token OAuth2 (cacheado) y llamadas a la IM
-- `src/lib/weather.ts` — Open-Meteo, todas las playas en 2 requests
+- `src/lib/weather.ts` — clima (MET Norway), un pedido por punto redondeado, y amanecer/atardecer
+- `src/lib/mar.ts` — temperatura del agua y olas (NOAA, ERDDAP)
 - `src/lib/playas.ts` — une playas + casillas + clima, lógica de temporada
 - `src/lib/transporte/` — GTFS, planificador y tiempo real
 - `src/lib/me-gusta.ts` / `me-gusta-cliente.ts` — totales (servidor) y botón ❤️ (navegador, Supabase)
@@ -230,5 +257,5 @@ Fuentes nacionales verificadas, para cuando se quiera cubrir otros departamentos
     el último dato en marzo.
 - **Sin fuente abierta encontrada**: casillas y banderas de seguridad de guardavidas fuera de
   Montevideo. Canelones tiene la app propia SIMAS (82 torres) pero sin API pública conocida.
-- Ya son nacionales: clima (Open-Meteo), mapa y servicios (OpenStreetMap). El transporte (GTFS STM)
+- Ya son nacionales: clima (MET Norway y NOAA), mapa y servicios (OpenStreetMap). El transporte (GTFS STM)
   es solo Montevideo; el MTOP publica horarios interdepartamentales en el catálogo de datos abiertos.

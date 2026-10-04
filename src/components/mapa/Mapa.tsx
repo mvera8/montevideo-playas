@@ -235,7 +235,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       ],
       attributionControl: {
         compact: true,
-        customAttribution: '<a href="/terminos#fuentes">Fuentes</a>: Intendencia de Montevideo · Open-Meteo',
+        customAttribution: '<a href="/terminos#fuentes">Fuentes</a>: Intendencia de Montevideo · MET Norway · NOAA',
       },
     });
     // El estilo se carga ya recoloreado con el tema (sin parpadeo del estilo base).

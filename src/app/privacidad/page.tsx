@@ -126,7 +126,7 @@ export default function Privacidad() {
       </p>
       <p>
         El clima, los datos de playas, la calidad del agua, los baños y bebederos y los horarios de ómnibus los
-        consultamos desde nuestro servidor (Open-Meteo, Intendencia de Montevideo y OpenStreetMap), sin enviarles ningún
+        consultamos desde nuestro servidor (MET Norway, NOAA, Intendencia de Montevideo y OpenStreetMap), sin enviarles ningún
         dato tuyo.
       </p>
 

@@ -14,6 +14,10 @@ Contacto
 
 Mobile
 
+Logo
+
+Apis performance y uso
+
 Seguridad de datos
 
 -
@@ -25,14 +29,6 @@ Rey de la playa? - pagina aparte con actuales reyes o reinas, si ya sos rey o re
 LEGAL:
 
 Antes de publicar, completá los datos marcados en src/lib/sitio.ts: quién es el responsable, un correo de contacto y dónde está alojado el sitio. Hoy aparecen como "[COMPLETAR: …]" en las páginas, para que no se escapen.
-
-Open-Meteo gratis es solo para uso no comercial (lo confirmé en sus términos). Si la app va a tener publicidad o un fin comercial, vas a necesitar su plan pago o cambiar de proveedor del clima. OpenFreeMap sí permite uso comercial.
-
-Al final si voy a querer que tenga publicidad si veo en un momento que se usa...
-
-----
-
-
 
 ----
 
