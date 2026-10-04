@@ -16,6 +16,8 @@ Mobile
 
 Logo
 
+logo en mapas y link a la home
+
 Apis performance y uso
 
 Seguridad de datos
