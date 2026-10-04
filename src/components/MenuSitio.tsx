@@ -26,6 +26,12 @@ const ICONOS: Record<EnlaceSitio["icono"], React.ReactNode> = {
     </>
   ),
   favoritas: <path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z" />,
+  novedades: (
+    <>
+      <rect x="4" y="4.5" width="16" height="15" rx="2" />
+      <path d="M8 9h8M8 12.5h8M8 16h5" />
+    </>
+  ),
   terminos: (
     <>
       <path d="M6 3.5h8l4 4v13H6Z" />
@@ -46,12 +52,15 @@ const ICONOS: Record<EnlaceSitio["icono"], React.ReactNode> = {
   ),
 };
 
+const TINTA = "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white";
+
 const BOTON = {
   // Flotante sobre el mapa, como el selector de estilo.
-  flotante:
-    "h-12 w-12 rounded-2xl bg-white/95 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/95 dark:ring-white/10",
+  flotante: `h-12 w-12 rounded-2xl bg-white/95 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/95 dark:ring-white/10 ${TINTA}`,
   // Dentro de EncabezadoSitio (móvil).
-  encabezado: "-my-1 h-10 w-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800",
+  encabezado: `-my-1 h-10 w-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 ${TINTA}`,
+  // Dentro de EncabezadoSitio sobre la foto de la home.
+  foto: "-my-1 h-10 w-10 rounded-xl text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/15",
 };
 
 export default function MenuSitio({ variante = "flotante" }: { variante?: keyof typeof BOTON }) {
@@ -155,7 +164,7 @@ export default function MenuSitio({ variante = "flotante" }: { variante?: keyof 
         aria-controls="menu-sitio"
         aria-label="Menú"
         title="Menú"
-        className={`grid shrink-0 place-items-center text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white ${BOTON[variante]}`}
+        className={`grid shrink-0 place-items-center ${BOTON[variante]}`}
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden {...trazo} strokeWidth={2}>
           <path d="M4 7h16M4 12h16M4 17h16" />

@@ -151,6 +151,37 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
   los mismos datos de `getPlayas()` que `/playas` (ISR 5 min), sin pedidos extra. Cada playa enlaza
   a `/playas?playa=<slug>`. Si la base no responde, avisa en vez de mostrar todo en 0.
 
+## Home y novedades
+
+- **Foto de portada** (`public/fotos/atardecer-rambla-montevideo.jpg`): “Atardecer 2017” de Marinna,
+  [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Atardecer_2017.jpg), **CC BY-SA 4.0**
+  (atribución obligatoria: va en el pie de la home y en `/terminos#fuentes`). Rambla, Barrio Sur.
+  - Cómo bajarla de nuevo (o buscar otra): la API de Commons da las licencias sin scrapear.
+    Buscar: `https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrsearch=Playa+Pocitos+Montevideo&prop=imageinfo&iiprop=url|size|extmetadata`
+    (mirar `extmetadata.LicenseShortName` y `Artist`). Para el archivo, pedir `iiurlwidth=2560`
+    y usar `thumburl`: las URL `/thumb/...px-` armadas a mano devuelven un HTML de error si el
+    ancho no es uno de los que Commons tiene cacheados. Mandar un `User-Agent` propio.
+  - Se guardó a 2560 px y calidad 80 (`sips -Z 2560 -s formatOptions 80`, ~1,2 MB). No hace falta
+    más chica: `next/image` (import estático) sirve AVIF/WebP al ancho de cada pantalla y genera
+    el blur del placeholder. En la home se usa dos veces (hero con `preload` y banda de favoritas, lazy).
+- **Foto de “¿Por qué Playas UY?”** (`public/fotos/casilla-guardavidas-buceo.jpg`): “Playa Buceo” de
+  Agustín Fernández, foto de la Intendencia de Montevideo subida a
+  [Commons](https://commons.wikimedia.org/wiki/File:Playa_Buceo_-_20230113dicimouyaf0028.jpg),
+  **CC BY-SA 4.0** (atribución en el pie de la home y en `/terminos#fuentes`). El original es de
+  3000 px, así que con `iiurlwidth=2000` la API devuelve el archivo original (`thumburl` sin
+  `/thumb/`); se guardó tal cual a calidad 80 (~1,3 MB). La IM sube más fotos de playas a Commons
+  con nombres `…dicimouyaf….jpg`: buscar por playa y año.
+- **Novedades** (`/novedades`, `/novedades/[slug]`): notas escritas a mano en `src/lib/novedades.ts`,
+  sin CMS ni base. Una nota con `fecha` futura queda oculta y aparece sola ese día: las páginas
+  (ISR con `revalidate = 3600`; la home, cada 300). Ya está cargada la del inicio de la temporada (15/11).
+- **Podio de favoritas** en la home: las 3 playas con más me gusta de la temporada, con
+  `getMeGusta()` (un pedido chico a Supabase, cacheado 5 min) y `nombrePlayaPorSlug()` para los
+  nombres, sin pedir playas ni clima. Por eso la home es ISR cada 5 min, igual que `/favoritas`.
+- **Cuenta regresiva de la temporada** en el widget del hero: `getTemporada()` (cálculo local, 15/11
+  aprox., sin pedidos). Se muestra como “aprox.”: la fecha oficial la anuncia la IM.
+- Estructura común de las páginas de texto: `EncabezadoSitio` arriba, título + contenido
+  (`PaginaSitio`) y `PieSitio`. La home usa el mismo encabezado en modo `sobreFoto`.
+
 ## Legal y privacidad
 
 - Páginas `/terminos` (incluye fuentes y licencias) y `/privacidad`. Completar los datos de
@@ -170,12 +201,16 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
 - `src/components/mapa/ComoIr.tsx` — UI de "cómo llegar en ómnibus"
 - `src/components/mapa/capa-casillas.ts` — capa Three.js (instancing + shader de bandera)
 - `src/components/mapa/modelo.ts` — geometría low-poly de la casilla
-- `src/app/page.tsx` — home (placeholder, a diseñar)
+- `src/app/page.tsx` — home (hero con foto, qué hace, gratis, novedades)
+- `src/app/novedades/` + `src/lib/novedades.ts` — notas escritas a mano
 - `src/app/playas/page.tsx` — mapa de playas
 - `src/app/favoritas/page.tsx` — ranking de playas por me gusta
 - `src/lib/navegacion.ts` — enlaces del sitio, compartidos por:
   - `src/components/MenuSitio.tsx` — menú del mapa (botón ☰ + cajón)
-  - `src/components/EncabezadoSitio.tsx` — encabezado de /favoritas, /terminos y /privacidad
+  - `src/components/EncabezadoSitio.tsx` — encabezado de todas las páginas menos el mapa
+  - `src/components/PieSitio.tsx` — pie de todas las páginas menos el mapa
+- `src/components/PaginaSitio.tsx` — estructura de las páginas de texto (encabezado, título, pie)
+- `src/components/BotonMapa.tsx` — botón principal al mapa (se repite en home, notas y encabezado)
 
 ## Extender a todo Uruguay (investigado 10/2026, no integrado)
 
