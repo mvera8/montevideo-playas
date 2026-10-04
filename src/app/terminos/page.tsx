@@ -124,12 +124,14 @@ export default function Terminos() {
         posición GPS de los ómnibus. No contemplan feriados, desvíos ni cambios de último momento.
       </p>
 
-      <h3>Me gusta</h3>
+      <h3 id="me-gusta">Me gusta</h3>
       <p>
         Los “me gusta” son una función propia del sitio: muestran cuántas personas marcaron que les gusta cada playa, no
         sus condiciones. <strong>No son una calificación oficial</strong> ni dicen nada sobre la seguridad o la calidad del
         agua, y no se suman al puntaje de “¿A qué playa voy?”. Se cuentan por temporada (de julio a junio) y en total. El
-        número se actualiza cada pocos minutos y puede no reflejar los últimos cambios.
+        número se actualiza cada pocos minutos y puede no reflejar los últimos cambios. La página de{" "}
+        <Link href="/favoritas">playas favoritas</Link> ordena las playas por los me gusta de la temporada: es un ranking
+        de preferencias de quienes usan el sitio, no una recomendación ni una evaluación de las playas.
       </p>
 
       <h2 id="responsabilidad">Responsabilidad</h2>
