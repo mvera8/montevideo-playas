@@ -108,6 +108,12 @@ const NOMBRES_PLAYA: Record<string, string> = {
   carrasco: "Carrasco",
 };
 
+/** Nombre de una playa a partir de su slug (sin pedir nada a la IM), p. ej. para los me gusta. */
+export function nombrePlayaPorSlug(slug: string) {
+  const nombre = Object.values(NOMBRES_PLAYA).find((n) => slugify(n) === slug);
+  return nombre ?? slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " ");
+}
+
 function nombrePlaya(codigo: string) {
   return NOMBRES_PLAYA[codigo] ?? codigo.charAt(0).toUpperCase() + codigo.slice(1);
 }

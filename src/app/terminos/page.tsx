@@ -46,6 +46,20 @@ const FUENTES = [
     usa: "Criterios de aptitud para baños (art. 16) que usamos para evaluar la calidad del agua.",
     licencia: "Normativa pública (IMPO).",
   },
+  {
+    nombre: "Wikimedia Commons — “Atardecer 2017”, de Marinna",
+    url: "https://commons.wikimedia.org/wiki/File:Atardecer_2017.jpg",
+    usa: "Foto de portada de la página de inicio (atardecer desde la Rambla de Montevideo), recortada y comprimida.",
+    licencia: "Licencia CC BY-SA 4.0.",
+    licenciaUrl: "https://creativecommons.org/licenses/by-sa/4.0/deed.es",
+  },
+  {
+    nombre: "Wikimedia Commons — “Playa Buceo”, de Agustín Fernández (Intendencia de Montevideo)",
+    url: "https://commons.wikimedia.org/wiki/File:Playa_Buceo_-_20230113dicimouyaf0028.jpg",
+    usa: "Foto de la casilla de guardavidas en la página de inicio, recortada y comprimida.",
+    licencia: "Licencia CC BY-SA 4.0.",
+    licenciaUrl: "https://creativecommons.org/licenses/by-sa/4.0/deed.es",
+  },
 ];
 
 export default function Terminos() {
@@ -74,7 +88,8 @@ export default function Terminos() {
       <h2 id="servicio">El servicio</h2>
       <p>
         {SITIO.nombre} reúne información pública sobre las playas de Montevideo: casillas y banderas, calidad del agua,
-        clima, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas. Usarlo es gratuito y
+        clima, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas y leer novedades de la
+        temporada. Usarlo es gratuito y
         no requiere registro. Al usar el sitio aceptás estos términos.
       </p>
 
@@ -130,8 +145,17 @@ export default function Terminos() {
         sus condiciones. <strong>No son una calificación oficial</strong> ni dicen nada sobre la seguridad o la calidad del
         agua, y no se suman al puntaje de “¿A qué playa voy?”. Se cuentan por temporada (de julio a junio) y en total. El
         número se actualiza cada pocos minutos y puede no reflejar los últimos cambios. La página de{" "}
-        <Link href="/favoritas">playas favoritas</Link> ordena las playas por los me gusta de la temporada: es un ranking
+        <Link href="/favoritas">playas favoritas</Link> (y el podio de la página de inicio) ordena las playas por los me
+        gusta de la temporada: es un ranking
         de preferencias de quienes usan el sitio, no una recomendación ni una evaluación de las playas.
+      </p>
+
+      <h3 id="novedades">Novedades</h3>
+      <p>
+        Las notas de <Link href="/novedades">Novedades</Link> son textos propios e informativos sobre la temporada y el
+        sitio. Las fechas que mencionan (por ejemplo, el inicio de la temporada de guardavidas) son aproximadas:{" "}
+        <strong>las fechas, horarios y avisos oficiales los define y comunica la Intendencia de Montevideo</strong>. La
+        cuenta regresiva de la página de inicio usa esa misma fecha aproximada (15 de noviembre).
       </p>
 
       <h2 id="responsabilidad">Responsabilidad</h2>
@@ -177,8 +201,8 @@ export default function Terminos() {
 
       <h2 id="propiedad">Propiedad intelectual</h2>
       <p>
-        El diseño, los textos y el código de {SITIO.nombre} pertenecen a {SITIO.responsable}. Los datos de terceros se
-        usan según las licencias indicadas arriba.
+        El diseño, los textos y el código de {SITIO.nombre} pertenecen a {SITIO.responsable}. Los datos y las imágenes de
+        terceros se usan según las licencias indicadas arriba.
       </p>
 
       <h2 id="privacidad">Privacidad</h2>
