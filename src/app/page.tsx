@@ -92,11 +92,17 @@ const FUNCIONES: { icono: Icono; titulo: string; texto: string; tono: string }[]
 
 // Las dos fotos son CC BY-SA 4.0: la atribución es obligatoria (también en /terminos#fuentes).
 const CREDITOS_FOTOS = [
-  { titulo: "“Atardecer 2017”", autor: "Marinna", url: "https://commons.wikimedia.org/wiki/File:Atardecer_2017.jpg" },
+  {
+    titulo: "“Atardecer 2017”",
+    autor: "Marinna",
+    url: "https://commons.wikimedia.org/wiki/File:Atardecer_2017.jpg",
+    cambios: "recortada",
+  },
   {
     titulo: "“Playa Buceo”",
     autor: "Agustín Fernández (Intendencia de Montevideo)",
     url: "https://commons.wikimedia.org/wiki/File:Playa_Buceo_-_20230113dicimouyaf0028.jpg",
+    cambios: "recortada y editada con IA: personas y logo reemplazados",
   },
 ];
 
@@ -315,7 +321,9 @@ export default async function Home() {
             </h2>
             <p className="mx-auto mt-6 max-w-2xl text-slate-500 dark:text-slate-400">
               Juntamos la información pública de la Intendencia de Montevideo y de fuentes abiertas, y la ordenamos playa por
-              playa. La fuente oficial manda: en la playa, seguí siempre a los guardavidas.
+              playa. Somos un servicio informativo e independiente, <strong className="font-semibold">no oficial</strong>:
+              no tenemos relación con la Intendencia ni con el servicio de guardavidas. La fuente oficial manda: en la playa,
+              seguí siempre a los guardavidas.
             </p>
           </div>
 
@@ -324,7 +332,7 @@ export default async function Home() {
             <div className="relative isolate flex min-h-[26rem] flex-col justify-between overflow-hidden rounded-3xl p-6 text-white sm:col-span-2 sm:p-8 lg:row-span-2 lg:min-h-[34rem]">
               <Image
                 src={fotoCasilla}
-                alt="Guardavidas en su casilla de Playa Buceo, con la bandera verde izada"
+                alt="Imagen ilustrativa: guardavidas en una casilla de playa con la bandera verde izada"
                 fill
                 placeholder="blur"
                 sizes="(min-width: 1152px) 576px, (min-width: 640px) 100vw, 100vw"
@@ -343,6 +351,9 @@ export default async function Home() {
                   </li>
                 ))}
               </ul>
+              <p className="absolute bottom-2 right-3 text-[10px] text-white/70">
+                Imagen ilustrativa editada con IA. No son guardavidas reales.
+              </p>
             </div>
 
             {FUNCIONES.map((f) => (
@@ -433,10 +444,11 @@ export default async function Home() {
               de {c.autor}, Wikimedia Commons,{" "}
               <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.es" target="_blank" rel="noreferrer" className="underline">
                 CC BY-SA 4.0
-              </a>
+              </a>{" "}
+              ({c.cambios})
             </span>
-          ))}{" "}
-          (recortadas).
+          ))}
+          .
         </p>
       </PieSitio>
     </div>

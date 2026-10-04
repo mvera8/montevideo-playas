@@ -11,13 +11,16 @@ import {
   type MapLayerMouseEvent,
   setWorkerUrl,
 } from "maplibre-gl";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Weather } from "@/lib/weather";
+import type { AlertasInumet } from "@/lib/inumet";
 import type { Opcion, Punto } from "@/lib/transporte/planificador";
 import { CapaCasillas, type CasillaMapa } from "./capa-casillas";
 import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./ComoIr";
+import AlertaInumet from "./AlertaInumet";
 import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import CalidadAgua from "./CalidadAgua";
 import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
@@ -46,6 +49,7 @@ type Props = {
   fuente: "im" | "respaldo";
   error: string | null;
   climaCiudad: Weather | null;
+  alertas: AlertasInumet | null;
 };
 
 const BANDERAS: Record<NonNullable<Guardavidas["bandera"]>, { label: string; color: string; corto: [string, string] }> = {
@@ -110,7 +114,7 @@ function aCasillas(playas: Playa[]): (CasillaMapa & { slug: string; nombre: stri
   });
 }
 
-export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: Props) {
+export default function Mapa({ playas, temporada, fuente, error, climaCiudad, alertas }: Props) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const capaRef = useRef<CapaCasillas | null>(null);
@@ -679,14 +683,16 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
       </button>
 
       {/* Marca flotante a la derecha del botón del panel (se desplaza junto con él). */}
-      <p
-        className={`pointer-events-none absolute left-3 top-[72px] z-20 flex h-12 items-center gap-1 rounded-2xl bg-white/95 px-4 text-sm font-semibold tracking-tight text-slate-900 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate] duration-300 ease-out motion-reduce:transition-none md:left-[72px] md:top-4 dark:bg-slate-900/95 dark:text-white dark:ring-white/10 ${
+      <Link
+        href="/"
+        aria-label={`${SITIO.marca}: ir al inicio`}
+        className={`absolute left-3 top-[72px] z-20 flex h-12 items-center gap-1 rounded-2xl bg-white/95 px-4 text-sm font-semibold tracking-tight text-slate-900 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate] duration-300 ease-out motion-reduce:transition-none md:left-[72px] md:top-4 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 dark:bg-slate-900/95 dark:text-white dark:ring-white/10 dark:hover:bg-slate-900 ${
           abierto ? "md:translate-x-[356px]" : ""
         }`}
       >
         {SITIO.nombre}
         <span className="font-normal text-slate-500 dark:text-slate-400">· {SITIO.alcance}</span>
-      </p>
+      </Link>
 
       {/* Estilo del mapa y menú del sitio, arriba a la derecha */}
       <div className="absolute right-3 top-[72px] z-20 flex flex-col gap-3 md:right-4 md:top-4 md:flex-row md:gap-2">
@@ -738,6 +744,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
               fuente={fuente}
               error={error}
               climaCiudad={climaCiudad}
+              alertas={alertas}
               busqueda={busqueda}
               filtro={filtro}
               onFiltro={setFiltro}
@@ -755,6 +762,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
             <Detalle
               playa={playa}
               temporada={temporada}
+              alertas={alertas}
               casillaId={casillaId}
               onCasilla={setCasillaId}
               onCerrar={cerrar}
@@ -813,6 +821,7 @@ function padding(extra: number, panelAbierto: boolean) {
 function Detalle({
   playa,
   temporada,
+  alertas,
   casillaId,
   onCasilla,
   onCerrar,
@@ -821,6 +830,7 @@ function Detalle({
 }: {
   playa: Playa;
   temporada: Temporada;
+  alertas: AlertasInumet | null;
   casillaId: string | null;
   onCasilla: (id: string) => void;
   onCerrar: () => void;
@@ -848,6 +858,7 @@ function Detalle({
       </div>
       {/* Fuera del encabezado para que la tarjeta de info use todo el ancho */}
       <TotalesDetalle slug={playa.slug} inicial={playa.meGusta} />
+      <AlertaInumet alertas={alertas} className="mt-4" />
 
       {c && (
         <div className="mt-4 grid grid-cols-3 gap-2 text-sm">

@@ -38,7 +38,8 @@ export default function PieSitio({ children }: { children?: React.ReactNode }) {
       <div className="border-t border-slate-100 dark:border-slate-800">
         <div className="mx-auto max-w-6xl space-y-1 px-4 py-5 text-xs text-slate-500 sm:px-6">
           <p>
-            Servicio informativo e independiente, no oficial. Datos de la Intendencia de Montevideo y otras fuentes
+            Servicio informativo e independiente, no oficial: sin relación con la Intendencia ni con el servicio de
+            guardavidas. Datos de la Intendencia de Montevideo y otras fuentes
             abiertas: la fuente oficial manda. En la playa, seguí a los guardavidas. Emergencias: 911.
           </p>
           {children}

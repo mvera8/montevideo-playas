@@ -14,13 +14,19 @@ Contacto
 
 Mobile
 
+Servidor
+
 Logo
 
 logo en mapas y link a la home
 
 Apis performance y uso
 
+Dominio
+
 Seguridad de datos
+
+Reportar algo? como en waze
 
 -
 
@@ -38,15 +44,7 @@ Subscribción email playa por dia?
 
 ----
 
-APIs o datos nuevos
 
-4. Servicios en cada playa con OpenStreetMap: baños, duchas, bajadas accesibles, estacionamiento, bicisendas y kioscos cerca de cada playa. Es gratis, no pide clave y se pueden mostrar como íconos en el mapa.
-
-5. Calidad del agua y cianobacterias: la IM publica monitoreos de las playas y alertas de cianobacterias en verano. Ya tomamos la bandera sanitaria de la API, pero el detalle (coliformes, fecha del último muestreo) haría la app más confiable. Tengo que revisar si está disponible como API o solo como datos abiertos o en la web de la IM.
-
-6. Alertas meteorológicas de INUMET (tormentas fuertes, vientos), para mostrar una alerta arriba del panel. También tengo que confirmar cómo las publica.
-
-7. Accesibilidad: la IM tiene un programa de playas accesibles, con sillas anfibias y pasarelas, en algunas playas. Aunque sea con datos cargados a mano, permitiría filtrar las playas "accesibles". Ninguna otra app lo muestra junto con el ómnibus de piso bajo, que ya detectamos en vivo.
 
 Producto
 

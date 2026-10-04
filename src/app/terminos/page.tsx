@@ -35,6 +35,12 @@ const FUENTES = [
     licenciaUrl: "https://creativecommons.org/licenses/by/4.0/deed.es",
   },
   {
+    nombre: "Inumet (Instituto Uruguayo de Meteorología)",
+    url: "https://www.inumet.gub.uy/alerta",
+    usa: "Advertencias meteorológicas vigentes para Montevideo (nivel, fenómeno, horario y enlace al boletín).",
+    licencia: "Información pública de Inumet, tomada de su sitio web; no es una API oficial.",
+  },
+  {
     nombre: "NOAA — OISST y WaveWatch III (PacIOOS)",
     url: "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21NrtAgg_LonPM180.html",
     usa: "Temperatura del agua (modelo satelital diario) y altura de olas (pronóstico hora a hora).",
@@ -62,8 +68,8 @@ const FUENTES = [
   {
     nombre: "Wikimedia Commons — “Playa Buceo”, de Agustín Fernández (Intendencia de Montevideo)",
     url: "https://commons.wikimedia.org/wiki/File:Playa_Buceo_-_20230113dicimouyaf0028.jpg",
-    usa: "Foto de la casilla de guardavidas en la página de inicio, recortada y comprimida.",
-    licencia: "Licencia CC BY-SA 4.0.",
+    usa: "Foto de la casilla de guardavidas en la página de inicio, recortada, comprimida y editada con inteligencia artificial (se reemplazaron las personas y el logo de la Intendencia por otros ficticios). No muestra a guardavidas reales ni el uniforme oficial.",
+    licencia: "Licencia CC BY-SA 4.0. La versión editada se distribuye bajo la misma licencia.",
     licenciaUrl: "https://creativecommons.org/licenses/by-sa/4.0/deed.es",
   },
 ];
@@ -79,7 +85,9 @@ export default function Terminos() {
         <ul className="mt-2">
           <li>
             {SITIO.nombre} es un servicio <strong>informativo e independiente</strong>. No es un sitio oficial y no
-            pertenece a la Intendencia de Montevideo, al STM ni al servicio de guardavidas.
+            pertenece a la Intendencia de Montevideo, a Inumet, al STM ni al servicio de guardavidas. No tenemos
+            relación, convenio ni representación con ninguno de ellos y no hablamos en su nombre. Las imágenes de
+            guardavidas del sitio son ilustrativas: no muestran a guardavidas reales ni el uniforme oficial.
           </li>
           <li>
             En la playa, <strong>siempre seguí las indicaciones de los guardavidas y la bandera de la casilla</strong>,
@@ -94,7 +102,7 @@ export default function Terminos() {
       <h2 id="servicio">El servicio</h2>
       <p>
         {SITIO.nombre} reúne información pública sobre las playas de Montevideo: casillas y banderas, calidad del agua,
-        clima, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas y leer novedades de la
+        clima y alertas de Inumet, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas y leer novedades de la
         temporada. Usarlo es gratuito y
         no requiere registro. Al usar el sitio aceptás estos términos.
       </p>
@@ -123,8 +131,16 @@ export default function Terminos() {
         temperatura del agua es estimada por un modelo satelital diario, salvo cuando indicamos “medida IM”, y si
         tiene más de 4 días no la mostramos. Las olas salen de un modelo global de baja resolución y son orientativas
         en el Río de la Plata. El índice UV es el que habría con cielo despejado (el máximo posible). La lluvia es la
-        cantidad prevista por hora, no una probabilidad. El amanecer y el atardecer los calculamos nosotros. Para
-        alertas y avisos oficiales, consultá a Inumet.
+        cantidad prevista por hora, no una probabilidad. El amanecer y el atardecer los calculamos nosotros.
+      </p>
+
+      <h3 id="alertas">Alertas meteorológicas</h3>
+      <p>
+        Mostramos las advertencias de Inumet que incluyen a Montevideo, tal como las publica en su sitio web. Las
+        consultamos cada pocos minutos, así que pueden aparecer o terminar con algo de demora, y si no pudimos
+        consultarlas en la última hora lo indicamos en vez de decir que no hay alertas. Que no veas una alerta acá{" "}
+        <strong>no garantiza que no la haya</strong>: <strong>las alertas oficiales son las de Inumet</strong>{" "}
+        (inumet.gub.uy) y, ante una emergencia, las indicaciones del Sinae y del 911.
       </p>
 
       <h3>Recomendaciones</h3>

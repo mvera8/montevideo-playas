@@ -34,8 +34,8 @@ export default function Privacidad() {
         <strong>{SITIO.contacto}</strong> por cualquier consulta sobre esta política.
       </p>
       <p>
-        {SITIO.nombre} es un servicio independiente: no pertenece a la Intendencia de Montevideo ni a ningún organismo
-        público (ver <Link href="/terminos">Términos de uso</Link>).
+        {SITIO.nombre} es un servicio independiente: no pertenece a la Intendencia de Montevideo, al servicio de guardavidas
+        ni a ningún organismo público (ver <Link href="/terminos">Términos de uso</Link>).
       </p>
 
       <h2 id="ubicacion">Tu ubicación</h2>
@@ -125,8 +125,9 @@ export default function Privacidad() {
         Los me gusta se guardan en Supabase, como se explica en <Link href="#me-gusta">Me gusta</Link>.
       </p>
       <p>
-        El clima, los datos de playas, la calidad del agua, los baños y bebederos y los horarios de ómnibus los
-        consultamos desde nuestro servidor (MET Norway, NOAA, Intendencia de Montevideo y OpenStreetMap), sin enviarles ningún
+        El clima, las alertas meteorológicas, los datos de playas, la calidad del agua, los baños y bebederos y los
+        horarios de ómnibus los consultamos desde nuestro servidor (MET Norway, NOAA, Inumet, Intendencia de Montevideo y
+        OpenStreetMap), sin enviarles ningún
         dato tuyo.
       </p>
 
