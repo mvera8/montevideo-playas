@@ -40,7 +40,7 @@ se considera válida en temporada (15/11 – 30/04). Fuera de temporada aparecen
   o con `prefers-reduced-motion`.
 - El worker de MapLibre se copia a `public/maplibre` en `postinstall`.
 - La IM agrupa casillas por código de playa (`beach`); su endpoint `/beaches` devuelve casillas, no playas.
-- `?playa=pocitos` en la URL abre directamente esa playa.
+- `/playas?playa=pocitos` abre directamente esa playa.
 
 ## Calidad del agua
 
@@ -167,7 +167,8 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
 - `src/components/mapa/ComoIr.tsx` — UI de "cómo llegar en ómnibus"
 - `src/components/mapa/capa-casillas.ts` — capa Three.js (instancing + shader de bandera)
 - `src/components/mapa/modelo.ts` — geometría low-poly de la casilla
-- `src/app/page.tsx` — página principal
+- `src/app/page.tsx` — home (placeholder, a diseñar)
+- `src/app/playas/page.tsx` — mapa de playas
 
 ## Extender a todo Uruguay (investigado 10/2026, no integrado)
 

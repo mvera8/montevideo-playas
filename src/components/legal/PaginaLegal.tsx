@@ -15,7 +15,7 @@ export default function PaginaLegal({
     <div className="min-h-dvh bg-slate-50 dark:bg-slate-950">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="text-sm font-medium text-sky-700 hover:underline dark:text-sky-300">
+          <Link href="/playas" className="text-sm font-medium text-sky-700 hover:underline dark:text-sky-300">
             ← Volver al mapa
           </Link>
           <nav className="flex gap-4 text-sm text-slate-600 dark:text-slate-300">

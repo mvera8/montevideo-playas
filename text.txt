@@ -6,7 +6,9 @@ APIS
 Performante
 Playa 3d (tree.js)?
 
-podes pasar este mapa a una pagina "/playas", y deja rla home para hacerla mas diseñada despues
+
+voy a necesitar un menu, pone un icono de menu al lado del boton del estilo del mapa y la ubicacion y diseño d elo que abra te lo dejo a vos, el menu debe decir: inicio, playas, favoritas, Terminos, privacidad, y contacto quiza?
+Ahi necesito una pagina para listar por los me gusta a las playas, si clikceas te abre la pagina playas con la playa seleccionada
 
 Home, diseño como adjunto, boton principal y mas grande que vaya a la pagina de playas y que aparezca varias veces. Destacar que es gratis
 -
