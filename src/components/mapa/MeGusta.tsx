@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import type { TotalesMeGusta } from "@/lib/me-gusta";
 import { meGustaDisponible, useMeGusta, useTotalesMeGusta } from "@/lib/me-gusta-cliente";
+import { BotonInfo, TarjetaInfo } from "./Info";
 
 const numero = new Intl.NumberFormat("es-UY");
 
@@ -65,23 +67,29 @@ export function BotonMeGusta({ slug, nombre, inicial }: { slug: string; nombre: 
 /** Totales y aviso de privacidad, debajo del nombre en el detalle. */
 export function TotalesDetalle({ slug, inicial }: { slug: string; inicial: TotalesMeGusta | null }) {
   const estado = useTotalesMeGusta(slug, inicial);
+  const [info, setInfo] = useState(false);
   if (!meGustaDisponible || !estado) return null;
   return (
     <div className="mt-2">
-      <p className={`flex items-center gap-1 text-xs ${color(estado.meGusta)}`}>
-        <Corazon lleno={estado.meGusta} className="h-3 w-3" />
-        <span className="font-semibold tabular-nums">{numero.format(estado.temporada)}</span> me gusta esta temporada
-        {estado.siempre > estado.temporada && (
-          <span className="text-slate-500"> · {numero.format(estado.siempre)} en total</span>
-        )}
-      </p>
+      <div className="flex items-center gap-1.5">
+        <p className={`flex items-center gap-1 text-xs ${color(estado.meGusta)}`}>
+          <Corazon lleno={estado.meGusta} className="h-3 w-3" />
+          <span className="font-semibold tabular-nums">{numero.format(estado.temporada)}</span> me gusta esta temporada
+          {estado.siempre > estado.temporada && (
+            <span className="text-slate-500"> · {numero.format(estado.siempre)} en total</span>
+          )}
+        </p>
+        <BotonInfo abierto={info} onClick={() => setInfo((v) => !v)} etiqueta="Cómo se guarda el me gusta" />
+      </div>
       {estado.error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{estado.error}</p>}
-      <p className="mt-1 text-[11px] text-slate-500">
-        El me gusta se guarda con una cuenta anónima de este navegador, sin pedirte datos. Solo se muestra el total.{" "}
-        <Link href="/privacidad#me-gusta" className="underline">
-          Privacidad
-        </Link>
-      </p>
+      {info && (
+        <TarjetaInfo>
+          El me gusta se guarda con una cuenta anónima de este navegador, sin pedirte datos. Solo se muestra el total.{" "}
+          <Link href="/privacidad#me-gusta" className="underline">
+            Privacidad
+          </Link>
+        </TarjetaInfo>
+      )}
     </div>
   );
 }

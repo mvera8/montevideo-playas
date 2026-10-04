@@ -6,6 +6,7 @@ import type { Playa, Temporada } from "@/lib/playas";
 import { recomendar, type Viaje } from "@/lib/recomendacion";
 import type { Punto } from "@/lib/transporte/planificador";
 import { postJson, redondear } from "@/lib/ubicacion";
+import { BotonInfo, TarjetaInfo } from "./Info";
 import { BadgeCalidad, Motivos } from "./Motivos";
 
 type Props = {
@@ -53,24 +54,13 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold">
           ¿A qué playa voy?
-          <button
-            onClick={() => setInfo((v) => !v)}
-            aria-expanded={info}
-            aria-label="Cómo se calcula el puntaje"
-            className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold ring-1 ${
-              info
-                ? "bg-sky-600 text-white ring-sky-600"
-                : "text-slate-500 ring-slate-300 hover:bg-slate-100 dark:ring-slate-600 dark:hover:bg-slate-800"
-            }`}
-          >
-            i
-          </button>
+          <BotonInfo abierto={info} onClick={() => setInfo((v) => !v)} etiqueta="Cómo se calcula el puntaje" />
         </h2>
         <span className="text-[11px] text-slate-500">Ahora</span>
       </div>
 
       {info && (
-        <div className="mt-2 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+        <TarjetaInfo>
           <p>
             Cada playa tiene un <strong>puntaje de 0 a 100</strong> según la bandera vigente, el viento (si le pega de
             frente o queda reparada, según hacia dónde mira la playa), la sensación térmica, la lluvia y las olas. Si
@@ -80,7 +70,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
             De noche el máximo es 30. <strong>75+</strong> Ideal · <strong>55+</strong> Buena · <strong>40+</strong>{" "}
             Aceptable · menos, No recomendable.
           </p>
-        </div>
+        </TarjetaInfo>
       )}
 
       {malMomento ? (

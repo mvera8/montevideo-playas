@@ -2,6 +2,7 @@
 
 import type { Servicio } from "@/lib/servicios";
 import { AVISO_VIEJO, SERVICIO, textoFecha } from "./servicios-mapa";
+import SeccionPlegable from "./SeccionPlegable";
 
 const metros = (m?: number) => (m == null ? "" : m < 1000 ? `a ${Math.round(m / 10) * 10} m` : `a ${(m / 1000).toFixed(1)} km`);
 
@@ -16,18 +17,17 @@ export default function ServiciosCerca({
   const conteo = (t: Servicio["tipo"]) => servicios.filter((s) => s.tipo === t).length;
 
   return (
-    <section className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
-      <h3 className="mb-2 flex items-center justify-between text-xs font-medium uppercase tracking-wider text-slate-500">
-        Servicios cerca
-        {servicios.length > 0 && (
-          <span className="font-normal normal-case tracking-normal">
-            {(["bano", "bebedero", "ducha"] as const)
+    <SeccionPlegable
+      titulo="Servicios cerca"
+      resumen={
+        servicios.length === 0
+          ? "Ninguno a menos de 600 m"
+          : (["bano", "bebedero", "ducha"] as const)
               .filter((t) => conteo(t))
               .map((t) => `${SERVICIO[t].icono} ${conteo(t)}`)
-              .join("  ")}
-          </span>
-        )}
-      </h3>
+              .join("  ")
+      }
+    >
 
       {servicios.length === 0 ? (
         <p className="text-sm text-slate-500">No hay baños, bebederos ni duchas públicos registrados a menos de 600 m.</p>
@@ -64,6 +64,6 @@ export default function ServiciosCerca({
           ))}
         </ul>
       )}
-    </section>
+    </SeccionPlegable>
   );
 }

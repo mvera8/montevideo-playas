@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { puntoCardinal, type Franja, type Hora } from "@/lib/recomendacion";
 import { BadgeCalidad, Motivos } from "./Motivos";
+import SeccionPlegable from "./SeccionPlegable";
 
 type Datos = { ahora: string; horas: Hora[]; luz: [string, string][]; mejor: Franja | null };
 
@@ -38,8 +39,7 @@ export default function Pronostico({ slug }: { slug: string }) {
   const d = datos?.slug === slug ? datos.d : undefined;
 
   return (
-    <section className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">Mejor horario</h3>
+    <SeccionPlegable titulo="Mejor horario" resumen={resumenFranja(d)} resumenSoloCerrada>
       {d === undefined && <div className="h-40 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />}
       {d === null && <p className="text-sm text-slate-500">No pudimos cargar el pronóstico.</p>}
       {d && (
@@ -48,13 +48,22 @@ export default function Pronostico({ slug }: { slug: string }) {
           <Grafico datos={d} />
         </>
       )}
-    </section>
+    </SeccionPlegable>
   );
+}
+
+const diaFranja = (mejor: Franja, ahora: string) => (mejor.desde.slice(0, 10) === ahora.slice(0, 10) ? "Hoy" : "Mañana");
+
+function resumenFranja(d: Datos | null | undefined) {
+  if (d === undefined) return "Cargando…";
+  if (d === null) return "Sin pronóstico";
+  if (!d.mejor) return "Sin horas de sol";
+  return `${diaFranja(d.mejor, d.ahora)}, ${horaNum(d.mejor.desde)} a ${horaNum(d.mejor.hasta)} h · ${d.mejor.calidad}`;
 }
 
 function MejorFranja({ mejor, ahora }: { mejor: Franja | null; ahora: string }) {
   if (!mejor) return <p className="text-sm text-slate-500">No quedan horas de sol en el pronóstico.</p>;
-  const dia = mejor.desde.slice(0, 10) === ahora.slice(0, 10) ? "Hoy" : "Mañana";
+  const dia = diaFranja(mejor, ahora);
   return (
     <div className="mb-3 space-y-2">
       <div className="flex items-center justify-between gap-2">

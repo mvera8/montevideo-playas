@@ -23,6 +23,7 @@ import CalidadAgua from "./CalidadAgua";
 import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
 import Pronostico from "./Pronostico";
 import ServiciosCerca from "./ServiciosCerca";
+import SeccionPlegable, { GrupoPlegable } from "./SeccionPlegable";
 import { cargarIconos, contenidoPopup } from "./servicios-mapa";
 import type { Servicio } from "@/lib/servicios";
 import { SITIO } from "@/lib/sitio";
@@ -47,12 +48,34 @@ type Props = {
   climaCiudad: Weather | null;
 };
 
-const BANDERAS: Record<NonNullable<Guardavidas["bandera"]>, { label: string; color: string }> = {
-  green: { label: "Verde · apto para bañarse", color: "#1f9d4c" },
-  yellow: { label: "Amarilla · precaución", color: "#f5c518" },
-  red: { label: "Roja · no bañarse", color: "#d62828" },
-  black: { label: "Negra · sin guardavidas", color: "#1b1b1b" },
+const BANDERAS: Record<NonNullable<Guardavidas["bandera"]>, { label: string; color: string; corto: [string, string] }> = {
+  green: { label: "Verde · apto para bañarse", color: "#1f9d4c", corto: ["verde", "verdes"] },
+  yellow: { label: "Amarilla · precaución", color: "#f5c518", corto: ["amarilla", "amarillas"] },
+  red: { label: "Roja · no bañarse", color: "#d62828", corto: ["roja", "rojas"] },
+  black: { label: "Negra · sin guardavidas", color: "#1b1b1b", corto: ["negra", "negras"] },
 };
+
+// "2 verdes · 1 amarilla", de la más grave a la más leve.
+function resumenCasillas(guardavidas: Guardavidas[], temporada: Temporada) {
+  if (guardavidas.length === 0) return "Sin casillas informadas";
+  if (!temporada.activa) return `Desde el ${fechaFmt.format(new Date(temporada.inicio))}`;
+  const partes = (["red", "black", "yellow", "green"] as const)
+    .map((b) => [b, guardavidas.filter((g) => g.bandera === b).length] as const)
+    .filter(([, n]) => n > 0)
+    .map(([b, n]) => (
+      <span key={b} className="inline-flex items-center gap-1">
+        <span className="h-2 w-2 rounded-full" style={{ background: BANDERAS[b].color }} />
+        {n} {BANDERAS[b].corto[n === 1 ? 0 : 1]}
+      </span>
+    ));
+  if (guardavidas.some((g) => g.banderaSanitaria?.activa))
+    partes.unshift(
+      <span key="sanitaria" className="text-orange-700 dark:text-orange-400">
+        Bandera sanitaria
+      </span>,
+    );
+  return partes.length ? <span className="inline-flex gap-2">{partes}</span> : "Banderas sin datos";
+}
 
 const fechaFmt = new Intl.DateTimeFormat("es-UY", {
   day: "numeric",
@@ -736,26 +759,28 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad }: 
               onCasilla={setCasillaId}
               onCerrar={cerrar}
               onVerServicio={verServicio}
+              comoIr={
+                destino && (
+                  <ComoIr
+                    destino={destino}
+                    origen={origen}
+                    eligiendoEnMapa={eligiendo}
+                    ubicando={ubicando}
+                    errorUbicacion={errorUbicacion}
+                    onUsarUbicacion={usarUbicacion}
+                    onElegirEnMapa={() => {
+                      setErrorUbicacion(null);
+                      setEligiendo(true);
+                    }}
+                    onCambiarOrigen={() => {
+                      setOrigen(null);
+                      setRuta({ opcion: null, llegadas: {} });
+                    }}
+                    onOpcion={onOpcion}
+                  />
+                )
+              }
             />
-            {destino && (
-              <ComoIr
-                destino={destino}
-                origen={origen}
-                eligiendoEnMapa={eligiendo}
-                ubicando={ubicando}
-                errorUbicacion={errorUbicacion}
-                onUsarUbicacion={usarUbicacion}
-                onElegirEnMapa={() => {
-                  setErrorUbicacion(null);
-                  setEligiendo(true);
-                }}
-                onCambiarOrigen={() => {
-                  setOrigen(null);
-                  setRuta({ opcion: null, llegadas: {} });
-                }}
-                onOpcion={onOpcion}
-              />
-            )}
           </section>
         )}
       </aside>
@@ -792,6 +817,7 @@ function Detalle({
   onCasilla,
   onCerrar,
   onVerServicio,
+  comoIr,
 }: {
   playa: Playa;
   temporada: Temporada;
@@ -799,6 +825,7 @@ function Detalle({
   onCasilla: (id: string) => void;
   onCerrar: () => void;
   onVerServicio: (s: Servicio) => void;
+  comoIr: React.ReactNode;
 }) {
   const c = playa.clima;
   return (
@@ -810,7 +837,6 @@ function Detalle({
             <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
           </div>
           {playa.descripcion && <p className="text-sm text-slate-500">{playa.descripcion}</p>}
-          <TotalesDetalle slug={playa.slug} inicial={playa.meGusta} />
         </div>
         <button
           onClick={onCerrar}
@@ -820,6 +846,8 @@ function Detalle({
           ✕
         </button>
       </div>
+      {/* Fuera del encabezado para que la tarjeta de info use todo el ancho */}
+      <TotalesDetalle slug={playa.slug} inicial={playa.meGusta} />
 
       {c && (
         <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
@@ -836,62 +864,68 @@ function Detalle({
         </div>
       )}
 
-      <CalidadAgua agua={playa.agua} />
-      <Pronostico slug={playa.slug} />
-
-      <h3 className="mt-5 mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
-        Casillas de guardavidas ({playa.guardavidas.length})
-      </h3>
-      {!temporada.activa && (
-        <p className="mb-2 text-xs text-slate-500">
-          Servicio desde el {fechaFmt.format(new Date(temporada.inicio))}, de 8 a 20 h.
-        </p>
-      )}
-      {playa.guardavidas.length === 0 ? (
-        <p className="text-sm text-slate-500">Sin casillas informadas por la IM.</p>
-      ) : (
-        <ul className="space-y-1">
-          {playa.guardavidas.map((g) => {
-            const b = g.bandera ? BANDERAS[g.bandera] : null;
-            return (
-              <li key={g.id}>
-                <button
-                  onClick={() => onCasilla(g.id)}
-                  className={`flex w-full items-start gap-3 rounded-xl px-2 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${
-                    casillaId === g.id ? "bg-sky-50 dark:bg-slate-800" : ""
-                  }`}
-                >
-                  <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: b?.color ?? "#c9ced4" }} />
-                  <span className="min-w-0">
-                    <span className="block font-medium">{g.nombre}</span>
-                    {g.direccion && <span className="block text-xs text-slate-500">{g.direccion}</span>}
-                    <span className="block text-xs text-slate-600 dark:text-slate-400">
-                      {b ? b.label : temporada.activa ? "Bandera sin datos" : "Sin servicio"}
-                    </span>
-                    {g.banderaSanitaria?.activa && (
-                      <span className="mt-1 inline-block rounded bg-orange-100 px-1.5 py-0.5 text-xs text-orange-800 dark:bg-orange-950 dark:text-orange-300">
-                        Bandera sanitaria{g.banderaSanitaria.causa ? `: ${g.banderaSanitaria.causa}` : ""}
+      {/* Orden: ¿se puede? (casillas, agua) → ¿cuándo? → ¿cómo llego? → ¿qué hay? */}
+      <GrupoPlegable inicial="casillas" reiniciarCon={playa.slug}>
+        <SeccionPlegable
+          titulo={`Casillas (${playa.guardavidas.length})`}
+          clave="casillas"
+          resumen={resumenCasillas(playa.guardavidas, temporada)}
+        >
+          {!temporada.activa && (
+            <p className="mb-2 text-xs text-slate-500">
+              Servicio desde el {fechaFmt.format(new Date(temporada.inicio))}, de 8 a 20 h.
+            </p>
+          )}
+          {playa.guardavidas.length === 0 ? (
+            <p className="text-sm text-slate-500">Sin casillas informadas por la IM.</p>
+          ) : (
+            <ul className="space-y-1">
+              {playa.guardavidas.map((g) => {
+                const b = g.bandera ? BANDERAS[g.bandera] : null;
+                return (
+                  <li key={g.id}>
+                    <button
+                      onClick={() => onCasilla(g.id)}
+                      className={`flex w-full items-start gap-3 rounded-xl px-2 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                        casillaId === g.id ? "bg-sky-50 dark:bg-slate-800" : ""
+                      }`}
+                    >
+                      <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: b?.color ?? "#c9ced4" }} />
+                      <span className="min-w-0">
+                        <span className="block font-medium">{g.nombre}</span>
+                        {g.direccion && <span className="block text-xs text-slate-500">{g.direccion}</span>}
+                        <span className="block text-xs text-slate-600 dark:text-slate-400">
+                          {b ? b.label : temporada.activa ? "Bandera sin datos" : "Sin servicio"}
+                        </span>
+                        {g.banderaSanitaria?.activa && (
+                          <span className="mt-1 inline-block rounded bg-orange-100 px-1.5 py-0.5 text-xs text-orange-800 dark:bg-orange-950 dark:text-orange-300">
+                            Bandera sanitaria{g.banderaSanitaria.causa ? `: ${g.banderaSanitaria.causa}` : ""}
+                          </span>
+                        )}
                       </span>
+                    </button>
+                    {g.comoIr && (
+                      <a
+                        href={g.comoIr}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-8 text-xs text-sky-700 underline dark:text-sky-300"
+                      >
+                        Cómo ir
+                      </a>
                     )}
-                  </span>
-                </button>
-                {g.comoIr && (
-                  <a
-                    href={g.comoIr}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ml-8 text-xs text-sky-700 underline dark:text-sky-300"
-                  >
-                    Cómo ir
-                  </a>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </SeccionPlegable>
 
-      <ServiciosCerca servicios={playa.servicios} onVer={onVerServicio} />
+        <CalidadAgua agua={playa.agua} />
+        <Pronostico slug={playa.slug} />
+        {comoIr}
+        <ServiciosCerca servicios={playa.servicios} onVer={onVerServicio} />
+      </GrupoPlegable>
     </>
   );
 }
