@@ -9,7 +9,7 @@ flameando (color real de la IM, dirección según el viento) y temperatura de ai
 ## Configuración
 
 ```bash
-cp .env.example .env.local   # completar IM_CLIENT_ID e IM_CLIENT_SECRET
+cp .env.example .env.local   # completar IM_CLIENT_ID e IM_CLIENT_SECRET (y Supabase para los me gusta)
 npm run dev
 ```
 
@@ -115,6 +115,39 @@ un solo servicio): `IM_TRANSPORTE_CLIENT_ID` / `IM_TRANSPORTE_CLIENT_SECRET`.
   todos los usuarios, por el límite de uso de la IM.
 - No contempla feriados ni horarios especiales.
 
+## Me gusta
+
+Dato **propio del sitio** (no es una fuente externa). Base: Supabase, proyecto `montevideo-playas`
+(`xosgpsubckqhzzermohv`, us-east-2). Esquema en `supabase/migrations/` (aplicado con el conector de
+Supabase; para recrearlo, correr ese SQL en el SQL Editor).
+
+- **Cuenta anónima** (Supabase Auth, `signInAnonymously`): requiere *Authentication → Sign In /
+  Providers → Allow anonymous sign-ins* activado en el dashboard. La sesión queda en
+  `localStorage` (`sb-<ref>-auth-token`). Más adelante se puede convertir en cuenta con Google o
+  correo (`linkIdentity` / `updateUser`) y conserva sus me gusta (pensado para el Rey de la playa).
+- **Tablas:** `me_gusta` (playa, temporada, user_id; PK única = uno por persona por playa por
+  temporada; RLS: cada uno ve/da/saca solo los suyos, solo en la temporada actual; un trigger pone
+  un tope de 60 por temporada por cuenta — no hacerlo en la política: recursa sobre la tabla) y `me_gusta_totales` (contador precalculado por un trigger; lo único público).
+- **Temporada:** de julio a junio (`'2026-27'`), calculada en la base (`temporada_actual()`) y en
+  `temporadaMeGusta()` de `src/lib/me-gusta.ts`. "En total" = suma de todas las temporadas.
+- **Lectura (servidor):** `GET {URL}/rest/v1/me_gusta_totales?select=playa,temporada,total` con
+  header `apikey: <clave publicable>`. ~20 filas por temporada. Cache 5 min (igual que el ISR de la
+  página); si falla, la página sale sin me gusta.
+- **Escritura (navegador):** RPC `alternar_me_gusta(p_playa)` devuelve `{meGusta, temporada,
+  siempre}` en un solo viaje. **Solo si el navegador ya tiene sesión:** al cargar, dos consultas en
+  paralelo (`me_gusta` de la temporada, que por RLS trae solo las propias, para pintar las tarjetas
+  en rojo, y `me_gusta_totales` al día, para no mostrar "te gusta" con el 0 cacheado) y
+  `estado_me_gusta(p_playa)` al abrir una playa. supabase-js se importa de forma diferida: quien nunca dio me gusta
+  no lo descarga. Actualización optimista.
+- **Validar:** `curl -X POST {URL}/rest/v1/rpc/temporada_actual -H "apikey: …"` → `"2026-27"`; el
+  conector (`get_advisors`) no debe mostrar avisos de seguridad.
+- **Vigencia:** es un contador en vivo, no hay dato vencido; el número puede atrasar ≤5 min.
+- **Abuso:** Supabase limita la creación de cuentas anónimas por IP (30/h por defecto). Si se
+  infla, activar CAPTCHA (Turnstile) en Auth. Limpiar cuentas anónimas sin uso de más de un año.
+- **Plan gratis:** el proyecto se pausa tras 7 días sin actividad; en ese caso no se muestran me
+  gusta hasta reactivarlo.
+- No se suma al puntaje de "¿A qué playa voy?" (siempre ganaría Pocitos).
+
 ## Legal y privacidad
 
 - Páginas `/terminos` (incluye fuentes y licencias) y `/privacidad`. Completar los datos de
@@ -129,6 +162,7 @@ un solo servicio): `IM_TRANSPORTE_CLIENT_ID` / `IM_TRANSPORTE_CLIENT_SECRET`.
 - `src/lib/weather.ts` — Open-Meteo, todas las playas en 2 requests
 - `src/lib/playas.ts` — une playas + casillas + clima, lógica de temporada
 - `src/lib/transporte/` — GTFS, planificador y tiempo real
+- `src/lib/me-gusta.ts` / `me-gusta-cliente.ts` — totales (servidor) y botón ❤️ (navegador, Supabase)
 - `src/components/mapa/Mapa.tsx` — mapa, buscador y panel de detalle
 - `src/components/mapa/ComoIr.tsx` — UI de "cómo llegar en ómnibus"
 - `src/components/mapa/capa-casillas.ts` — capa Three.js (instancing + shader de bandera)

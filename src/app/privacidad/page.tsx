@@ -15,6 +15,10 @@ export default function Privacidad() {
         <p className="font-semibold text-slate-900 dark:text-white">En resumen</p>
         <ul className="mt-2">
           <li>No tenés que crear una cuenta ni darnos tu nombre o correo.</li>
+          <li>
+            Si das <strong>“me gusta”</strong> a una playa, se crea una cuenta anónima en tu navegador y guardamos qué playas
+            te gustan. Nadie más ve quién dio cada me gusta: solo se muestra el total.
+          </li>
           <li>No usamos cookies, publicidad ni herramientas de analítica o seguimiento.</li>
           <li>
             Tu <strong>ubicación</strong> se usa solo si la pedís, para calcular cómo llegar a una playa.{" "}
@@ -60,11 +64,44 @@ export default function Privacidad() {
         <li>Podés retirar el permiso cuando quieras desde la configuración de tu navegador.</li>
       </ul>
 
+      <h2 id="me-gusta">Me gusta</h2>
+      <p>
+        La primera vez que tocás “Me gusta”, se crea una <strong>cuenta anónima</strong>: no te pedimos nombre, correo ni
+        ningún dato. Lo que guardamos:
+      </p>
+      <ul>
+        <li>un identificador aleatorio de esa cuenta y la fecha en que se creó;</li>
+        <li>a qué playas les diste me gusta, en qué temporada y cuándo.</li>
+      </ul>
+      <p>
+        Para qué: contar un solo me gusta por persona y mostrarte cuáles marcaste. <strong>Solo publicamos el total por
+        playa</strong>; nunca mostramos quién dio cada me gusta ni lo usamos para hacer perfiles.
+      </p>
+      <p>
+        Dónde: en <strong>Supabase</strong>, el proveedor de base de datos y cuentas del sitio, con servidores en Estados
+        Unidos. Como en cualquier conexión, Supabase recibe tu dirección IP al crear la cuenta y al guardar un me gusta, y
+        puede registrarla por seguridad (por ejemplo, para limitar abusos) según{" "}
+        <a href="https://supabase.com/privacy" target="_blank" rel="noreferrer">
+          su política
+        </a>
+        . La base es tu consentimiento, que das al tocar “Me gusta”.
+      </p>
+      <p>
+        Cuánto tiempo: mientras exista la cuenta. Podés sacar un me gusta tocándolo de nuevo. Si borrás los datos del sitio
+        en tu navegador, perdés el acceso a la cuenta (no se puede recuperar porque es anónima); para borrarla por
+        completo, escribinos a <strong>{SITIO.contacto}</strong>. Podemos borrar cuentas anónimas que no se usen hace más
+        de un año.
+      </p>
+
       <h2 id="dispositivo">Lo que queda en tu dispositivo</h2>
       <p>
         Guardamos dos preferencias en el almacenamiento local de tu navegador (no son cookies y no se envían a ningún
         lado): si dejaste el panel lateral abierto o cerrado, y el estilo del mapa que elegiste. Podés borrarlas borrando
         los datos del sitio en tu navegador.
+      </p>
+      <p>
+        Si diste me gusta, también queda ahí la sesión de tu cuenta anónima (una clave que se envía a Supabase solo para
+        guardar o leer tus me gusta).
       </p>
 
       <h2 id="tecnicos">Datos técnicos</h2>
@@ -85,6 +122,9 @@ export default function Privacidad() {
         registro.
       </p>
       <p>
+        Los me gusta se guardan en Supabase, como se explica en <Link href="#me-gusta">Me gusta</Link>.
+      </p>
+      <p>
         El clima, los datos de playas, la calidad del agua, los baños y bebederos y los horarios de ómnibus los
         consultamos desde nuestro servidor (Open-Meteo, Intendencia de Montevideo y OpenStreetMap), sin enviarles ningún
         dato tuyo.
@@ -92,16 +132,17 @@ export default function Privacidad() {
 
       <h2 id="finalidad">Para qué usamos los datos</h2>
       <p>
-        Solo para mostrarte la información que pediste. No vendemos ni compartimos datos personales, no mostramos
-        publicidad y no hacemos perfiles. La base para usar tu ubicación es tu consentimiento, que das al aceptar el
-        permiso del navegador y podés retirar en cualquier momento.
+        Solo para mostrarte la información que pediste y contar los me gusta. No vendemos ni compartimos datos
+        personales, no mostramos publicidad y no hacemos perfiles. La base para usar tu ubicación es tu consentimiento,
+        que das al aceptar el permiso del navegador y podés retirar en cualquier momento; la de los me gusta, también tu
+        consentimiento, que das al tocar el botón.
       </p>
 
       <h2 id="derechos">Tus derechos</h2>
       <p>
         Según la Ley N.º 18.331 de Protección de Datos Personales, tenés derecho a acceder, rectificar, actualizar, incluir
-        o suprimir tus datos personales. Como no guardamos tu ubicación ni otros datos que te identifiquen, normalmente no
-        vamos a tener información tuya para entregar; igual podés escribirnos a <strong>{SITIO.contacto}</strong>.
+        o suprimir tus datos personales. No guardamos tu ubicación ni datos que te identifiquen; si diste me gusta, la cuenta
+        es anónima y para encontrarla necesitamos su identificador. Escribinos a <strong>{SITIO.contacto}</strong>.
       </p>
       <p>
         Si considerás que no se respetaron tus derechos, podés presentar una denuncia ante la{" "}

@@ -6,6 +6,7 @@ import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Punto } from "@/lib/transporte/planificador";
 import type { Weather } from "@/lib/weather";
 import ClimaAhora from "./ClimaAhora";
+import { ContadorMeGusta } from "./MeGusta";
 import Recomendador from "./Recomendador";
 
 export type EstadoBandera = NonNullable<Guardavidas["bandera"]> | "sin-datos";
@@ -248,8 +249,9 @@ function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; tempo
       <div className="flex w-full items-start justify-between gap-1">
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold">{playa.nombre}</span>
-          <span className="block text-[11px] text-slate-500">
+          <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
             {n} {n === 1 ? "casilla" : "casillas"}
+            <ContadorMeGusta slug={playa.slug} inicial={playa.meGusta} />
           </span>
         </span>
         <span className="text-slate-400 transition group-hover:text-sky-600" aria-hidden>

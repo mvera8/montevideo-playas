@@ -13,5 +13,5 @@ export const SITIO = {
   contacto: "[COMPLETAR: correo de contacto]",
   // Proveedor donde se aloja el sitio (aparece en la política de privacidad).
   hosting: "[COMPLETAR: proveedor de hosting, p. ej. Vercel]",
-  actualizado: "3 de octubre de 2026",
+  actualizado: "4 de octubre de 2026",
 };
