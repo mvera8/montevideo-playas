@@ -169,14 +169,16 @@ export function recomendar(
 
 // ---------- mejor horario del día ----------
 
+/** Milímetros de lluvia para mostrar: "0" si no llega a 0,1. */
+export const mm = (v: number) => (v < 0.05 ? "0" : v.toFixed(1));
+
 export type Hora = {
   hora: string; // ISO local "2026-11-20T15:00"
   temp: number;
   sensacion: number;
-  lluvia: number; // % probabilidad
+  lluvia: number; // mm en la hora
   uv: number;
   viento: number;
-  rafagas: number;
   vientoDesde: number;
   code: number;
   olas: number | null;
@@ -194,11 +196,10 @@ export function puntajeHora(orientacion: number, h: Hora) {
   let s = 100;
   if (h.sensacion < 24) s -= (24 - h.sensacion) * 4;
   if (h.sensacion > 31) s -= (h.sensacion - 31) * 4;
-  s -= h.lluvia * 0.6;
+  s -= Math.min(60, h.lluvia * 40); // 0,5 mm/h ya resta 20; 1,5 mm/h, el máximo
   if (h.uv > 7) s -= (h.uv - 7) * 6;
   const e = exposicion(orientacion, h.vientoDesde);
   if (e.factor > 0 && h.viento >= 10) s -= Math.min(30, h.viento * e.factor);
-  if (h.rafagas > 40) s -= 15;
   if (h.code >= 95) s -= 60;
   else if (h.code >= 61) s -= 40;
   return Math.max(0, Math.min(100, s));
@@ -232,7 +233,7 @@ export function mejorFranja(orientacion: number, horas: Hora[], ahoraIso: string
     const prom = (f: (h: Hora) => number) => tramo.reduce((a, h) => a + f(h), 0) / tramo.length;
     motivos.push({ texto: `Sensación ${Math.round(prom((h) => h.sensacion))}°`, tono: prom((h) => h.sensacion) >= 22 ? "bien" : "info" });
     const lluvia = Math.max(...tramo.map((h) => h.lluvia));
-    motivos.push(lluvia <= 20 ? { texto: "Sin lluvia", tono: "bien" } : { texto: `Lluvia ${lluvia}%`, tono: "mal" });
+    motivos.push(lluvia < 0.1 ? { texto: "Sin lluvia", tono: "bien" } : { texto: `Lluvia ${mm(lluvia)} mm`, tono: "mal" });
     const uv = Math.max(...tramo.map((h) => h.uv));
     motivos.push(uv <= 5 ? { texto: `UV ${Math.round(uv)}`, tono: "bien" } : { texto: `UV ${Math.round(uv)}: protegete`, tono: "info" });
     const e = exposicion(orientacion, tramo[0].vientoDesde);

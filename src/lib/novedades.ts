@@ -100,7 +100,7 @@ const NOVEDADES: Novedad[] = [
       {
         tipo: "parrafo",
         texto:
-          "De la Intendencia de Montevideo (playas, banderas, calidad del agua, ómnibus), de Open-Meteo (clima) y de OpenStreetMap (mapa). Es un servicio informativo e independiente: la fuente oficial manda.",
+          "De la Intendencia de Montevideo (playas, banderas, calidad del agua, ómnibus), de MET Norway y NOAA (clima y mar) y de OpenStreetMap (mapa). Es un servicio informativo e independiente: la fuente oficial manda.",
       },
     ],
   },

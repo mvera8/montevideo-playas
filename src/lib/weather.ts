@@ -1,12 +1,27 @@
 import "server-only";
 
+import { getOlas, getTemperaturaAgua } from "./mar";
 import type { Hora } from "./recomendacion";
 
-// Clima vía Open-Meteo (gratis, sin API key). La IM no publica una API de clima.
-// Forecast: temperatura del aire, viento, UV. Marine: temperatura del agua y olas.
+// Clima vía MET Norway (Instituto Meteorológico de Noruega), Locationforecast 2.0 "complete".
+// La IM no publica una API de clima.
+//
+// - URL: https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=..&lon=.. (JSON, un punto
+//   por pedido, máx. 4 decimales). Sin API key, gratis y con uso comercial permitido (datos CC BY 4.0,
+//   hay que citar a MET Norway). Términos: https://api.met.no/doc/TermsOfService
+// - Exige un User-Agent que identifique la app y un contacto (si no, responde 403). Pide no pasar de
+//   20 pedidos/s y respetar `Expires` (~30 min): cacheamos 30 min y redondeamos los puntos a 0,05°
+//   para que varias playas compartan pedido (la grilla global del modelo es de ~9 km).
+// - Trae ~60 h hora a hora y después cada 6 h, con horas en UTC (las pasamos a hora de Montevideo).
+// - Fuera de Noruega NO trae: ráfagas, probabilidad de lluvia (sí milímetros por hora), UV real (solo
+//   `ultraviolet_index_clear_sky`, el UV con cielo despejado: es el máximo posible), mar ni
+//   amanecer/atardecer. El mar sale de NOAA (ver `mar.ts`); amanecer y atardecer se calculan acá.
+// - El estado del cielo viene como `symbol_code` ("partlycloudy_day"); lo traducimos a códigos WMO
+//   para que el resto de la app no dependa del proveedor.
 
 export const MONTEVIDEO = { lat: -34.9011, lon: -56.1645 };
 const TZ = "America/Montevideo";
+const USER_AGENT = "PlayasUY/0.1 (+https://github.com/mvera8/montevideo-playas)";
 
 export type Weather = {
   time: string;
@@ -28,24 +43,25 @@ export type Weather = {
 
 type Point = { lat: number; lon: number };
 
-type ForecastResponse = {
-  current: {
-    time: string;
-    temperature_2m: number;
-    apparent_temperature: number;
-    relative_humidity_2m: number;
-    wind_speed_10m: number;
-    wind_direction_10m: number;
-    weather_code: number;
-    uv_index: number;
-    is_day: number;
+type MetPaso = {
+  time: string; // UTC
+  data: {
+    instant: {
+      details: {
+        air_temperature: number;
+        apparent_air_temperature?: number;
+        relative_humidity: number;
+        wind_speed: number; // m/s
+        wind_from_direction: number;
+        ultraviolet_index_clear_sky?: number;
+      };
+    };
+    next_1_hours?: { summary: { symbol_code: string }; details: { precipitation_amount?: number } };
+    next_6_hours?: { summary: { symbol_code: string }; details: { precipitation_amount?: number } };
   };
-  daily: { temperature_2m_max: number[]; temperature_2m_min: number[] };
 };
 
-type MarineResponse = {
-  current: { sea_surface_temperature: number | null; wave_height: number | null };
-};
+type MetResponse = { properties: { timeseries: MetPaso[] } };
 
 const WMO: Record<number, string> = {
   0: "Despejado",
@@ -60,6 +76,9 @@ const WMO: Record<number, string> = {
   61: "Lluvia leve",
   63: "Lluvia",
   65: "Lluvia intensa",
+  71: "Nevada leve",
+  73: "Nevada",
+  75: "Nevada intensa",
   80: "Chaparrones leves",
   81: "Chaparrones",
   82: "Chaparrones fuertes",
@@ -68,62 +87,142 @@ const WMO: Record<number, string> = {
   99: "Tormenta fuerte con granizo",
 };
 
+// symbol_code de MET (sin _day/_night) → código WMO. Aguanieve se trata como lluvia.
+const SIMBOLO: Record<string, number> = {
+  clearsky: 0,
+  fair: 1,
+  partlycloudy: 2,
+  cloudy: 3,
+  fog: 45,
+  lightrain: 61,
+  rain: 63,
+  heavyrain: 65,
+  lightsleet: 61,
+  sleet: 63,
+  heavysleet: 65,
+  lightsnow: 71,
+  snow: 73,
+  heavysnow: 75,
+  lightrainshowers: 80,
+  rainshowers: 81,
+  heavyrainshowers: 82,
+  lightsleetshowers: 80,
+  sleetshowers: 81,
+  heavysleetshowers: 82,
+  lightsnowshowers: 71,
+  snowshowers: 73,
+  heavysnowshowers: 75,
+};
+
+function codigoWmo(symbol: string | undefined) {
+  if (!symbol) return 3;
+  const base = symbol.replace(/_(day|night|polartwilight)$/, "");
+  if (base.includes("thunder")) return 95;
+  return SIMBOLO[base] ?? 3;
+}
+
 const DIRS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
 
 function windLabel(deg: number) {
   return DIRS[Math.round(deg / 45) % 8];
 }
 
-// Open-Meteo devuelve un objeto para 1 punto y un array para varios.
-async function openMeteo<T>(base: string, points: Point[], params: Record<string, string>) {
-  const qs = new URLSearchParams({
-    latitude: points.map((p) => p.lat.toFixed(4)).join(","),
-    longitude: points.map((p) => p.lon.toFixed(4)).join(","),
-    timezone: TZ,
-    ...params,
-  });
-  const res = await fetch(`${base}?${qs}`, { next: { revalidate: 900 } });
-  if (!res.ok) throw new Error(`Open-Meteo falló (${res.status}): ${await res.text()}`);
-  const json = (await res.json()) as T | T[];
-  return Array.isArray(json) ? json : [json];
+const kmh = (ms: number) => Math.round(ms * 36) / 10;
+
+/** Fecha/hora UTC → ISO local de Montevideo "YYYY-MM-DDTHH:mm". */
+const fmtLocal = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: TZ,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const local = (d: Date | number) => fmtLocal.format(d).replace(" ", "T");
+
+// ---------- amanecer y atardecer (cálculo local, ±1 min) ----------
+// Ecuación del amanecer (https://en.wikipedia.org/wiki/Sunrise_equation), con refracción.
+
+const RAD = Math.PI / 180;
+
+/** [amanecer, atardecer] en ms UTC para el día local `fecha` ("YYYY-MM-DD"). */
+function sol(fecha: string, { lat, lon }: Point): [number, number] {
+  const jdMediodia = Date.parse(`${fecha}T12:00:00Z`) / 86_400_000 + 2440587.5;
+  const n = Math.round(jdMediodia - 2451545 + 0.0008);
+  const j = n - lon / 360;
+  const m = (357.5291 + 0.98560028 * j) % 360;
+  const c = 1.9148 * Math.sin(m * RAD) + 0.02 * Math.sin(2 * m * RAD) + 0.0003 * Math.sin(3 * m * RAD);
+  const l = (m + c + 180 + 102.9372) % 360;
+  const transito = 2451545 + j + 0.0053 * Math.sin(m * RAD) - 0.0069 * Math.sin(2 * l * RAD);
+  const dec = Math.asin(Math.sin(l * RAD) * Math.sin(23.4397 * RAD));
+  const w = Math.acos(
+    (Math.sin(-0.833 * RAD) - Math.sin(lat * RAD) * Math.sin(dec)) / (Math.cos(lat * RAD) * Math.cos(dec)),
+  );
+  const ms = (jd: number) => (jd - 2440587.5) * 86_400_000;
+  return [ms(transito - w / (2 * Math.PI)), ms(transito + w / (2 * Math.PI))];
 }
 
-/** Clima para varios puntos en 2 requests (forecast + marine). Mismo orden que `points`. */
+// ---------- MET Norway ----------
+
+const redondear = (v: number) => (Math.round(v * 20) / 20).toFixed(2);
+
+async function met(p: Point) {
+  const qs = new URLSearchParams({ lat: redondear(p.lat), lon: redondear(p.lon) });
+  const res = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/complete?${qs}`, {
+    headers: { "User-Agent": USER_AGENT },
+    next: { revalidate: 1800 },
+  });
+  if (!res.ok) throw new Error(`MET Norway falló (${res.status}): ${await res.text()}`);
+  return ((await res.json()) as MetResponse).properties.timeseries;
+}
+
+/** El paso de la hora actual (el último que ya empezó), o el primero. */
+function pasoActual(ts: MetPaso[], ahora: number) {
+  let actual = ts[0];
+  for (const t of ts) {
+    if (Date.parse(t.time) > ahora) break;
+    actual = t;
+  }
+  return actual;
+}
+
+/** Clima actual para varios puntos. Mismo orden que `points`. */
 export async function getWeatherForPoints(points: Point[]): Promise<Weather[]> {
   if (points.length === 0) return [];
 
-  const [forecasts, marines] = await Promise.all([
-    openMeteo<ForecastResponse>("https://api.open-meteo.com/v1/forecast", points, {
-      current:
-        "temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,uv_index,is_day",
-      daily: "temperature_2m_max,temperature_2m_min",
-      forecast_days: "1",
-    }),
-    // Si la API marina falla, seguimos sin temperatura del agua.
-    openMeteo<MarineResponse>("https://marine-api.open-meteo.com/v1/marine", points, {
-      current: "sea_surface_temperature,wave_height",
-    }).catch(() => [] as MarineResponse[]),
+  const ahora = Date.now();
+  const [series, agua, olas] = await Promise.all([
+    Promise.all(points.map(met)),
+    // Si el mar falla, seguimos sin temperatura del agua ni olas.
+    getTemperaturaAgua(points),
+    getOlas(points, 1),
   ]);
+  const hoy = local(ahora).slice(0, 10);
 
-  return forecasts.map((f, i) => {
-    const c = f.current;
-    const m = marines[i]?.current;
+  return series.map((ts, i) => {
+    const t = pasoActual(ts, ahora);
+    const d = t.data.instant.details;
+    const code = codigoWmo(t.data.next_1_hours?.summary.symbol_code ?? t.data.next_6_hours?.summary.symbol_code);
+    // Mín/máx de lo que queda de hoy (MET no trae las horas que ya pasaron).
+    const temps = ts.filter((x) => local(Date.parse(x.time)).startsWith(hoy)).map((x) => x.data.instant.details.air_temperature);
+    temps.push(d.air_temperature);
+    const [sale, pone] = sol(hoy, points[i]);
     return {
-      time: c.time,
-      airTemp: c.temperature_2m,
-      feelsLike: c.apparent_temperature,
-      humidity: c.relative_humidity_2m,
-      windSpeed: c.wind_speed_10m,
-      windDirection: c.wind_direction_10m,
-      windDirectionLabel: windLabel(c.wind_direction_10m),
-      uvIndex: c.uv_index,
-      weatherCode: c.weather_code,
-      description: WMO[c.weather_code] ?? "—",
-      isDay: c.is_day === 1,
-      min: f.daily.temperature_2m_min[0],
-      max: f.daily.temperature_2m_max[0],
-      waterTemp: m?.sea_surface_temperature ?? null,
-      waveHeight: m?.wave_height ?? null,
+      time: local(Date.parse(t.time)),
+      airTemp: d.air_temperature,
+      feelsLike: d.apparent_air_temperature ?? d.air_temperature,
+      humidity: Math.round(d.relative_humidity),
+      windSpeed: kmh(d.wind_speed),
+      windDirection: d.wind_from_direction,
+      windDirectionLabel: windLabel(d.wind_from_direction),
+      uvIndex: d.ultraviolet_index_clear_sky ?? 0,
+      weatherCode: code,
+      description: WMO[code] ?? "—",
+      isDay: ahora >= sale && ahora < pone,
+      min: Math.min(...temps),
+      max: Math.max(...temps),
+      waterTemp: agua[i],
+      waveHeight: olas[i].get(new Date(ahora).toISOString().slice(0, 13)) ?? null,
     };
   });
 }
@@ -135,23 +234,6 @@ export async function getMontevideoWeather() {
 
 // ---------- pronóstico por hora (una playa) ----------
 
-type HourlyForecast = {
-  hourly: {
-    time: string[];
-    temperature_2m: number[];
-    apparent_temperature: number[];
-    precipitation_probability: (number | null)[];
-    uv_index: (number | null)[];
-    wind_speed_10m: number[];
-    wind_gusts_10m: number[];
-    wind_direction_10m: number[];
-    weather_code: number[];
-  };
-  daily: { time: string[]; sunrise: string[]; sunset: string[] };
-};
-
-type HourlyMarine = { hourly: { time: string[]; wave_height: (number | null)[] } };
-
 export type Pronostico = {
   ahora: string; // ISO local Montevideo, "YYYY-MM-DDTHH:mm"
   horas: Hora[];
@@ -160,54 +242,33 @@ export type Pronostico = {
 
 /** Hoy y mañana, hora a hora, para un punto. Cacheado 30 min. */
 export async function getPronostico(lat: number, lon: number): Promise<Pronostico> {
-  const coords = { latitude: lat.toFixed(4), longitude: lon.toFixed(4), timezone: TZ, forecast_days: "2" };
-  const [f, m] = await Promise.all([
-    fetch(
-      `https://api.open-meteo.com/v1/forecast?${new URLSearchParams({
-        ...coords,
-        hourly:
-          "temperature_2m,apparent_temperature,precipitation_probability,uv_index,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code",
-        daily: "sunrise,sunset",
-      })}`,
-      { next: { revalidate: 1800 } },
-    ).then((r) => {
-      if (!r.ok) throw new Error(`Open-Meteo falló (${r.status})`);
-      return r.json() as Promise<HourlyForecast>;
-    }),
-    fetch(`https://marine-api.open-meteo.com/v1/marine?${new URLSearchParams({ ...coords, hourly: "wave_height" })}`, {
-      next: { revalidate: 1800 },
-    })
-      .then((r) => (r.ok ? (r.json() as Promise<HourlyMarine>) : null))
-      .catch(() => null),
-  ]);
+  const p = { lat, lon };
+  const [ts, [olas]] = await Promise.all([met(p), getOlas([p], 48)]);
 
-  const olas = new Map(m?.hourly.time.map((t, i) => [t, m.hourly.wave_height[i]]) ?? []);
-  const h = f.hourly;
-  const ahora = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-    .format(new Date())
-    .replace(" ", "T");
+  const ahora = local(Date.now());
+  const hoy = ahora.slice(0, 10);
+  const manana = local(Date.parse(`${hoy}T12:00:00Z`) + 86_400_000).slice(0, 10);
+
+  const horas: Hora[] = ts
+    .filter((t) => t.data.next_1_hours && local(Date.parse(t.time)).slice(0, 10) <= manana)
+    .map((t) => {
+      const d = t.data.instant.details;
+      return {
+        hora: local(Date.parse(t.time)),
+        temp: d.air_temperature,
+        sensacion: d.apparent_air_temperature ?? d.air_temperature,
+        lluvia: t.data.next_1_hours!.details.precipitation_amount ?? 0,
+        uv: d.ultraviolet_index_clear_sky ?? 0,
+        viento: kmh(d.wind_speed),
+        vientoDesde: d.wind_from_direction,
+        code: codigoWmo(t.data.next_1_hours!.summary.symbol_code),
+        olas: olas.get(t.time.slice(0, 13)) ?? null,
+      };
+    });
 
   return {
     ahora,
-    horas: h.time.map((t, i) => ({
-      hora: t,
-      temp: h.temperature_2m[i],
-      sensacion: h.apparent_temperature[i],
-      lluvia: h.precipitation_probability[i] ?? 0,
-      uv: h.uv_index[i] ?? 0,
-      viento: h.wind_speed_10m[i],
-      rafagas: h.wind_gusts_10m[i],
-      vientoDesde: h.wind_direction_10m[i],
-      code: h.weather_code[i],
-      olas: olas.get(t) ?? null,
-    })),
-    luz: f.daily.time.map((_, i) => [f.daily.sunrise[i], f.daily.sunset[i]]),
+    horas,
+    luz: [hoy, manana].map((f) => sol(f, p).map((ms) => local(ms)) as [string, string]),
   };
 }

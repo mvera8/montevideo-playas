@@ -28,11 +28,17 @@ const FUENTES = [
     licencia: "Datos abiertos, Licencia de Datos Abiertos – Uruguay.",
   },
   {
-    nombre: "Open-Meteo",
-    url: "https://open-meteo.com",
-    usa: "Clima actual, pronóstico por hora, temperatura del agua modelada y olas.",
-    licencia: "Datos bajo licencia CC BY 4.0.",
+    nombre: "MET Norway (Instituto Meteorológico de Noruega)",
+    url: "https://api.met.no",
+    usa: "Clima actual y pronóstico por hora (temperatura, sensación térmica, viento, lluvia, UV).",
+    licencia: "Datos bajo licencia CC BY 4.0, con uso comercial permitido.",
     licenciaUrl: "https://creativecommons.org/licenses/by/4.0/deed.es",
+  },
+  {
+    nombre: "NOAA — OISST y WaveWatch III (PacIOOS)",
+    url: "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21NrtAgg_LonPM180.html",
+    usa: "Temperatura del agua (modelo satelital diario) y altura de olas (pronóstico hora a hora).",
+    licencia: "Datos públicos del gobierno de EE. UU. y de PacIOOS, de uso y redistribución libres.",
   },
   {
     nombre: "OpenStreetMap, OpenMapTiles y OpenFreeMap",
@@ -113,8 +119,12 @@ export default function Terminos() {
 
       <h3>Clima y pronóstico</h3>
       <p>
-        Provienen de modelos meteorológicos (Open-Meteo) y pueden fallar. La temperatura del agua es estimada por un
-        modelo, salvo cuando indicamos “medida IM”.
+        Provienen de modelos meteorológicos (MET Norway para el clima, NOAA para el mar) y pueden fallar. La
+        temperatura del agua es estimada por un modelo satelital diario, salvo cuando indicamos “medida IM”, y si
+        tiene más de 4 días no la mostramos. Las olas salen de un modelo global de baja resolución y son orientativas
+        en el Río de la Plata. El índice UV es el que habría con cielo despejado (el máximo posible). La lluvia es la
+        cantidad prevista por hora, no una probabilidad. El amanecer y el atardecer los calculamos nosotros. Para
+        alertas y avisos oficiales, consultá a Inumet.
       </p>
 
       <h3>Recomendaciones</h3>
