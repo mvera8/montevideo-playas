@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { SITIO } from "@/lib/sitio";
+import type { AlertasInumet } from "@/lib/inumet";
 import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Punto } from "@/lib/transporte/planificador";
 import type { Weather } from "@/lib/weather";
+import AlertaInumet from "./AlertaInumet";
 import ClimaAhora from "./ClimaAhora";
 import { ContadorMeGusta } from "./MeGusta";
 import Recomendador from "./Recomendador";
@@ -42,6 +44,7 @@ type Props = {
   fuente: "im" | "respaldo";
   error: string | null;
   climaCiudad: Weather | null;
+  alertas: AlertasInumet | null;
   busqueda: string;
   filtro: EstadoBandera | null;
   onFiltro: (f: EstadoBandera | null) => void;
@@ -58,6 +61,7 @@ export default function PanelGeneral({
   fuente,
   error,
   climaCiudad,
+  alertas,
   busqueda,
   filtro,
   onFiltro,
@@ -68,6 +72,7 @@ export default function PanelGeneral({
 }: Props) {
   return (
     <div className="space-y-3">
+      <AlertaInumet alertas={alertas} />
       {climaCiudad && <ClimaAhora clima={climaCiudad} ciudad={SITIO.alcance} />}
       {!temporada.activa && <FueraDeTemporada temporada={temporada} />}
       {fuente === "respaldo" && (

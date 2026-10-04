@@ -89,6 +89,34 @@ Antes se usaba Open-Meteo, que gratis es solo para uso no comercial.
 - En ERDDAP las celdas de tierra vienen como `NaN`: se pide una cajita de ±0,5° y se usa la celda con
   dato más cercana. Timeout de 10 s; si el mar falla, la app sigue sin agua ni olas.
 
+## Alertas de INUMET
+
+`src/lib/inumet.ts` trae las **advertencias meteorológicas vigentes para Montevideo** y
+`AlertaInumet.tsx` las muestra arriba del panel del mapa y en el detalle de cada playa (sin advertencias
+no se muestra nada).
+
+- **No hay API ni datos abiertos de alertas** (investigado 04/10/2026): el catálogo de INUMET en
+  catalogodatos.gub.uy solo tiene observaciones de estaciones, y el feed CAP registrado en la OMM
+  (`https://cap-sources.s3.amazonaws.com/uy-inumet-es/rss.xml`) está abandonado (sin cambios desde
+  2020, con alertas de ejemplo).
+- **Fuente usada**: `https://www.inumet.gub.uy/alerta` (HTML, ~59 KB, sin autenticación). La página
+  trae `var alerta = {...};` y `var cese = {...};` dentro de un `<script>` (es lo que lee su
+  `alerta.js`). Se lee en streaming y se corta la descarga apenas termina `var cese` (byte ~45.000).
+  Formato no documentado: si cambian la web, se muestra "sin datos recientes", nunca "no hay alertas".
+- **Formato**: `advertencias[]` con `riesgoFenomeno` (riesgoViento, riesgoLluvia, riesgoTormenta,
+  riesgoVisibilidad, riesgoCalor, riesgoFrio; 1 = sin riesgo, 2 amarilla, 3 naranja, 4 roja),
+  `fenomeno`, `probabilidad`, `descripcion`, `comienzo`/`finalizacion` ("YYYY-MM-DD HH:mm", hora de
+  Uruguay) y `zonasArray` (`[{ id: "MONTEVIDEO", localidades: [] }]`, vacío = todo el departamento).
+  El boletín PDF está en `https://www.inumet.gub.uy/reportes/riesgo/pdf/<alerta.pdf>` (los viejos se borran).
+- **Frecuencia** (histórico en `/tiempo/historico-alertas-meteorologicas`, 10/2025–09/2026): 25 a 93
+  publicaciones por mes en todo el país; durante un evento se renuevan cada ~3 h y `finalizacion` es
+  la próxima renovación. Las vencidas se descartan (en el servidor y, cada minuto, en el navegador).
+- **Cache**: sin ETag ni Last-Modified útil (Drupal + Cloudflare, `max-age=60`), así que no hay HEAD
+  barato: cache en memoria de 10 min, timeout de 8 s y, si falla, se reintenta a los 10 min. Si la
+  última lectura buena tiene más de 1 h, se muestra "sin datos recientes" con enlace a INUMET.
+- **Validar**: `curl -s https://www.inumet.gub.uy/alerta | grep -o 'var alerta = .\{0,300\}'`; para ver
+  una advertencia real con el formato completo, el Wayback Machine del 19/02/2026 (`/web/20260219134431id_/https://www.inumet.gub.uy/alerta`).
+
 ## Baños, bebederos y duchas cercanos
 
 `src/lib/servicios.ts` combina dos fuentes, a menos de 600 m de las casillas de cada playa:
@@ -196,8 +224,14 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
   [Commons](https://commons.wikimedia.org/wiki/File:Playa_Buceo_-_20230113dicimouyaf0028.jpg),
   **CC BY-SA 4.0** (atribución en el pie de la home y en `/terminos#fuentes`). El original es de
   3000 px, así que con `iiurlwidth=2000` la API devuelve el archivo original (`thumburl` sin
-  `/thumb/`); se guardó tal cual a calidad 80 (~1,3 MB). La IM sube más fotos de playas a Commons
-  con nombres `…dicimouyaf….jpg`: buscar por playa y año.
+  `/thumb/`). La IM sube más fotos de playas a Commons con nombres `…dicimouyaf….jpg`: buscar por
+  playa y año.
+  - **Versión editada (oct. 2026):** se pasó por Gemini para reemplazar a los guardavidas por
+    personas ficticias y el logo de la Intendencia por un emblema inventado. Gemini la devuelve a 2000×1334 con el pie de foto
+    “quemado” abajo: se recortó al centro a 2000×1254 (`sips --cropToHeightWidth 1254 2000 -s
+    formatOptions 78`, ~375 KB; `--cropOffset` de `sips` no funciona, por eso el corte centrado).
+    Por CC BY-SA, la obra derivada va bajo la misma licencia y el pie dice qué se modificó
+    (`cambios` en `CREDITOS_FOTOS` de `src/app/page.tsx` y la fuente en `/terminos`).
 - **Novedades** (`/novedades`, `/novedades/[slug]`): notas escritas a mano en `src/lib/novedades.ts`,
   sin CMS ni base. Una nota con `fecha` futura queda oculta y aparece sola ese día: las páginas
   (ISR con `revalidate = 3600`; la home, cada 300). Ya está cargada la del inicio de la temporada (15/11).
@@ -221,6 +255,7 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
 - `src/lib/im.ts` — token OAuth2 (cacheado) y llamadas a la IM
 - `src/lib/weather.ts` — clima (MET Norway), un pedido por punto redondeado, y amanecer/atardecer
 - `src/lib/mar.ts` — temperatura del agua y olas (NOAA, ERDDAP)
+- `src/lib/inumet.ts` — advertencias meteorológicas de INUMET para Montevideo
 - `src/lib/playas.ts` — une playas + casillas + clima, lógica de temporada
 - `src/lib/transporte/` — GTFS, planificador y tiempo real
 - `src/lib/me-gusta.ts` / `me-gusta-cliente.ts` — totales (servidor) y botón ❤️ (navegador, Supabase)

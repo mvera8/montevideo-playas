@@ -1,4 +1,5 @@
 import MapaCliente from "@/components/mapa/MapaCliente";
+import { getAlertasInumet } from "@/lib/inumet";
 import { getPlayas } from "@/lib/playas";
 import { SITIO } from "@/lib/sitio";
 import { getMontevideoWeather } from "@/lib/weather";
@@ -6,9 +7,10 @@ import { getMontevideoWeather } from "@/lib/weather";
 export const revalidate = 300;
 
 export default async function PlayasPage() {
-  const [{ fuente, error, temporada, playas }, climaCiudad] = await Promise.all([
+  const [{ fuente, error, temporada, playas }, climaCiudad, alertas] = await Promise.all([
     getPlayas(),
     getMontevideoWeather().catch(() => null),
+    getAlertasInumet().catch(() => null),
   ]);
 
   return (
@@ -20,6 +22,7 @@ export default async function PlayasPage() {
         fuente={fuente}
         error={error}
         climaCiudad={climaCiudad}
+        alertas={alertas}
       />
     </main>
   );
