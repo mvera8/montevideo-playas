@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CalidadAgua as Datos, Muestra, PuntoAgua } from "@/lib/calidad-agua";
+import SeccionPlegable from "./SeccionPlegable";
 
 // Mismos valores que en el servidor (Decreto 226/025); se repiten para no importar código server-only.
 const LIMITE_MEDIA = 200;
@@ -22,15 +23,22 @@ const ESTADO = {
 } as const;
 
 export default function CalidadAgua({ agua }: { agua: Datos | null }) {
+  const resumen = !agua ? (
+    "Sin muestreos"
+  ) : (
+    <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${ESTADO[agua.estado].clase}`}>
+      {ESTADO[agua.estado].texto}
+    </span>
+  );
+
   return (
-    <section className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">Calidad del agua</h3>
+    <SeccionPlegable titulo="Calidad del agua" resumen={resumen} resumenSoloCerrada>
 
       {!agua ? (
         <p className="text-sm text-slate-500">La IM no tiene muestreos recientes de esta playa.</p>
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-col items-start gap-1">
             <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${ESTADO[agua.estado].clase}`}>
               {ESTADO[agua.estado].texto}
             </span>
@@ -61,7 +69,7 @@ export default function CalidadAgua({ agua }: { agua: Datos | null }) {
           </p>
         </div>
       )}
-    </section>
+    </SeccionPlegable>
   );
 }
 

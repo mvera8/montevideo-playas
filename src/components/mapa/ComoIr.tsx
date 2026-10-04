@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Opcion, Punto, Tramo } from "@/lib/transporte/planificador";
 import type { Llegada } from "@/lib/transporte/tiempo-real";
 import { postJson, redondear } from "@/lib/ubicacion";
+import SeccionPlegable from "./SeccionPlegable";
 
 export type TramoBus = Extract<Tramo, { tipo: "omnibus" }>;
 export type LlegadasPorTramo = Record<string, Llegada[]>; // "variante:parada" → llegadas
@@ -101,11 +102,19 @@ export default function ComoIr({
     onOpcion(opcion, llegadas);
   }, [opcion, llegadas, onOpcion]);
 
+  const resumen = !origen
+    ? "En ómnibus"
+    : estado.tipo === "cargando"
+      ? "Buscando…"
+      : opcion
+        ? `${opcion.minutos} min · llegás ${opcion.llega}`
+        : estado.tipo === "ok"
+          ? "Sin ómnibus en la próxima hora"
+          : "";
+
   return (
-    <section className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
-        Cómo llegar en ómnibus
-      </h3>
+    <SeccionPlegable titulo="Cómo llegar" resumen={resumen}>
+      <p className="mb-2 text-xs text-slate-500">En ómnibus del STM, desde donde estés.</p>
 
       {!origen && (
         <div className="space-y-2">
@@ -185,7 +194,7 @@ export default function ComoIr({
           )}
         </>
       )}
-    </section>
+    </SeccionPlegable>
   );
 }
 

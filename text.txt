@@ -6,13 +6,17 @@ APIS
 Performante
 Playa 3d (tree.js)?
 
-
-
-
-Home, diseño como adjunto, boton principal y mas grande que vaya a la pagina de playas y que aparezca varias veces. Destacar que es gratis
--
+---
 
 Votacion playas se termina fin de temporada, pagina contabilizadora
+
+Home, diseño como adjunto, boton principal y mas grande que vaya a la pagina de playas y que aparezca varias veces. Destacar que es gratis
+
+Mobile
+
+Seguridad de datos
+
+-
 
 Rey de la playa? - pagina aparte con actuales reyes o reinas, si ya sos rey o reina de una playa no podes ser de otra
 
@@ -26,15 +30,7 @@ Open-Meteo gratis es solo para uso no comercial (lo confirmé en sus términos).
 
 ----
 
-CASILLAS
-- Casillas
-- Como llegar
-- Horarios
-- Calidad del agua
-- Servicios cerca
 
-pastillas flotantes tipo table of content?
-como accordiones?
 
 ----
 
