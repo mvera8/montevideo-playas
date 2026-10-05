@@ -30,7 +30,7 @@ import SeccionPlegable, { GrupoPlegable } from "./SeccionPlegable";
 import { cargarIconos, contenidoPopup } from "./servicios-mapa";
 import type { Servicio } from "@/lib/servicios";
 import { SITIO } from "@/lib/sitio";
-import SelectorTema from "./SelectorTema";
+import SelectorTema, { OpcionesTema } from "./SelectorTema";
 import MenuSitio from "@/components/MenuSitio";
 import Lluvia from "./Lluvia";
 import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
@@ -686,7 +686,7 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad, al
       <Link
         href="/"
         aria-label={`${SITIO.marca}: ir al inicio`}
-        className={`absolute left-3 top-[72px] z-20 flex h-12 items-center gap-1 rounded-2xl bg-white/95 px-4 text-sm font-semibold tracking-tight text-slate-900 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate] duration-300 ease-out motion-reduce:transition-none md:left-[72px] md:top-4 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 dark:bg-slate-900/95 dark:text-white dark:ring-white/10 dark:hover:bg-slate-900 ${
+        className={`absolute left-3 top-[72px] z-20 flex h-10 items-center gap-1 rounded-2xl bg-white/95 px-3 text-xs font-semibold tracking-tight text-slate-900 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate] duration-300 ease-out motion-reduce:transition-none md:left-[72px] md:top-4 md:h-12 md:px-4 md:text-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 dark:bg-slate-900/95 dark:text-white dark:ring-white/10 dark:hover:bg-slate-900 ${
           abierto ? "md:translate-x-[356px]" : ""
         }`}
       >
@@ -694,10 +694,30 @@ export default function Mapa({ playas, temporada, fuente, error, climaCiudad, al
         <span className="font-normal text-slate-500 dark:text-slate-400">· {SITIO.alcance}</span>
       </Link>
 
-      {/* Estilo del mapa y menú del sitio, arriba a la derecha */}
-      <div className="absolute right-3 top-[72px] z-20 flex flex-col gap-3 md:right-4 md:top-4 md:flex-row md:gap-2">
-        <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
-        <MenuSitio />
+      {/* Estilo del mapa y menú del sitio, arriba a la derecha. En móvil el estilo va dentro del menú. */}
+      <div className="absolute right-3 top-[72px] z-20 flex gap-2 md:right-4 md:top-4">
+        <div className="max-md:hidden">
+          <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
+        </div>
+        <MenuSitio>
+          {(cerrarMenu) => (
+            <section aria-label="Estilo del mapa" className="md:hidden">
+              <p className="px-5 pb-1 text-xs font-medium uppercase tracking-wider text-slate-500">Estilo del mapa</p>
+              <div role="menu" className="px-2.5">
+                <OpcionesTema
+                  tema={tema}
+                  auto={temaManual === null}
+                  temaAuto={temaAuto}
+                  onElegir={(t) => {
+                    elegirTema(t);
+                    cerrarMenu();
+                  }}
+                />
+              </div>
+              <div className="mx-5 my-3 h-px bg-slate-100 dark:bg-slate-800" />
+            </section>
+          )}
+        </MenuSitio>
       </div>
 
       <aside

@@ -272,7 +272,8 @@ export default async function Home() {
         <EncabezadoSitio sobreFoto />
 
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-32 sm:px-6 lg:min-h-[100svh] lg:grid-cols-[1.3fr_1fr] lg:pb-40">
-          <div>
+          {/* En mobile el texto va centrado; desde sm, alineado a la izquierda. */}
+          <div className="text-center sm:text-left">
             <Etiqueta tono="foto" punto>
               100% gratis · sin registro
             </Etiqueta>
@@ -280,11 +281,11 @@ export default async function Home() {
               Todas las playas de {SITIO.alcance}, en un{" "}
               <em className="font-serif font-normal italic tracking-normal text-amber-200">mapa.</em>
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/80">
+            <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-white/80 sm:mx-0">
               Antes de salir, mirá la bandera de cada casilla, la calidad del agua, el clima y cómo llegar en ómnibus. Elegí
               tu playa en segundos.
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-x-6 gap-y-4 sm:justify-start">
               <BotonMapa tono="claro" />
               <a href="#que-hace" className="text-sm font-medium text-white/85 underline-offset-4 hover:text-white hover:underline">
                 Cómo funciona
