@@ -14,7 +14,7 @@ export default function Privacidad() {
       <Destacado>
         <p className="font-semibold text-slate-900 dark:text-white">En resumen</p>
         <ul className="mt-2">
-          <li>No tenés que crear una cuenta ni darnos tu nombre o correo.</li>
+          <li>No tenés que crear una cuenta ni darnos tu nombre o correo (solo si nos escribís por el formulario de contacto).</li>
           <li>
             Si das <strong>“me gusta”</strong> a una playa, se crea una cuenta anónima en tu navegador y guardamos qué playas
             te gustan. Nadie más ve quién dio cada me gusta: solo se muestra el total.
@@ -93,6 +93,22 @@ export default function Privacidad() {
         de un año.
       </p>
 
+      <h2 id="contacto">Formulario de contacto</h2>
+      <p>
+        Si nos escribís desde <Link href="/contacto">Contacto</Link>, usamos tu <strong>nombre, correo y mensaje</strong>{" "}
+        solo para leerlo y responderte. La base es tu consentimiento, que das al enviar el formulario.
+      </p>
+      <p>
+        El mensaje no se guarda en nuestro servidor: se envía por correo a <strong>{SITIO.contacto}</strong> a través de{" "}
+        <a href="https://www.mailgun.com/legal/privacy-policy/" target="_blank" rel="noreferrer">
+          Mailgun
+        </a>
+        , un servicio de envío de correos con servidores en Estados Unidos, que guarda un registro de los envíos por un
+        tiempo limitado. Para evitar abusos, tu dirección IP se usa un rato para limitar cuántos mensajes se envían
+        seguidos, y luego se descarta. Conservamos el correo mientras haga falta para responderte; podés pedirnos que lo
+        borremos.
+      </p>
+
       <h2 id="dispositivo">Lo que queda en tu dispositivo</h2>
       <p>
         Guardamos dos preferencias en el almacenamiento local de tu navegador (no son cookies y no se envían a ningún
@@ -122,7 +138,8 @@ export default function Privacidad() {
         registro.
       </p>
       <p>
-        Los me gusta se guardan en Supabase, como se explica en <Link href="#me-gusta">Me gusta</Link>.
+        Los me gusta se guardan en Supabase, como se explica en <Link href="#me-gusta">Me gusta</Link>. Los mensajes de
+        contacto se envían con Mailgun, como se explica en <Link href="#contacto">Formulario de contacto</Link>.
       </p>
       <p>
         El clima, las alertas meteorológicas, los datos de playas, la calidad del agua, los baños y bebederos y los
@@ -133,7 +150,7 @@ export default function Privacidad() {
 
       <h2 id="finalidad">Para qué usamos los datos</h2>
       <p>
-        Solo para mostrarte la información que pediste y contar los me gusta. No vendemos ni compartimos datos
+        Solo para mostrarte la información que pediste, contar los me gusta y responder tus mensajes. No vendemos ni compartimos datos
         personales, no mostramos publicidad y no hacemos perfiles. La base para usar tu ubicación es tu consentimiento,
         que das al aceptar el permiso del navegador y podés retirar en cualquier momento; la de los me gusta, también tu
         consentimiento, que das al tocar el botón.

@@ -102,8 +102,8 @@ export default function Terminos() {
       <h2 id="servicio">El servicio</h2>
       <p>
         {SITIO.nombre} reúne información pública sobre las playas de Montevideo: casillas y banderas, calidad del agua,
-        clima y alertas de Inumet, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas y leer novedades de la
-        temporada. Usarlo es gratuito y
+        clima y alertas de Inumet, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas, leer novedades de la
+        temporada y escribirnos desde el formulario de contacto. Usarlo es gratuito y
         no requiere registro. Al usar el sitio aceptás estos términos.
       </p>
 
@@ -197,6 +197,7 @@ export default function Terminos() {
       <p>
         No uses el sitio ni sus interfaces de datos de forma automatizada o masiva, ni intentes afectar su funcionamiento.
         No infles los “me gusta” con programas, cuentas múltiples ni ningún otro mecanismo: es un gesto por persona.
+        No uses el formulario de contacto para enviar publicidad, spam ni contenido ofensivo.
         Podemos limitar el acceso, y anular o borrar me gusta, ante usos abusivos. Si necesitás los datos para otro proyecto, usá directamente las
         fuentes oficiales listadas abajo.
       </p>
@@ -234,13 +235,14 @@ export default function Terminos() {
 
       <h2 id="privacidad">Privacidad</h2>
       <p>
-        Cómo usamos tu ubicación y otros datos está explicado en la <Link href="/privacidad">Política de privacidad</Link>.
+        Cómo usamos tu ubicación, los datos del formulario de contacto y otros datos está explicado en la <Link href="/privacidad">Política de privacidad</Link>.
       </p>
 
       <h2 id="cambios">Cambios y ley aplicable</h2>
       <p>
         Podemos actualizar estos términos; la versión vigente es la publicada en esta página. Se rigen por las leyes de la
-        República Oriental del Uruguay. Consultas: <strong>{SITIO.contacto}</strong>.
+        República Oriental del Uruguay. Consultas: <strong>{SITIO.contacto}</strong> o desde{" "}
+        <Link href="/contacto">Contacto</Link>.
       </p>
     </PaginaLegal>
   );
