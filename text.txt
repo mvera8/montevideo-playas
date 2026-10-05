@@ -4,9 +4,11 @@ Prompts
 
 ---
 
-Servidor
-
 Logo
+
+Layout de las paginas (no el mapa) tambien depende de algo? (imagen zara)
+
+Servidor
 
 logo en mapas y link a la home
 
