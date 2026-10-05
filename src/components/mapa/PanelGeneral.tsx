@@ -72,6 +72,7 @@ export default function PanelGeneral({
 }: Props) {
   return (
     <div className="space-y-3">
+      <PildorasPlayas playas={playas} busqueda={busqueda} temporadaActiva={temporada.activa} onElegir={onElegir} />
       <AlertaInumet alertas={alertas} />
       {climaCiudad && <ClimaAhora clima={climaCiudad} ciudad={SITIO.alcance} />}
       {!temporada.activa && <FueraDeTemporada temporada={temporada} />}
@@ -92,7 +93,8 @@ export default function PanelGeneral({
       {/* Fuera de temporada no hay banderas: el resumen vuelve el 15/11. */}
       {temporada.activa && <ResumenBanderas playas={todas} filtro={filtro} onFiltro={onFiltro} />}
 
-      <div className="flex items-center justify-between px-1 pt-1">
+      {/* En móvil el listado son las píldoras de arriba: el título y las tarjetas van solo en escritorio. */}
+      <div className="flex items-center justify-between px-1 pt-1 max-md:hidden">
         <h2 className="text-xs font-medium uppercase tracking-wider text-slate-500">
           Playas <span className="tabular-nums">({playas.length})</span>
         </h2>
@@ -108,11 +110,11 @@ export default function PanelGeneral({
       </div>
 
       {playas.length === 0 ? (
-        <p className="rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-black/5 dark:bg-slate-900 dark:ring-white/10">
+        <p className="rounded-2xl bg-white p-4 text-sm text-slate-500 max-md:hidden ring-1 ring-black/5 dark:bg-slate-900 dark:ring-white/10">
           {busqueda ? `Ninguna playa coincide con “${busqueda}”.` : "Ninguna playa con esa bandera."}
         </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-2.5">
+        <ul className="grid grid-cols-2 gap-2.5 max-md:hidden">
           {playas.map((p) => (
             <li key={p.slug}>
               <TarjetaPlaya playa={p} temporadaActiva={temporada.activa} onClick={() => onElegir(p)} />
@@ -132,6 +134,50 @@ export default function PanelGeneral({
         </Link>
       </footer>
     </div>
+  );
+}
+
+// Solo en móvil: los resultados de la búsqueda como píldoras que se deslizan de costado, fijas arriba
+// de la hoja inferior. El listado de tarjetas queda más abajo y, al buscar, no se veía.
+function PildorasPlayas({
+  playas,
+  busqueda,
+  temporadaActiva,
+  onElegir,
+}: {
+  playas: Playa[];
+  busqueda: string;
+  temporadaActiva: boolean;
+  onElegir: (p: Playa) => void;
+}) {
+  return (
+    <nav aria-label="Playas" className="sticky -top-3 z-10 -mx-3 -mt-3 bg-slate-50 pb-1 pt-3 md:hidden dark:bg-slate-950">
+      {playas.length === 0 ? (
+        <p className="px-4 py-2 text-sm text-slate-500">
+          {busqueda ? `Ninguna playa coincide con “${busqueda}”.` : "Ninguna playa con esa bandera."}
+        </p>
+      ) : (
+        <ul className="flex snap-x gap-2 overflow-x-auto overscroll-x-contain px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {playas.map((p) => (
+            <li key={p.slug} className="shrink-0 snap-start scroll-ml-3">
+              <button
+                onClick={() => onElegir(p)}
+                className="flex items-center gap-2 whitespace-nowrap rounded-full bg-white px-3.5 py-2 text-sm font-medium shadow-sm ring-1 ring-black/5 active:bg-slate-100 dark:bg-slate-900 dark:ring-white/10 dark:active:bg-slate-800"
+              >
+                {temporadaActiva && (
+                  <span
+                    className="h-2 w-2 rounded-full ring-1 ring-black/10 dark:ring-white/20"
+                    style={{ background: ESTADOS[estadoPlaya(p)].color }}
+                    aria-hidden
+                  />
+                )}
+                {p.nombre}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </nav>
   );
 }
 

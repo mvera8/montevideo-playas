@@ -10,7 +10,9 @@ import { SITIO } from "@/lib/sitio";
 // Menú del mapa: botón ☰ y un cajón que entra desde la derecha. Los enlaces son los mismos del
 // encabezado de las demás páginas (src/lib/navegacion.ts). Queda siempre montado (inert cuando
 // está cerrado) para animar solo transform/opacity. El cajón va en un portal a <body>: si no, un
-// padre con backdrop-blur/transform (p. ej. el encabezado) lo encierra.
+// padre con backdrop-blur/transform (p. ej. el encabezado) lo encierra. `children`: controles
+// propios de la página que van en el cajón (en el mapa móvil, el estilo del mapa); reciben `cerrar`
+// para cerrar el cajón al elegir.
 
 const sinSuscripcion = () => () => {};
 
@@ -55,15 +57,21 @@ const ICONOS: Record<EnlaceSitio["icono"], React.ReactNode> = {
 const TINTA = "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white";
 
 const BOTON = {
-  // Flotante sobre el mapa, como el selector de estilo.
-  flotante: `h-12 w-12 rounded-2xl bg-white/95 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/95 dark:ring-white/10 ${TINTA}`,
+  // Flotante sobre el mapa, como el selector de estilo. En móvil, del alto de la marca.
+  flotante: `h-10 w-10 rounded-xl md:h-12 md:w-12 md:rounded-2xl bg-white/95 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/95 dark:ring-white/10 ${TINTA}`,
   // Dentro de EncabezadoSitio (móvil).
   encabezado: `-my-1 h-10 w-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 ${TINTA}`,
   // Dentro de EncabezadoSitio sobre la foto de la home.
   foto: "-my-1 h-10 w-10 rounded-xl text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/15",
 };
 
-export default function MenuSitio({ variante = "flotante" }: { variante?: keyof typeof BOTON }) {
+export default function MenuSitio({
+  variante = "flotante",
+  children,
+}: {
+  variante?: keyof typeof BOTON;
+  children?: (cerrar: () => void) => React.ReactNode;
+}) {
   const [abierto, setAbierto] = useState(false);
   // El portal necesita document: en el HTML del servidor va solo el botón.
   const enCliente = useSyncExternalStore(sinSuscripcion, () => true, () => false);
@@ -146,6 +154,7 @@ export default function MenuSitio({ variante = "flotante" }: { variante?: keyof 
 
         <ul className="space-y-0.5 px-2.5">{ENLACES_PRINCIPALES.map(enlace)}</ul>
         <div className="mx-5 my-3 h-px bg-slate-100 dark:bg-slate-800" />
+        {children?.(() => setAbierto(false))}
         <ul className="space-y-0.5 px-2.5">{ENLACES_LEGALES.map(enlace)}</ul>
 
         <p className="mt-auto px-5 pb-5 text-xs text-slate-500">
