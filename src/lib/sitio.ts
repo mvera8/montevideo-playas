@@ -1,8 +1,8 @@
 // Datos del sitio (marca y páginas legales). COMPLETAR los campos marcados antes de publicar.
-const NOMBRE = "Playas UY";
+const NOMBRE = "Montevideo";
 // Cobertura actual: si se extiende a otros departamentos (ver README, "Extender a todo Uruguay"),
 // cambiar acá y la marca se actualiza en toda la interfaz.
-const ALCANCE = "Montevideo";
+const ALCANCE = "Playas";
 
 export const SITIO = {
   nombre: NOMBRE,
