@@ -1,5 +1,5 @@
 import "server-only";
-import { temporadaMeGusta } from "./me-gusta-temporada";
+import { sumarTotales, type TotalesMeGusta } from "./me-gusta-temporada";
 
 // "Me gusta" de las playas: dato propio del sitio, guardado en Supabase (proyecto
 // `montevideo-playas`, ver README → "Me gusta"). Este módulo lee solo los totales para el
@@ -12,10 +12,12 @@ import { temporadaMeGusta } from "./me-gusta-temporada";
 // - Formato: JSON `[{ playa: "pocitos", temporada: "2026-27", total: 12 }, …]`, una fila por
 //   playa y temporada (~20 filas por temporada). El total lo mantiene un trigger en la base.
 // - Frecuencia: cambia en cualquier momento. Se cachea 5 min, igual que el ISR de la página (no
-//   acorta la revalidación); el navegador corrige al instante con la respuesta de la base.
+//   acorta la revalidación). Ojo: ISR sirve la versión vieja al primer visitante después de un rato
+//   sin visitas (pueden ser horas), así que el navegador siempre vuelve a pedir los totales al cargar
+//   (`useTotalesAlDia` en src/lib/me-gusta-cliente.ts) y corrige lo que vino en el HTML.
 // - Si falla o no hay variables de entorno, devuelve null y la página se muestra sin me gusta.
 
-export type TotalesMeGusta = { temporada: number; siempre: number };
+export type { TotalesMeGusta };
 
 export async function getMeGusta(): Promise<Map<string, TotalesMeGusta> | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,16 +31,7 @@ export async function getMeGusta(): Promise<Map<string, TotalesMeGusta> | null> 
       signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) throw new Error(`Supabase me_gusta_totales: HTTP ${res.status}`);
-    const filas = (await res.json()) as { playa: string; temporada: string; total: number }[];
-    const actual = temporadaMeGusta();
-    const totales = new Map<string, TotalesMeGusta>();
-    for (const f of filas) {
-      const t = totales.get(f.playa) ?? { temporada: 0, siempre: 0 };
-      t.siempre += f.total;
-      if (f.temporada === actual) t.temporada += f.total;
-      totales.set(f.playa, t);
-    }
-    return totales;
+    return sumarTotales(await res.json());
   } catch (e) {
     console.error(e);
     return null;

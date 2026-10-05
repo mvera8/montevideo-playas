@@ -1,18 +1,10 @@
-APIS
-- Playas: Intendencia Montevideo
-- Clima: Open Meteo
-- Mapa: OpenFreeMap
+Prompts
 
-Performante
-Playa 3d (tree.js)?
+...
 
 ---
 
-Votacion playas se termina fin de temporada, pagina contabilizadora
-
 Contacto
-
-Mobile
 
 Servidor
 
@@ -24,11 +16,15 @@ Apis performance y uso
 
 Dominio
 
+Analytics
+
 Seguridad de datos
 
 Reportar algo? como en waze
 
 -
+
+Reportar algo?
 
 Rey de la playa? - pagina aparte con actuales reyes o reinas, si ya sos rey o reina de una playa no podes ser de otra
 

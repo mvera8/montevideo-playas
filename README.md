@@ -77,7 +77,9 @@ Antes se usaba Open-Meteo, que gratis es solo para uso no comercial.
   - ~60 h hora a hora (después cada 6 h), horas en UTC. Se actualiza varias veces por día (`meta.updated_at`).
   - Fuera de Noruega no trae ráfagas, probabilidad de lluvia (sí mm/h), UV real (solo con cielo
     despejado) ni amanecer/atardecer: la lluvia se muestra en mm, el UV como máximo posible y el sol se
-    calcula localmente. Mín/máx de "hoy" es de las horas que quedan del día.
+    calcula localmente (`src/lib/sol.ts`). Mín/máx de "hoy" es de las horas que quedan del día.
+  - "Es de día" (tema noche del mapa, widget, "De noche" del ranking) se recalcula en el navegador
+    con su hora (`useEsDeDia` en `Mapa.tsx`): el HTML puede ser de una regeneración ISR de anoche.
   - El cielo viene como `symbol_code` y se traduce a códigos WMO (`SIMBOLO`).
 - **Temperatura del agua — NOAA OISST v2.1 NRT** (`src/lib/mar.ts`), por ERDDAP:
   `https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21NrtAgg_LonPM180.csv?sst[(last)][(0.0)][(-35.5):(-34.5)][(-56.5):(-55.5)]`
@@ -183,27 +185,32 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
 - **Tablas:** `me_gusta` (playa, temporada, user_id; PK única = uno por persona por playa por
   temporada; RLS: cada uno ve/da/saca solo los suyos, solo en la temporada actual; un trigger pone
   un tope de 60 por temporada por cuenta — no hacerlo en la política: recursa sobre la tabla) y `me_gusta_totales` (contador precalculado por un trigger; lo único público).
-- **Temporada:** de julio a junio (`'2026-27'`), calculada en la base (`temporada_actual()`) y en
-  `temporadaMeGusta()` de `src/lib/me-gusta.ts`. "En total" = suma de todas las temporadas.
+- **Temporada:** sigue a la de guardavidas y cierra el 30 de abril; desde el 1 de mayo se vota para
+  la siguiente (`'2026-27'` = 1/5/2026 al 30/4/2027). Calculada en la base (`temporada_actual()`) y en
+  `temporadaMeGusta()` de `src/lib/me-gusta-temporada.ts` (cambiar las dos juntas). "En total" = suma de todas las temporadas.
 - **Lectura (servidor):** `GET {URL}/rest/v1/me_gusta_totales?select=playa,temporada,total` con
   header `apikey: <clave publicable>`. ~20 filas por temporada. Cache 5 min (igual que el ISR de la
   página); si falla, la página sale sin me gusta.
+- **Lectura (navegador):** la misma consulta, con un `fetch` simple (sin supabase-js), una vez por
+  carga en el mapa, la home y `/favoritas` (`useTotalesAlDia` en `src/lib/me-gusta-cliente.ts`). Hace
+  falta porque ISR sirve la versión vieja al primer visitante después de un rato sin visitas (pueden
+  ser horas) y regenera de fondo: sin esto, el número del HTML podía estar muy atrasado.
 - **Escritura (navegador):** RPC `alternar_me_gusta(p_playa)` devuelve `{meGusta, temporada,
-  siempre}` en un solo viaje. **Solo si el navegador ya tiene sesión:** al cargar, dos consultas en
-  paralelo (`me_gusta` de la temporada, que por RLS trae solo las propias, para pintar las tarjetas
-  en rojo, y `me_gusta_totales` al día, para no mostrar "te gusta" con el 0 cacheado) y
+  siempre}` en un solo viaje. **Solo si el navegador ya tiene sesión:** al cargar, `me_gusta` de la
+  temporada (por RLS trae solo las propias, para pintar las tarjetas en rojo) y
   `estado_me_gusta(p_playa)` al abrir una playa. supabase-js se importa de forma diferida: quien nunca dio me gusta
   no lo descarga. Actualización optimista.
 - **Validar:** `curl -X POST {URL}/rest/v1/rpc/temporada_actual -H "apikey: …"` → `"2026-27"`; el
   conector (`get_advisors`) no debe mostrar avisos de seguridad.
-- **Vigencia:** es un contador en vivo, no hay dato vencido; el número puede atrasar ≤5 min.
+- **Vigencia:** es un contador en vivo, no hay dato vencido; el navegador lo trae al día al cargar.
 - **Abuso:** Supabase limita la creación de cuentas anónimas por IP (30/h por defecto). Si se
   infla, activar CAPTCHA (Turnstile) en Auth. Limpiar cuentas anónimas sin uso de más de un año.
 - **Plan gratis:** el proyecto se pausa tras 7 días sin actividad; en ese caso no se muestran me
   gusta hasta reactivarlo.
 - No se suma al puntaje de "¿A qué playa voy?" (siempre ganaría Pocitos).
 - **Ranking `/favoritas`:** ordena por me gusta de la temporada (desempate: en total, nombre). Usa
-  los mismos datos de `getPlayas()` que `/playas` (ISR 5 min), sin pedidos extra. Cada playa enlaza
+  los mismos datos de `getPlayas()` que `/playas` (ISR 5 min) y el navegador los corrige al cargar
+  (`RankingFavoritas`). Cada playa enlaza
   a `/playas?playa=<slug>`. Si la base no responde, avisa en vez de mostrar todo en 0.
 
 ## Home y novedades
@@ -237,7 +244,8 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
   (ISR con `revalidate = 3600`; la home, cada 300). Ya está cargada la del inicio de la temporada (15/11).
 - **Podio de favoritas** en la home: las 3 playas con más me gusta de la temporada, con
   `getMeGusta()` (un pedido chico a Supabase, cacheado 5 min) y `nombrePlayaPorSlug()` para los
-  nombres, sin pedir playas ni clima. Por eso la home es ISR cada 5 min, igual que `/favoritas`.
+  nombres, sin pedir playas ni clima. Por eso la home es ISR cada 5 min, igual que `/favoritas`. El
+  navegador corrige los totales al cargar (`PodioFavoritas`).
 - **Cuenta regresiva de la temporada** en el widget del hero: `getTemporada()` (cálculo local, 15/11
   aprox., sin pedidos). Se muestra como “aprox.”: la fecha oficial la anuncia la IM.
 - Estructura común de las páginas de texto: `EncabezadoSitio` arriba, título + contenido
@@ -253,7 +261,8 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
 ## Código
 
 - `src/lib/im.ts` — token OAuth2 (cacheado) y llamadas a la IM
-- `src/lib/weather.ts` — clima (MET Norway), un pedido por punto redondeado, y amanecer/atardecer
+- `src/lib/weather.ts` — clima (MET Norway), un pedido por punto redondeado
+- `src/lib/sol.ts` — amanecer/atardecer y si es de día (servidor y navegador)
 - `src/lib/mar.ts` — temperatura del agua y olas (NOAA, ERDDAP)
 - `src/lib/inumet.ts` — advertencias meteorológicas de INUMET para Montevideo
 - `src/lib/playas.ts` — une playas + casillas + clima, lógica de temporada

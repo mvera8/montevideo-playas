@@ -2,18 +2,20 @@
 
 // Me gusta desde el navegador. Para no cargar supabase-js (~45 kB gz) en cada visita:
 // - el contador inicial viene del servidor (src/lib/me-gusta.ts);
+// - los totales al día se piden siempre al cargar con un fetch simple a la tabla pública (sin
+//   supabase-js): el HTML puede traerlos con horas de atraso si la página estuvo un rato sin visitas
+//   (ISR sirve la versión vieja al primer visitante y regenera de fondo);
 // - si el navegador nunca dio un me gusta no tiene sesión guardada, así que sabemos sin pedir nada
 //   que no le dio me gusta a ninguna playa;
-// - supabase-js se importa recién al tocar ❤️, o al cargar la página si ya hay sesión (dos consultas
-//   en paralelo: qué playas le gustan, para pintarlas en las tarjetas, y los totales al día).
+// - supabase-js se importa recién al tocar ❤️, o al cargar la página si ya hay sesión (para saber qué
+//   playas le gustan y pintarlas en las tarjetas).
 // La cuenta es anónima (Supabase Auth, signInAnonymously): no pide datos y queda en el
 // almacenamiento local del navegador. Toda la lógica (uno por persona, temporada, contador) vive
 // en la base: funciones `alternar_me_gusta` y `estado_me_gusta`, y RLS sobre `me_gusta`.
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { TotalesMeGusta } from "./me-gusta";
-import { temporadaMeGusta } from "./me-gusta-temporada";
+import { sumarTotales, temporadaMeGusta, type TotalesMeGusta } from "./me-gusta-temporada";
 
 const URL_SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const CLAVE = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -24,9 +26,11 @@ export const meGustaDisponible = Boolean(URL_SUPABASE && CLAVE);
 const totales = new Map<string, TotalesMeGusta>(); // más nuevos que los del servidor
 const mios = new Set<string>(); // playas que me gustan (temporada actual)
 const pendientes = new Set<string>();
+const tocadas = new Set<string>(); // alternadas en esta carga: su total ya vino de la base
 const errores = new Map<string, string>();
 let misCargados = false; // ya sé cuáles me gustan (o que no hay sesión)
 let cargandoMios = false;
+let pidiendoTotales = false;
 let totalesFrescos = false; // `totales` tiene todas las playas con me gusta, al día
 let version = 0;
 const oyentes = new Set<() => void>();
@@ -90,8 +94,42 @@ function aplicar(slug: string, r: TotalesMeGusta & { meGusta: boolean }) {
   else mios.delete(slug);
 }
 
+// Una vez por carga: los totales al día de todas las playas. Tabla pública (RLS solo deja leer),
+// así que alcanza con la clave publicable, sin sesión ni supabase-js.
+function cargarTotales() {
+  if (totalesFrescos || pidiendoTotales || !meGustaDisponible) return;
+  pidiendoTotales = true;
+  fetch(`${URL_SUPABASE}/rest/v1/me_gusta_totales?select=playa,temporada,total`, {
+    headers: { apikey: CLAVE! },
+    cache: "no-store",
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then((filas) => {
+      // No pisar las alternadas en esta carga. Las playas sin fila pasan a 0 (ver `totalesDe`).
+      for (const [slug, x] of sumarTotales(filas)) if (!pendientes.has(slug) && !tocadas.has(slug)) totales.set(slug, x);
+      totalesFrescos = true;
+      avisar();
+    })
+    .catch(() => {})
+    .finally(() => {
+      pidiendoTotales = false;
+    });
+}
+
+/** Totales al día para listas armadas en el servidor (podio de la home, ranking de favoritas). */
+export function useTotalesAlDia<T extends TotalesMeGusta & { slug: string }>(inicial: T[]): T[] {
+  useVersion();
+  useEffect(cargarTotales, []);
+  if (!totalesFrescos) return inicial;
+  return inicial.map((p) => ({ ...p, ...(totales.get(p.slug) ?? CERO) }));
+}
+
 // Una vez por carga: qué playas me gustan esta temporada (RLS devuelve solo las mías).
 function cargarMios() {
+  cargarTotales();
   if (misCargados || cargandoMios || !meGustaDisponible) return;
   if (!haySesion()) {
     misCargados = true;
@@ -102,27 +140,9 @@ function cargarMios() {
   sesion(false)
     .then(async (c) => {
       if (!c) return;
-      // En paralelo, los totales al día: el HTML puede traerlos con hasta 5 min de atraso y no
-      // queremos mostrar "te gusta" con 0.
-      const temporada = temporadaMeGusta();
-      const [m, t] = await Promise.all([
-        c.from("me_gusta").select("playa").eq("temporada", temporada),
-        c.from("me_gusta_totales").select("playa,temporada,total"),
-      ]);
+      const m = await c.from("me_gusta").select("playa").eq("temporada", temporadaMeGusta());
       if (m.error) throw m.error;
       for (const f of m.data as { playa: string }[]) mios.add(f.playa);
-      if (!t.error) {
-        const frescos = new Map<string, TotalesMeGusta>();
-        for (const f of t.data as { playa: string; temporada: string; total: number }[]) {
-          const x = frescos.get(f.playa) ?? { temporada: 0, siempre: 0 };
-          x.siempre += f.total;
-          if (f.temporada === temporada) x.temporada += f.total;
-          frescos.set(f.playa, x);
-        }
-        // No pisar las que se están alternando. Las playas sin fila pasan a 0 (ver `totalesDe`).
-        for (const [slug, x] of frescos) if (!pendientes.has(slug)) totales.set(slug, x);
-        totalesFrescos = true;
-      }
     })
     .catch(() => {})
     .finally(() => {
@@ -169,6 +189,7 @@ export function useMeGusta(slug: string, inicial: TotalesMeGusta | null) {
       siempre: Math.max(0, antes.siempre + d),
     });
     pendientes.add(slug);
+    tocadas.add(slug);
     errores.delete(slug);
     avisar();
     try {

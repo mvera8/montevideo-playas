@@ -74,7 +74,7 @@ const NOVEDADES: Novedad[] = [
       {
         tipo: "parrafo",
         texto:
-          "Y ya empezó la temporada de me gusta 2026-27 (va de julio a junio): marcá tus playas favoritas y mirá el ranking en la página de Favoritas.",
+          "Y ya empezó la temporada de me gusta 2026-27 (cierra el 30 de abril, con la temporada de guardavidas): marcá tus playas favoritas y mirá el ranking en la página de Favoritas.",
       },
     ],
   },

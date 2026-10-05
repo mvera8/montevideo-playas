@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getOlas, getTemperaturaAgua } from "./mar";
+import { MONTEVIDEO, sol } from "./sol";
 import type { Hora } from "./recomendacion";
 
 // Clima vía MET Norway (Instituto Meteorológico de Noruega), Locationforecast 2.0 "complete".
@@ -15,11 +16,10 @@ import type { Hora } from "./recomendacion";
 // - Trae ~60 h hora a hora y después cada 6 h, con horas en UTC (las pasamos a hora de Montevideo).
 // - Fuera de Noruega NO trae: ráfagas, probabilidad de lluvia (sí milímetros por hora), UV real (solo
 //   `ultraviolet_index_clear_sky`, el UV con cielo despejado: es el máximo posible), mar ni
-//   amanecer/atardecer. El mar sale de NOAA (ver `mar.ts`); amanecer y atardecer se calculan acá.
+//   amanecer/atardecer. El mar sale de NOAA (ver `mar.ts`); amanecer y atardecer se calculan en `sol.ts`.
 // - El estado del cielo viene como `symbol_code` ("partlycloudy_day"); lo traducimos a códigos WMO
 //   para que el resto de la app no dependa del proveedor.
 
-export const MONTEVIDEO = { lat: -34.9011, lon: -56.1645 };
 const TZ = "America/Montevideo";
 const USER_AGENT = "PlayasUY/0.1 (+https://github.com/mvera8/montevideo-playas)";
 
@@ -139,28 +139,6 @@ const fmtLocal = new Intl.DateTimeFormat("sv-SE", {
   minute: "2-digit",
 });
 const local = (d: Date | number) => fmtLocal.format(d).replace(" ", "T");
-
-// ---------- amanecer y atardecer (cálculo local, ±1 min) ----------
-// Ecuación del amanecer (https://en.wikipedia.org/wiki/Sunrise_equation), con refracción.
-
-const RAD = Math.PI / 180;
-
-/** [amanecer, atardecer] en ms UTC para el día local `fecha` ("YYYY-MM-DD"). */
-function sol(fecha: string, { lat, lon }: Point): [number, number] {
-  const jdMediodia = Date.parse(`${fecha}T12:00:00Z`) / 86_400_000 + 2440587.5;
-  const n = Math.round(jdMediodia - 2451545 + 0.0008);
-  const j = n - lon / 360;
-  const m = (357.5291 + 0.98560028 * j) % 360;
-  const c = 1.9148 * Math.sin(m * RAD) + 0.02 * Math.sin(2 * m * RAD) + 0.0003 * Math.sin(3 * m * RAD);
-  const l = (m + c + 180 + 102.9372) % 360;
-  const transito = 2451545 + j + 0.0053 * Math.sin(m * RAD) - 0.0069 * Math.sin(2 * l * RAD);
-  const dec = Math.asin(Math.sin(l * RAD) * Math.sin(23.4397 * RAD));
-  const w = Math.acos(
-    (Math.sin(-0.833 * RAD) - Math.sin(lat * RAD) * Math.sin(dec)) / (Math.cos(lat * RAD) * Math.cos(dec)),
-  );
-  const ms = (jd: number) => (jd - 2440587.5) * 86_400_000;
-  return [ms(transito - w / (2 * Math.PI)), ms(transito + w / (2 * Math.PI))];
-}
 
 // ---------- MET Norway ----------
 
