@@ -213,6 +213,32 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
   (`RankingFavoritas`). Cada playa enlaza
   a `/playas?playa=<slug>`. Si la base no responde, avisa en vez de mostrar todo en 0.
 
+## Contacto
+
+Página `/contacto` con un formulario que envía un correo con **Mailgun** (https://www.mailgun.com,
+plan gratis: 100/día, un dominio). Código: `src/lib/contacto.ts` (envío y tope por IP),
+`src/app/contacto/acciones.ts` (Server Action, valida) y `src/components/FormularioContacto.tsx`.
+
+- **Configurar:** en Mailgun, crear una clave de API (Dashboard → API Security) en
+  `MAILGUN_API_KEY` y el dominio de envío en `MAILGUN_DOMAIN` (`.env.local` y en el hosting; si la
+  cuenta es de la región UE, `MAILGUN_REGION=eu`; la actual es US. Un 401 "Forbidden" con la clave
+  correcta = región equivocada). Poner el correo en `SITIO.contacto`
+  (`src/lib/sitio.ts`). Sin todo eso, la página muestra "disponible pronto" en vez del formulario.
+- **Quirk:** sin tarjeta cargada solo hay dominio sandbox (`sandboxXXXX.mailgun.org`), que **solo
+  envía a "Authorized Recipients"** (hasta 5, cada uno confirma por correo). Agregar ahí
+  `SITIO.contacto`; si no, Mailgun responde 403. Con dominio propio verificado (DNS SPF/DKIM),
+  cambiar `MAILGUN_DOMAIN`.
+- **API:** `POST https://api.mailgun.net/v3/<dominio>/messages` (UE: `api.eu.mailgun.net`), Basic
+  auth `api:<clave>`, form-urlencoded `{from, to, subject, text, h:Reply-To}`. `fetch` directo, sin
+  SDK. El correo de quien escribe va en `h:Reply-To`.
+- **Performance:** la página es estática; el envío es una Server Action (sin JS extra salvo el
+  formulario, que también funciona sin JavaScript).
+- **Abuso:** campo trampa oculto (`sitio_web`) + 5 mensajes por hora por IP (en memoria, por
+  instancia). Si llega spam, sumar Cloudflare Turnstile.
+- **Validar:** enviar un mensaje desde `/contacto` y ver que llegue (o el `curl` del comentario de
+  `src/lib/contacto.ts`); los envíos y errores se ven en Dashboard → Send → Logs.
+- **Vigencia:** no aplica (no muestra datos). No se guarda nada en el servidor.
+
 ## Home y novedades
 
 - **Foto de portada** (`public/fotos/atardecer-rambla-montevideo.jpg`): “Atardecer 2017” de Marinna,
@@ -253,7 +279,7 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
 
 ## Legal y privacidad
 
-- Páginas `/terminos` (incluye fuentes y licencias) y `/privacidad`. Completar los datos de
+- Páginas `/terminos` (incluye fuentes y licencias), `/privacidad` y `/contacto`. Completar los datos de
   `src/lib/sitio.ts` (responsable, contacto, hosting) antes de publicar.
 - Las rutas que reciben la ubicación usan **POST** (nunca la ubicación en la URL), responden
   `Cache-Control: no-store` y no registran coordenadas. El cliente la redondea a ~100 m.

@@ -4,15 +4,13 @@ Prompts
 
 ---
 
-Contacto
-
 Servidor
 
 Logo
 
 logo en mapas y link a la home
 
-Apis performance y uso
+Apis performance (quota) y uso
 
 Dominio
 
