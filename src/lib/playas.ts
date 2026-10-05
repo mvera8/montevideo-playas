@@ -114,6 +114,11 @@ export function nombrePlayaPorSlug(slug: string) {
   return nombre ?? slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " ");
 }
 
+/** Todas las playas conocidas (slug y nombre), sin pedir nada a la IM. */
+export function playasConocidas() {
+  return Object.values(NOMBRES_PLAYA).map((nombre) => ({ slug: slugify(nombre), nombre }));
+}
+
 function nombrePlaya(codigo: string) {
   return NOMBRES_PLAYA[codigo] ?? codigo.charAt(0).toUpperCase() + codigo.slice(1);
 }

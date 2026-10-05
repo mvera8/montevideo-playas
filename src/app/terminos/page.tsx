@@ -169,7 +169,8 @@ export default function Terminos() {
       <p>
         Los “me gusta” son una función propia del sitio: muestran cuántas personas marcaron que les gusta cada playa, no
         sus condiciones. <strong>No son una calificación oficial</strong> ni dicen nada sobre la seguridad o la calidad del
-        agua, y no se suman al puntaje de “¿A qué playa voy?”. Se cuentan por temporada (de julio a junio) y en total. El
+        agua, y no se suman al puntaje de “¿A qué playa voy?”. Se cuentan por temporada y en total. Cada temporada cierra el 30 de abril, cuando termina la de guardavidas;
+        lo que se vota desde el 1 de mayo suma a la temporada siguiente. El
         número se actualiza cada pocos minutos y puede no reflejar los últimos cambios. La página de{" "}
         <Link href="/favoritas">playas favoritas</Link> (y el podio de la página de inicio) ordena las playas por los me
         gusta de la temporada: es un ranking

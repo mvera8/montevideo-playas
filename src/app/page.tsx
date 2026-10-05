@@ -4,11 +4,12 @@ import BotonMapa from "@/components/BotonMapa";
 import EncabezadoSitio from "@/components/EncabezadoSitio";
 import Etiqueta from "@/components/Etiqueta";
 import PieSitio from "@/components/PieSitio";
+import PodioFavoritas from "@/components/PodioFavoritas";
 import TarjetaNovedad from "@/components/TarjetaNovedad";
 import { getNovedades } from "@/lib/novedades";
 import { getMeGusta } from "@/lib/me-gusta";
 import { temporadaMeGusta } from "@/lib/me-gusta-temporada";
-import { getTemporada, nombrePlayaPorSlug } from "@/lib/playas";
+import { getTemporada, nombrePlayaPorSlug, playasConocidas } from "@/lib/playas";
 import { SITIO } from "@/lib/sitio";
 // Import estático: next/image sabe el tamaño, genera el blur y sirve AVIF/WebP al ancho justo.
 // Origen y licencia de las fotos: README, "Home y novedades".
@@ -16,7 +17,8 @@ import fotoPortada from "../../public/fotos/atardecer-rambla-montevideo.jpg";
 import fotoCasilla from "../../public/fotos/casilla-guardavidas-buceo.jpg";
 
 // Home: qué hace el sitio y cómo llegar al mapa (/playas). El único dato externo es el podio de
-// favoritas (totales de me gusta, un pedido chico a Supabase cacheado 5 min, ver src/lib/me-gusta.ts);
+// favoritas (totales de me gusta, un pedido chico a Supabase cacheado 5 min, ver src/lib/me-gusta.ts;
+// el navegador los vuelve a pedir al cargar, ver `PodioFavoritas`);
 // la cuenta regresiva de la temporada es un cálculo local y las novedades están escritas a mano.
 // ISR cada 5 min, igual que /favoritas, para que el podio no quede viejo sin volver dinámica la página.
 export const revalidate = 300;
@@ -49,7 +51,6 @@ const ICONOS = {
       <path d="M4.5 11h15M8 20.5v-3M16 20.5v-3M8 14.5h.01M16 14.5h.01" />
     </>
   ),
-  corazon: <path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z" />,
 };
 
 type Icono = keyof typeof ICONOS;
@@ -179,79 +180,22 @@ function WidgetMapa({ diasParaInicio, activa }: { diasParaInicio: number; activa
   );
 }
 
-/** Las 3 playas con más me gusta en la temporada; null si la base no responde. */
-async function getPodio() {
+/** Todas las playas con sus totales de me gusta (el podio lo arma el cliente con los totales al día);
+ *  null si la base no responde. */
+async function getFavoritas() {
   const totales = await getMeGusta();
   if (!totales) return null;
-  return [...totales.entries()]
-    .filter(([, t]) => t.temporada > 0)
-    .sort(([a, x], [b, y]) => y.temporada - x.temporada || a.localeCompare(b, "es"))
-    .slice(0, 3)
-    .map(([slug, t]) => ({ slug, nombre: nombrePlayaPorSlug(slug), total: t.temporada }));
-}
-
-const numero = new Intl.NumberFormat("es-UY");
-const MEDALLAS = ["🥇", "🥈", "🥉"];
-
-function PodioFavoritas({ podio }: { podio: Awaited<ReturnType<typeof getPodio>> }) {
-  if (!podio || podio.length === 0) {
-    return (
-      <div className="rounded-3xl bg-white/10 p-6 text-center ring-1 ring-white/20 backdrop-blur">
-        <p className="text-4xl" aria-hidden>
-          🏖️
-        </p>
-        <p className="mt-3 text-lg font-semibold">
-          {podio ? "Todavía nadie votó esta temporada" : "Ahora no pudimos cargar el ranking"}
-        </p>
-        <p className="mt-1 text-sm text-white/70">
-          {podio ? "Abrí el mapa y dale el primer me gusta a tu playa." : "Probá de nuevo en unos minutos."}
-        </p>
-      </div>
-    );
+  const lista = playasConocidas().map((p) => ({ ...p, ...(totales.get(p.slug) ?? { temporada: 0, siempre: 0 }) }));
+  for (const [slug, t] of totales) {
+    if (!lista.some((p) => p.slug === slug)) lista.push({ slug, nombre: nombrePlayaPorSlug(slug), ...t });
   }
-  return (
-    <ol className="space-y-3">
-      {podio.map((p, i) => (
-        <li key={p.slug}>
-          <Link
-            href={`/playas?playa=${p.slug}`}
-            className="flex items-center gap-4 rounded-2xl bg-white/10 px-5 py-4 ring-1 ring-white/20 backdrop-blur transition-colors hover:bg-white/15"
-          >
-            <span className="text-2xl" aria-hidden>
-              {MEDALLAS[i]}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-lg font-semibold">
-              <span className="sr-only">{i + 1}.º </span>
-              {p.nombre}
-            </span>
-            <span className="flex items-center gap-1.5 text-sm font-semibold tabular-nums text-rose-300">
-              <Ico nombre="corazon" className="h-4 w-4 fill-current" />
-              {numero.format(p.total)}
-              <span className="sr-only"> me gusta</span>
-            </span>
-          </Link>
-        </li>
-      ))}
-      {/* Puestos libres: el podio siempre muestra 3 lugares */}
-      {MEDALLAS.slice(podio.length).map((m) => (
-        <li
-          key={m}
-          className="flex items-center gap-4 rounded-2xl px-5 py-4 border border-dashed border-white/30 text-white/60"
-        >
-          <span className="text-2xl opacity-60" aria-hidden>
-            {m}
-          </span>
-          <span className="text-sm">Puesto libre: puede ser tu playa</span>
-        </li>
-      ))}
-    </ol>
-  );
+  return lista;
 }
 
 export default async function Home() {
   const temporada = getTemporada();
   const novedades = getNovedades().slice(0, 2);
-  const podio = await getPodio();
+  const favoritas = await getFavoritas();
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#fbf8f2] dark:bg-slate-950">
@@ -390,8 +334,8 @@ export default async function Home() {
                   Las playas <em className="font-serif font-normal italic text-amber-200">favoritas.</em>
                 </h2>
                 <p className="mt-4 max-w-lg text-lg text-white/80">
-                  Dale me gusta a tus playas en el mapa y mirá cuál va ganando. El ranking arranca de cero cada temporada,
-                  de julio a junio.
+                  Dale me gusta a tus playas en el mapa y mirá cuál va ganando. El ranking arranca de cero cada temporada:
+                  cierra el 30 de abril, cuando terminan los guardavidas.
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
                   <BotonMapa tono="claro" texto="Elegí tu favorita" />
@@ -401,7 +345,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              <PodioFavoritas podio={podio} />
+              <PodioFavoritas inicial={favoritas ?? playasConocidas().map((p) => ({ ...p, temporada: 0, siempre: 0 }))} errorServidor={!favoritas} />
             </div>
             <p className="mt-10 text-xs text-white/55">
               Son los me gusta de quienes usan el sitio: no es una calificación oficial ni dice nada sobre la seguridad o la

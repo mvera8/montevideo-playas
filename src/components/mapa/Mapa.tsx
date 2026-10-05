@@ -30,6 +30,7 @@ import SeccionPlegable, { GrupoPlegable } from "./SeccionPlegable";
 import { cargarIconos, contenidoPopup } from "./servicios-mapa";
 import type { Servicio } from "@/lib/servicios";
 import { SITIO } from "@/lib/sitio";
+import { luzAhora } from "@/lib/sol";
 import SelectorTema, { OpcionesTema } from "./SelectorTema";
 import MenuSitio from "@/components/MenuSitio";
 import Lluvia from "./Lluvia";
@@ -114,7 +115,38 @@ function aCasillas(playas: Playa[]): (CasillaMapa & { slug: string; nombre: stri
   });
 }
 
-export default function Mapa({ playas, temporada, fuente, error, climaCiudad, alertas }: Props) {
+// Si es de día, con la hora del navegador: el `isDay` que trae el HTML es del momento en que se
+// generó (ISR), que puede ser de anoche. Se recalcula en cada amanecer/atardecer y al volver a la
+// pestaña (los timers se frenan con la pantalla apagada).
+function useEsDeDia() {
+  const [esDeDia, setEsDeDia] = useState(() => luzAhora().esDeDia);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const actualizar = () => {
+      clearTimeout(timer);
+      const luz = luzAhora();
+      setEsDeDia(luz.esDeDia);
+      timer = setTimeout(actualizar, Math.max(1000, luz.cambia - Date.now() + 1000));
+    };
+    const alVolver = () => document.visibilityState === "visible" && actualizar();
+    actualizar();
+    document.addEventListener("visibilitychange", alVolver);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
+  }, []);
+  return esDeDia;
+}
+
+export default function Mapa({ playas: playasHtml, temporada, fuente, error, climaCiudad: climaHtml, alertas }: Props) {
+  const esDeDia = useEsDeDia();
+  const climaCiudad = useMemo(() => climaHtml && { ...climaHtml, isDay: esDeDia }, [climaHtml, esDeDia]);
+  // Todas las playas están en Montevideo: el amanecer y el atardecer cambian menos de un minuto.
+  const playas = useMemo(
+    () => playasHtml.map((p) => (p.clima && p.clima.isDay !== esDeDia ? { ...p, clima: { ...p.clima, isDay: esDeDia } } : p)),
+    [playasHtml, esDeDia],
+  );
   const contenedor = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const capaRef = useRef<CapaCasillas | null>(null);
