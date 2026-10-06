@@ -33,6 +33,7 @@ import { SITIO } from "@/lib/sitio";
 import { luzAhora } from "@/lib/sol";
 import SelectorTema, { OpcionesTema } from "./SelectorTema";
 import MenuSitio from "@/components/MenuSitio";
+import Modal, { BotonModal } from "@/components/Modal";
 import Lluvia from "./Lluvia";
 import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
 
@@ -41,6 +42,9 @@ setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
 const ESTILO = "https://tiles.openfreemap.org/styles/positron";
 const CENTRO: [number, number] = [-56.17, -34.9];
+// Vista inicial en móvil (ver el comentario en la inicialización del mapa).
+const CENTRO_MOVIL: [number, number] = [-56.135, -34.885];
+const ZOOM_MOVIL = 10.9;
 const COLOR_RUTA = "#0b6bcb";
 const VACIO = { type: "FeatureCollection" as const, features: [] };
 
@@ -200,6 +204,8 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
   const [eligiendo, setEligiendo] = useState(false);
   const [ubicando, setUbicando] = useState(false);
   const [errorUbicacion, setErrorUbicacion] = useState<string | null>(null);
+  // Por qué falló la ubicación (modal): permiso denegado, sin señal o demora.
+  const [fallaUbicacion, setFallaUbicacion] = useState<FallaUbicacion | null>(null);
   const [ruta, setRuta] = useState<{ opcion: Opcion | null; llegadas: LlegadasPorTramo }>({
     opcion: null,
     llegadas: {},
@@ -259,10 +265,14 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
           [-56.0, -34.85],
         ];
 
+    // En móvil la costa entera no entra a lo ancho: encuadrarla toda deja las playas chiquitas y pegadas a
+    // la hoja inferior (y casi sin margen para mover el mapa). Arrancamos más cerca, centrados en la costa.
+    const movil = !window.matchMedia("(min-width: 768px)").matches;
     const map = new MapLibreMap({
       container: contenedor.current,
-      bounds,
-      fitBoundsOptions: { padding: padding(40, abiertoRef.current) },
+      ...(movil
+        ? { center: CENTRO_MOVIL, zoom: ZOOM_MOVIL }
+        : { bounds, fitBoundsOptions: { padding: padding(40, abiertoRef.current) } }),
       pitch: 50,
       maxPitch: 70,
       maxBounds: [
@@ -274,6 +284,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         customAttribution: '<a href="/terminos#fuentes">Fuentes</a>: Intendencia de Montevideo · MET Norway · NOAA',
       },
     });
+    if (movil) map.setPadding(padding(0, abiertoRef.current)); // el centro cae en el área visible sobre la hoja
     // El estilo se carga ya recoloreado con el tema (sin parpadeo del estilo base).
     map.setStyle(ESTILO, { transformStyle: (_prev, next) => estiloConTema(next, temaRef.current) });
     map.addControl(new NavigationControl({ visualizePitch: true }), "bottom-right");
@@ -425,6 +436,11 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         if (!eligiendoRef.current) return;
         setOrigen({ lat: e.lngLat.lat, lon: e.lngLat.lng });
         setEligiendo(false);
+        // Si plegamos el panel para que se pueda tocar el mapa, lo volvemos a abrir con el resultado.
+        if (!abiertoRef.current) {
+          abiertoRef.current = true;
+          setAbierto(true);
+        }
       });
 
       // Baños, bebederos y duchas cerca de las playas (íconos desde zoom 13,5).
@@ -647,8 +663,10 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
   }
 
   function usarUbicacion() {
+    setFallaUbicacion(null);
     if (!navigator.geolocation) {
       setErrorUbicacion("Tu navegador no permite obtener la ubicación. Elegila en el mapa.");
+      setFallaUbicacion("sin-soporte");
       return;
     }
     setUbicando(true);
@@ -658,13 +676,21 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         setUbicando(false);
         setOrigen({ lat: pos.coords.latitude, lon: pos.coords.longitude });
       },
-      () => {
+      (err) => {
         setUbicando(false);
         setErrorUbicacion("No pudimos obtener tu ubicación. Tocá el mapa para elegir el origen.");
-        setEligiendo(true);
+        setFallaUbicacion(err.code === err.PERMISSION_DENIED ? "permiso" : err.code === err.TIMEOUT ? "demora" : "sin-senal");
       },
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
     );
+  }
+
+  // Desde el modal: pliega el panel en móvil para dejar el mapa libre y espera el toque.
+  function marcarEnMapa() {
+    setFallaUbicacion(null);
+    setErrorUbicacion(null);
+    setEligiendo(true);
+    if (window.matchMedia("(max-width: 767px)").matches) alternarPanel(false);
   }
 
   // En móvil la hoja inferior baja al plegar; en escritorio se mueve todo el panel.
@@ -676,6 +702,23 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     <div className="relative h-dvh w-full overflow-hidden">
       <div ref={contenedor} className="h-full w-full" />
       {lluvia && <Lluvia intensidad={lluvia} oscuro={tema === "noche"} />}
+
+      <ModalUbicacion
+        falla={fallaUbicacion}
+        onCerrar={() => setFallaUbicacion(null)}
+        onReintentar={usarUbicacion}
+        onMarcarEnMapa={marcarEnMapa}
+      />
+
+      {/* Modo "marcar en el mapa": aviso flotante con salida, visible aunque el panel esté plegado. */}
+      {eligiendo && (
+        <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 mx-auto flex w-fit max-w-[calc(100%-2rem)] animate-[aparecer_180ms_ease-out] items-center gap-3 rounded-full bg-slate-900/95 py-2 pl-4 pr-2 text-sm text-white shadow-xl backdrop-blur motion-reduce:animate-none">
+          Tocá el mapa donde estás
+          <button onClick={() => setEligiendo(false)} className="select-none rounded-full bg-white/15 px-3 py-1 text-xs font-medium hover:bg-white/25">
+            Cancelar
+          </button>
+        </div>
+      )}
 
       {/* Botón flotante para plegar/desplegar el panel (al lado del buscador) */}
       <button
@@ -708,8 +751,11 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
             strokeLinejoin="round"
             className={`absolute inset-0 transition duration-300 motion-reduce:transition-none ${abierto ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`}
           >
-            <rect x="3" y="4" width="18" height="16" rx="3" />
-            <path d="M9 4v16M13.5 10l2 2-2 2" />
+            {/* Grilla de tablero: "ver la info", sin sugerir de qué lado sale el panel (costado en escritorio, abajo en móvil). */}
+            <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+            <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+            <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+            <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
           </svg>
         </span>
       </button>
@@ -777,7 +823,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
             }}
             placeholder="Buscar playa o casilla…"
             aria-label="Buscar playa"
-            className="w-full bg-transparent text-[15px] outline-none placeholder:text-slate-400"
+            className="w-full bg-transparent text-base outline-none placeholder:text-slate-400"
           />
           {busqueda && (
             <button onClick={() => setBusqueda("")} className="text-sm text-slate-500" aria-label="Borrar búsqueda">
@@ -894,11 +940,11 @@ function Detalle({
     <>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <h2 className="text-xl font-semibold">{playa.nombre}</h2>
             <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
           </div>
-          {playa.descripcion && <p className="text-sm text-slate-500">{playa.descripcion}</p>}
+          {playa.descripcion && <p className="mt-2 text-sm text-slate-500">{playa.descripcion}</p>}
         </div>
         <button
           onClick={onCerrar}
@@ -1000,5 +1046,78 @@ function Dato({ label, value, sub }: { label: string; value: string; sub?: strin
       <p className="text-lg font-semibold tabular-nums leading-tight">{value}</p>
       {sub && <p className="truncate text-[11px] text-slate-500">{sub}</p>}
     </div>
+  );
+}
+
+type FallaUbicacion = "permiso" | "sin-senal" | "demora" | "sin-soporte";
+
+// Explica por qué no tenemos la ubicación y ofrece seguir: reintentar o marcarla en el mapa.
+function ModalUbicacion({
+  falla,
+  onCerrar,
+  onReintentar,
+  onMarcarEnMapa,
+}: {
+  falla: FallaUbicacion | null;
+  onCerrar: () => void;
+  onReintentar: () => void;
+  onMarcarEnMapa: () => void;
+}) {
+  const ios = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const titulo =
+    falla === "permiso"
+      ? "No tenemos permiso para ver tu ubicación"
+      : falla === "demora"
+        ? "La ubicación tardó demasiado"
+        : falla === "sin-soporte"
+          ? "Tu navegador no da la ubicación"
+          : "No pudimos saber dónde estás";
+  return (
+    <Modal
+      abierto={falla !== null}
+      onCerrar={onCerrar}
+      titulo={titulo}
+      icono={
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z" />
+          <circle cx="12" cy="9.5" r="2.5" />
+        </svg>
+      }
+      acciones={
+        <>
+          <BotonModal principal onClick={onMarcarEnMapa}>
+            Marcar dónde estoy en el mapa
+          </BotonModal>
+          {(falla === "demora" || falla === "sin-senal") && <BotonModal onClick={onReintentar}>Probar de nuevo</BotonModal>}
+          <BotonModal onClick={onCerrar}>Cerrar</BotonModal>
+        </>
+      }
+    >
+      {falla === "permiso" &&
+        (ios ? (
+          <>
+            <p>El iPhone tiene bloqueada la ubicación para este sitio. Para habilitarla:</p>
+            <ol className="list-decimal space-y-1 pl-5">
+              <li>
+                <strong>Ajustes › Privacidad y seguridad › Localización</strong>: que esté activada y que{" "}
+                <strong>Sitios web de Safari</strong> diga «Al usarse».
+              </li>
+              <li>
+                En Safari, tocá <strong>aA</strong> (o el ícono a la izquierda de la dirección) ›{" "}
+                <strong>Configuración del sitio web › Ubicación › Permitir</strong>.
+              </li>
+            </ol>
+          </>
+        ) : (
+          <p>
+            El navegador tiene bloqueada la ubicación para este sitio. Habilitala desde el candado o el ícono al lado de la
+            dirección y probá de nuevo.
+          </p>
+        ))}
+      {falla === "demora" && <p>El teléfono no encontró tu ubicación a tiempo. Pasa a veces bajo techo o con poca señal.</p>}
+      {falla === "sin-senal" && <p>El teléfono no pudo ubicarte. Revisá que la localización esté activada.</p>}
+      {falla === "sin-soporte" && <p>Este navegador no permite pedir la ubicación.</p>}
+      <p>Mientras tanto, podés marcar dónde estás tocando el mapa.</p>
+    </Modal>
   );
 }

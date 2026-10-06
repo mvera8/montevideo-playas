@@ -1,7 +1,7 @@
 // Pastilla con borde para encabezar secciones ("Qué es Playas UY", "Novedades"…).
 // `foto`: versión translúcida para poner sobre imágenes.
 const TONOS = {
-  claro: "text-slate-600 ring-slate-300 dark:text-slate-300 dark:ring-slate-700",
+  claro: "text-slate-600 ring-slate-300",
   foto: "bg-white/10 text-white ring-white/30 backdrop-blur",
 };
 

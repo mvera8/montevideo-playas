@@ -69,25 +69,25 @@ const FUNCIONES: { icono: Icono; titulo: string; texto: string; tono: string }[]
     icono: "bandera",
     titulo: "Banderas de guardavidas",
     texto: "Cada casilla en un mapa 3D, con la bandera que informa la Intendencia flameando según el viento.",
-    tono: "bg-amber-50 dark:bg-amber-500/10",
+    tono: "bg-amber-50",
   },
   {
     icono: "agua",
     titulo: "Calidad del agua",
     texto: "Calculada con los muestreos abiertos de la Intendencia. Si el último análisis es viejo, te avisamos.",
-    tono: "bg-sky-50 dark:bg-sky-500/10",
+    tono: "bg-sky-50",
   },
   {
     icono: "clima",
     titulo: "Clima y mejor playa",
     texto: "Pronóstico hora a hora y una sugerencia de a qué playa ir según el viento, el clima y la bandera.",
-    tono: "bg-orange-50 dark:bg-orange-500/10",
+    tono: "bg-orange-50",
   },
   {
     icono: "omnibus",
     titulo: "Cómo llegar en ómnibus",
     texto: "Líneas directas o con un trasbordo desde donde estés, con las próximas llegadas en vivo.",
-    tono: "bg-emerald-50 dark:bg-emerald-500/10",
+    tono: "bg-emerald-50",
   },
 ];
 
@@ -198,7 +198,7 @@ export default async function Home() {
   const favoritas = await getFavoritas();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#fbf8f2] dark:bg-slate-950">
+    <div className="flex min-h-dvh flex-col bg-[#fbf8f2]">
       {/* Hero */}
       <section className="relative isolate overflow-hidden bg-slate-900 text-white">
         <Image
@@ -259,12 +259,12 @@ export default async function Home() {
         <section id="que-hace" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-20 sm:px-6 sm:py-28">
           <div className="text-center">
             <Etiqueta>Qué es {SITIO.nombre}</Etiqueta>
-            <h2 className="mx-auto mt-6 max-w-4xl text-3xl font-medium leading-[1.15] tracking-tight text-balance text-slate-900 sm:text-5xl dark:text-white">
+            <h2 className="mx-auto mt-6 max-w-4xl text-3xl font-medium leading-[1.15] tracking-tight text-balance text-slate-900 sm:text-5xl">
               Hicimos el lugar para elegir playa antes de salir:{" "}
-              <span className="text-sky-600 dark:text-sky-400">banderas, agua, clima y ómnibus</span> en un solo mapa,{" "}
-              <span className="text-amber-600 dark:text-amber-400">gratis para todos</span>.
+              <span className="text-sky-600">banderas, agua, clima y ómnibus</span> en un solo mapa,{" "}
+              <span className="text-amber-600">gratis para todos</span>.
             </h2>
-            <p className="mx-auto mt-6 max-w-2xl text-slate-500 dark:text-slate-400">
+            <p className="mx-auto mt-6 max-w-2xl text-slate-500">
               Juntamos la información pública de la Intendencia de Montevideo y de fuentes abiertas, y la ordenamos playa por
               playa. Somos un servicio informativo e independiente, <strong className="font-semibold">no oficial</strong>:
               no tenemos relación con la Intendencia ni con el servicio de guardavidas. La fuente oficial manda: en la playa,
@@ -303,13 +303,13 @@ export default async function Home() {
 
             {FUNCIONES.map((f) => (
               <div key={f.titulo} className={`flex min-h-[16rem] flex-col rounded-3xl p-6 ${f.tono}`}>
-                <span className="grid h-11 w-11 place-items-center rounded-full bg-white text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-200">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-white text-slate-700 shadow-sm">
                   <Ico nombre={f.icono} />
                 </span>
-                <h3 className="mt-auto pt-8 text-2xl font-medium leading-tight tracking-tight text-slate-900 dark:text-white">
+                <h3 className="mt-auto pt-8 text-2xl font-medium leading-tight tracking-tight text-slate-900">
                   {f.titulo}
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{f.texto}</p>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{f.texto}</p>
               </div>
             ))}
           </div>
@@ -360,19 +360,26 @@ export default async function Home() {
             <div className="flex items-end justify-between gap-4">
               <div>
                 <Etiqueta>Novedades</Etiqueta>
-                <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">La temporada, al día</h2>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight text-balance text-slate-900">La temporada, al día</h2>
               </div>
-              <Link href="/novedades" className="shrink-0 text-sm font-medium text-sky-700 hover:underline dark:text-sky-300">
+              <Link href="/novedades" className="hidden shrink-0 text-sm font-medium text-sky-700 hover:underline sm:block">
                 Ver todas →
               </Link>
             </div>
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+            {/* En mobile, carrusel horizontal (scroll nativo con snap; se asoma la tarjeta siguiente). */}
+            <ul className="-mx-4 mt-8 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0">
               {novedades.map((n) => (
-                <li key={n.slug}>
+                <li key={n.slug} className="w-[85%] shrink-0 snap-start sm:w-auto">
                   <TarjetaNovedad novedad={n} />
                 </li>
               ))}
             </ul>
+            <Link
+              href="/novedades"
+              className="mt-6 flex w-full items-center justify-center gap-1.5 rounded-full bg-white py-3 text-sm font-medium text-slate-900 shadow-sm ring-1 ring-black/5 hover:ring-sky-300 sm:hidden"
+            >
+              Ver todas las novedades <span aria-hidden>→</span>
+            </Link>
           </section>
         )}
       </main>

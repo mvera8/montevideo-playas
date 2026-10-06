@@ -6,6 +6,8 @@ import type { Playa, Temporada } from "@/lib/playas";
 import { recomendar, type Viaje } from "@/lib/recomendacion";
 import type { Punto } from "@/lib/transporte/planificador";
 import { postJson, redondear } from "@/lib/ubicacion";
+import Modal from "@/components/Modal";
+import BotonUbicacion, { Spinner } from "./BotonUbicacion";
 import { BotonInfo, TarjetaInfo } from "./Info";
 import { BadgeCalidad, Motivos } from "./Motivos";
 
@@ -23,20 +25,30 @@ type Props = {
 export default function Recomendador({ playas, temporada, origen, ubicando, onUsarUbicacion, onElegir }: Props) {
   const [info, setInfo] = useState(false);
   const [viajes, setViajes] = useState<{ para: Punto; datos: Record<string, Viaje> } | null>(null);
+  // Si no se pudo calcular: fuera de Montevideo (400) o falla del servidor/red. Se muestra en un modal.
+  const [falla, setFalla] = useState<{ para: Punto; tipo: "fuera" | "error" } | null>(null);
+  const [verFalla, setVerFalla] = useState(false);
 
   useEffect(() => {
     if (!origen) return;
     const ctrl = new AbortController();
+    const fallar = (tipo: "fuera" | "error") => {
+      setFalla({ para: origen, tipo });
+      setVerFalla(true);
+    };
     postJson("/api/viajes", { desde: redondear(origen) }, ctrl.signal)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => json && setViajes({ para: origen, datos: json.viajes }))
-      .catch(() => {});
+      .then(async (r) => {
+        if (r.ok) setViajes({ para: origen, datos: (await r.json()).viajes });
+        else fallar(r.status === 400 ? "fuera" : "error");
+      })
+      .catch((e) => e.name !== "AbortError" && fallar("error"));
     return () => ctrl.abort();
   }, [origen]);
 
-  // Solo usamos viajes calculados para el origen actual.
+  // Solo usamos viajes (o fallas) del origen actual.
   const datosViaje = viajes && viajes.para === origen ? viajes.datos : null;
-  const calculando = Boolean(origen) && !datosViaje;
+  const fallaActual = falla && falla.para === origen ? falla.tipo : null;
+  const calculando = Boolean(origen) && !datosViaje && !fallaActual;
   const ranking = useMemo(() => recomendar(playas, temporada, datosViaje), [playas, temporada, datosViaje]);
   const porSlug = useMemo(() => new Map(playas.map((p) => [p.slug, p])), [playas]);
 
@@ -108,13 +120,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
           </button>
         )}
         {!origen && (
-          <button
-            onClick={onUsarUbicacion}
-            disabled={ubicando}
-            className="flex-1 rounded-xl px-3 py-2 text-sm font-medium ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60 dark:ring-slate-700 dark:hover:bg-slate-800"
-          >
-            {ubicando ? "Ubicando…" : "Sumar mi viaje"}
-          </button>
+          <BotonUbicacion texto="Sumar mi viaje" ubicando={ubicando} onClick={onUsarUbicacion} />
         )}
       </div>
       {!origen && (
@@ -125,7 +131,32 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
           </Link>
         </p>
       )}
-      {calculando && <p className="mt-2 text-xs text-slate-500">Calculando cuánto tardás a cada playa…</p>}
+      {calculando && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-sky-700 dark:text-sky-300">
+          <Spinner className="h-3.5 w-3.5" />
+          Calculando cuánto tardás a cada playa…
+        </p>
+      )}
+      {fallaActual && (
+        <p className="mt-2 text-xs text-slate-500">
+          {fallaActual === "fuera" ? "Estás fuera de Montevideo: el ranking no suma el viaje." : "No pudimos sumar el viaje."}
+        </p>
+      )}
+
+      <Modal
+        abierto={verFalla && Boolean(fallaActual)}
+        onCerrar={() => setVerFalla(false)}
+        titulo={fallaActual === "fuera" ? "Estás fuera de Montevideo" : "No pudimos calcular el viaje"}
+      >
+        {fallaActual === "fuera" ? (
+          <p>
+            El viaje en ómnibus solo se calcula desde dentro de Montevideo. El ranking sigue funcionando con la bandera, el
+            clima y el viento.
+          </p>
+        ) : (
+          <p>Hubo un problema al consultar los horarios de ómnibus. Probá de nuevo en un rato; el ranking sigue funcionando.</p>
+        )}
+      </Modal>
 
       {lista.length > 0 && (
         <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">

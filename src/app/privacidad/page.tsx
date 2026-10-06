@@ -12,7 +12,7 @@ export default function Privacidad() {
   return (
     <PaginaLegal titulo="Política de privacidad" bajada="Qué datos usa el sitio, para qué, y qué no hacemos con ellos.">
       <Destacado>
-        <p className="font-semibold text-slate-900 dark:text-white">En resumen</p>
+        <p className="font-semibold text-slate-900">En resumen</p>
         <ul className="mt-2">
           <li>No tenés que crear una cuenta ni darnos tu nombre o correo (solo si nos escribís por el formulario de contacto).</li>
           <li>

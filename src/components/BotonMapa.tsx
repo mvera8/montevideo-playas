@@ -11,7 +11,7 @@ const TONOS = {
   // Sobre fotos o fondos oscuros.
   claro: "bg-white text-slate-900 hover:bg-amber-50",
   // Sobre fondos claros.
-  oscuro: "bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-amber-50",
+  oscuro: "bg-slate-900 text-white hover:bg-slate-800",
 };
 
 export default function BotonMapa({

@@ -14,7 +14,7 @@ export default async function PlayasPage() {
   ]);
 
   return (
-    <main className="h-dvh">
+    <main className="tema-sistema h-dvh">
       <h1 className="sr-only">{SITIO.marca}: playas, guardavidas y calidad del agua</h1>
       <MapaCliente
         playas={playas}

@@ -13,10 +13,31 @@
   --font-serif: var(--font-instrument-serif), Georgia, serif;
 }
 
+/* Modo oscuro (según el sistema) solo en el mapa: la página del mapa lleva `.tema-sistema`. El resto
+   del sitio (home, novedades, legales…) se ve siempre claro. Con `:has()` alcanza también a lo que se
+   monta en <body> por portal (el menú ☰). */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:has(.tema-sistema) *) {
+      @slot;
+    }
+  }
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:has(.tema-sistema) {
     --background: #0b1620;
     --foreground: #e6eef4;
+  }
+}
+
+/* iOS Safari hace zoom al enfocar un campo con letra de menos de 16px. Base de 16px para todos los
+   campos (en la capa base, así una utilidad explícita puede cambiarla; no bajarla de 16px). */
+@layer base {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 

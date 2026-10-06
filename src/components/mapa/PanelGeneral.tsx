@@ -151,7 +151,7 @@ function PildorasPlayas({
   onElegir: (p: Playa) => void;
 }) {
   return (
-    <nav aria-label="Playas" className="sticky -top-3 z-10 -mx-3 -mt-3 bg-slate-50 pb-1 pt-3 md:hidden dark:bg-slate-950">
+    <nav aria-label="Playas" className="sticky -top-3 z-10 -mx-3 -mt-3 bg-slate-50 pb-1 pt-5 md:hidden dark:bg-slate-950">
       {playas.length === 0 ? (
         <p className="px-4 py-2 text-sm text-slate-500">
           {busqueda ? `Ninguna playa coincide con “${busqueda}”.` : "Ninguna playa con esa bandera."}
