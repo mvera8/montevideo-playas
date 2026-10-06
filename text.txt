@@ -3,14 +3,10 @@ Prompts
 Comparar:
 https://m.montevideo.gub.uy/playas/
 
-Foto: en mobile agrandar nombre playa y agregar al lado del boton de me gusta un boton de camara que saque la foto (o sea que haga la idea: foto-de-playa.md)
 
 ---
 
-Camaras
-Logo
-
-Layout de las paginas (no el mapa) tambien depende de algo? (imagen zara)
+Fotos
 
 MV marca
 
@@ -19,8 +15,6 @@ Limitantes
 - Request? APIs
 
 Servidor
-
-logo en mapas y link a la home
 
 Apis performance (quota) y uso
 

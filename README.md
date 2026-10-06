@@ -215,6 +215,22 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
   (`RankingFavoritas`). Cada playa enlaza
   a `/playas?playa=<slug>`. Si la base no responde, avisa en vez de mostrar todo en 0.
 
+## Foto de playa
+
+Botón 📷 al lado del me gusta en el detalle de cada playa: abre la cámara del celular
+(`<input type="file" accept="image/*" capture="environment">`), arma la foto con un sello y la deja para
+compartir (Web Share API con archivos; si no se puede, se descarga). Solo se muestra en pantallas táctiles
+(`pointer: coarse`): en la computadora `capture` no abre la cámara sino el selector de archivos. Código: `src/lib/sello-foto.ts`
+(Canvas 2D, sin librerías) y `src/components/mapa/FotoPlaya.tsx`.
+
+- **No usa fuentes nuevas**: el sello toma los datos que ya tiene el detalle (aire, agua, viento y la
+  bandera solo en temporada), más la fecha/hora, el logo (`public/logo.svg`) y el hashtag #MontevideoPlayas.
+- **Todo en el dispositivo**: la foto no se sube, no se guarda y no se cuenta. Redibujarla en Canvas
+  borra el EXIF (incluido el GPS).
+- 1080 px de ancho, alto proporcional con tope de 1920 (recorte al centro); JPEG 0,9. La orientación la
+  corrige el navegador al dibujar el `<img>`.
+- Probar en iPhone real: formato HEIC de la cámara y el menú de compartir.
+
 ## Contacto
 
 Página `/contacto` con un formulario que envía un correo con **Mailgun** (https://www.mailgun.com,
@@ -296,6 +312,7 @@ plan gratis: 100/día, un dominio). Código: `src/lib/contacto.ts` (envío y top
 - `src/lib/playas.ts` — une playas + casillas + clima, lógica de temporada
 - `src/lib/transporte/` — GTFS, planificador y tiempo real
 - `src/lib/me-gusta.ts` / `me-gusta-cliente.ts` — totales (servidor) y botón ❤️ (navegador, Supabase)
+- `src/lib/sello-foto.ts` — foto de playa con sello (Canvas, en el navegador)
 - `src/components/mapa/Mapa.tsx` — mapa, buscador y panel de detalle
 - `src/components/mapa/ComoIr.tsx` — UI de "cómo llegar en ómnibus"
 - `src/components/mapa/capa-casillas.ts` — capa Three.js (instancing + shader de bandera)
