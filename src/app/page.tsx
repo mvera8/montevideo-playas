@@ -258,7 +258,7 @@ export default async function Home() {
         {/* Qué hace */}
         <section id="que-hace" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-20 sm:px-6 sm:py-28">
           <div className="text-center">
-            <Etiqueta>Qué es {SITIO.nombre}</Etiqueta>
+            <Etiqueta>Qué es {SITIO.nombre} {SITIO.alcance}</Etiqueta>
             <h2 className="mx-auto mt-6 max-w-4xl text-3xl font-medium leading-[1.15] tracking-tight text-balance text-slate-900 sm:text-5xl">
               Hicimos el lugar para elegir playa antes de salir:{" "}
               <span className="text-sky-600">banderas, agua, clima y ómnibus</span> en un solo mapa,{" "}

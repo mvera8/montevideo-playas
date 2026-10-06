@@ -179,8 +179,8 @@ export default function Terminos() {
 
       <h3 id="foto">Foto de playa</h3>
       <p>
-        El botón de cámara del detalle de cada playa (en celulares y tablets) le agrega a tu foto el nombre de la playa, la fecha y hora, la
-        temperatura del aire y del agua, el viento y, en temporada, la bandera, junto con la marca del sitio y el
+        El botón de cámara del detalle de cada playa (en celulares y tablets) le agrega a tu foto el nombre de la playa, la casilla
+        elegida (si hay una), el estado del cielo, la temperatura del aire y del agua, el viento y, en temporada, la bandera, junto con la marca del sitio y el
         hashtag #MontevideoPlayas. Son <strong>los mismos datos orientativos del sitio en ese momento, no un registro
         oficial</strong>: no sirven como constancia de las condiciones de la playa. La foto se arma en tu dispositivo y no
         la subimos ni la guardamos. Sos responsable de lo que fotografiás y compartís (por ejemplo, de contar con el

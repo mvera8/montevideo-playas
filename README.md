@@ -224,7 +224,8 @@ compartir (Web Share API con archivos; si no se puede, se descarga). Solo se mue
 (Canvas 2D, sin librerías) y `src/components/mapa/FotoPlaya.tsx`.
 
 - **No usa fuentes nuevas**: el sello toma los datos que ya tiene el detalle (aire, agua, viento y la
-  bandera solo en temporada), más la fecha/hora, el logo (`public/logo.svg`) y el hashtag #MontevideoPlayas.
+  bandera solo en temporada) con el ícono del cielo (`src/lib/iconos-clima.ts`, compartido con el widget
+  del clima), más la casilla elegida en el mapa, el logo (`public/logo.svg`) y el hashtag #MontevideoPlayas.
 - **Todo en el dispositivo**: la foto no se sube, no se guarda y no se cuenta. Redibujarla en Canvas
   borra el EXIF (incluido el GPS).
 - 1080 px de ancho, alto proporcional con tope de 1920 (recorte al centro); JPEG 0,9. La orientación la

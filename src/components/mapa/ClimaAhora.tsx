@@ -1,20 +1,12 @@
 "use client";
 
 import type { Weather } from "@/lib/weather";
+import { estadoCielo as estado, ICONO_CIELO, type EstadoCielo } from "@/lib/iconos-clima";
 
 // Widget "Montevideo ahora": fondo e ilustración según el estado del tiempo.
 // Decoraciones en SVG estático (sin animación) para no sumar trabajo de render.
 
-type Estado = "sol" | "luna" | "algoNublado" | "nublado" | "lluvia" | "tormenta";
-
-function estado(c: Weather): Estado {
-  const w = c.weatherCode;
-  if (w >= 95) return "tormenta";
-  if ((w >= 51 && w <= 67) || (w >= 80 && w <= 82)) return "lluvia";
-  if (w === 3 || w === 45 || w === 48) return "nublado";
-  if (w === 2) return c.isDay ? "algoNublado" : "luna";
-  return c.isDay ? "sol" : "luna";
-}
+type Estado = EstadoCielo;
 
 const FONDO: Record<Estado, { dia: string; noche: string }> = {
   sol: { dia: "linear-gradient(135deg,#e2574a 0%,#ef7d45 100%)", noche: "linear-gradient(135deg,#1e3a8a,#172554)" },
@@ -23,36 +15,6 @@ const FONDO: Record<Estado, { dia: string; noche: string }> = {
   nublado: { dia: "linear-gradient(135deg,#4a6d9c,#365783)", noche: "linear-gradient(135deg,#2c3e5c,#1f2d44)" },
   lluvia: { dia: "linear-gradient(135deg,#5457c4,#4338b8)", noche: "linear-gradient(135deg,#34336e,#25244f)" },
   tormenta: { dia: "linear-gradient(135deg,#3b2f7a,#231c4d)", noche: "linear-gradient(135deg,#2a2356,#16123a)" },
-};
-
-const ICONO: Record<Estado, React.ReactNode> = {
-  sol: (
-    <>
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-    </>
-  ),
-  luna: <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />,
-  algoNublado: (
-    <>
-      <path d="M8 4v1.5M3.8 5.8l1 1M2 10h1.5M12.2 5.8l-1 1" />
-      <path d="M5.5 10a3 3 0 0 1 5.6-1.4" />
-      <path d="M8 19h9a4 4 0 0 0 0-8 5 5 0 0 0-9.6 1.6A3.2 3.2 0 0 0 8 19Z" />
-    </>
-  ),
-  nublado: <path d="M7 18h10a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.5A3.3 3.3 0 0 0 7 18Z" />,
-  lluvia: (
-    <>
-      <path d="M7 14h10a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.5A3.3 3.3 0 0 0 7 14Z" />
-      <path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3" />
-    </>
-  ),
-  tormenta: (
-    <>
-      <path d="M7 13h10a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.5A3.3 3.3 0 0 0 7 13Z" />
-      <path d="M12.5 13 10 17.5h3.5L11 22" />
-    </>
-  ),
 };
 
 /** Ilustración de fondo (esquina derecha). */
@@ -127,7 +89,9 @@ export default function ClimaAhora({ clima, ciudad }: { clima: Weather; ciudad: 
       <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1 [text-shadow:0_1px_2px_rgba(0,0,0,0.18)]">
         <p className="flex min-w-0 items-center gap-1.5 self-center text-sm font-medium">
           <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            {ICONO[e]}
+            {ICONO_CIELO[e].map((d) => (
+              <path key={d} d={d} />
+            ))}
           </svg>
           <span className="truncate">{clima.description}</span>
         </p>

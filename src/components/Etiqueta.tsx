@@ -1,4 +1,4 @@
-// Pastilla con borde para encabezar secciones ("Qué es Playas UY", "Novedades"…).
+// Pastilla con borde para encabezar secciones ("Qué es Montevideo Playas", "Novedades"…).
 // `foto`: versión translúcida para poner sobre imágenes.
 const TONOS = {
   claro: "text-slate-600 ring-slate-300",
