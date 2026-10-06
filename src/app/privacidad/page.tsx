@@ -109,6 +109,15 @@ export default function Privacidad() {
         borremos.
       </p>
 
+      <h2 id="foto">Foto de playa</h2>
+      <p>
+        Si usás el botón de cámara de una playa, la foto se procesa <strong>solo en tu dispositivo</strong>: le agregamos
+        los datos de la playa en tu navegador y no la enviamos a nuestro servidor ni a terceros, no la guardamos y no
+        registramos que la sacaste. Al rearmarla se borran los datos ocultos de la foto original (EXIF), incluida la
+        ubicación GPS que guardan muchos celulares. Si la compartís, lo hacés con la aplicación que elijas, bajo sus
+        propias condiciones.
+      </p>
+
       <h2 id="dispositivo">Lo que queda en tu dispositivo</h2>
       <p>
         Guardamos dos preferencias en el almacenamiento local de tu navegador (no son cookies y no se envían a ningún

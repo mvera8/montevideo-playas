@@ -102,7 +102,7 @@ export default function Terminos() {
       <h2 id="servicio">El servicio</h2>
       <p>
         {SITIO.nombre} reúne información pública sobre las playas de Montevideo: casillas y banderas, calidad del agua,
-        clima y alertas de Inumet, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas, leer novedades de la
+        clima y alertas de Inumet, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas, sacarte una foto con los datos de la playa, leer novedades de la
         temporada y escribirnos desde el formulario de contacto. Usarlo es gratuito y
         no requiere registro. Al usar el sitio aceptás estos términos.
       </p>
@@ -175,6 +175,16 @@ export default function Terminos() {
         <Link href="/favoritas">playas favoritas</Link> (y el podio de la página de inicio) ordena las playas por los me
         gusta de la temporada: es un ranking
         de preferencias de quienes usan el sitio, no una recomendación ni una evaluación de las playas.
+      </p>
+
+      <h3 id="foto">Foto de playa</h3>
+      <p>
+        El botón de cámara del detalle de cada playa (en celulares y tablets) le agrega a tu foto el nombre de la playa, la fecha y hora, la
+        temperatura del aire y del agua, el viento y, en temporada, la bandera, junto con la marca del sitio y el
+        hashtag #MontevideoPlayas. Son <strong>los mismos datos orientativos del sitio en ese momento, no un registro
+        oficial</strong>: no sirven como constancia de las condiciones de la playa. La foto se arma en tu dispositivo y no
+        la subimos ni la guardamos. Sos responsable de lo que fotografiás y compartís (por ejemplo, de contar con el
+        consentimiento de las personas que aparecen).
       </p>
 
       <h3 id="novedades">Novedades</h3>

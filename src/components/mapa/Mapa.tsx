@@ -24,6 +24,8 @@ import AlertaInumet from "./AlertaInumet";
 import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import CalidadAgua from "./CalidadAgua";
 import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
+import FotoPlaya from "./FotoPlaya";
+import type { Sello } from "@/lib/sello-foto";
 import Pronostico from "./Pronostico";
 import ServiciosCerca from "./ServiciosCerca";
 import SeccionPlegable, { GrupoPlegable } from "./SeccionPlegable";
@@ -63,6 +65,23 @@ const BANDERAS: Record<NonNullable<Guardavidas["bandera"]>, { label: string; col
   red: { label: "Roja · no bañarse", color: "#d62828", corto: ["roja", "rojas"] },
   black: { label: "Negra · sin guardavidas", color: "#1b1b1b", corto: ["negra", "negras"] },
 };
+
+// Datos para el sello de la foto: solo lo vigente (la bandera, en temporada y si la IM la informa).
+function selloDe(playa: Playa, temporada: Temporada): Sello {
+  const c = playa.clima;
+  const agua = playa.agua?.temperatura?.valor ?? c?.waterTemp ?? null;
+  const estado = estadoPlaya(playa);
+  const bandera = temporada.activa && estado !== "sin-datos" ? BANDERAS[estado] : null;
+  return {
+    playa: playa.nombre,
+    datos: [
+      ...(c ? [`Aire ${Math.round(c.airTemp)}°`] : []),
+      ...(agua != null ? [`Agua ${Math.round(agua)}°`] : []),
+      ...(c ? [`Viento ${Math.round(c.windSpeed)} km/h ${c.windDirectionLabel}`] : []),
+    ],
+    bandera: bandera && { label: `Bandera ${bandera.corto[0]}`, color: bandera.color },
+  };
+}
 
 // "2 verdes · 1 amarilla", de la más grave a la más leve.
 function resumenCasillas(guardavidas: Guardavidas[], temporada: Temporada) {
@@ -941,8 +960,11 @@ function Detalle({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold">{playa.nombre}</h2>
-            <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
+            <h2 className="text-2xl font-semibold tracking-tight md:text-xl">{playa.nombre}</h2>
+            <div className="flex items-center gap-2">
+              <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
+              <FotoPlaya slug={playa.slug} sello={selloDe(playa, temporada)} />
+            </div>
           </div>
           {playa.descripcion && <p className="mt-2 text-sm text-slate-500">{playa.descripcion}</p>}
         </div>

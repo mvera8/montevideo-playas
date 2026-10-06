@@ -1,7 +1,13 @@
 # Idea pendiente: "Foto de playa" con sello de datos
 
-> Estado: **en pausa, para retomar más adelante**. Planificado el 3/10/2026; no hay nada implementado.
-> **No necesita base de datos ni cuentas**: se puede hacer antes que las otras ideas.
+> Estado: **implementada (6/10/2026), versión inicial.** Botón 📷 al lado del me gusta en el detalle de
+> cada playa: abre la cámara, arma la foto con el sello (diseño "esquinas") y permite compartir o
+> descargar. Código: `src/lib/sello-foto.ts` y `src/components/mapa/FotoPlaya.tsx`.
+>
+> Decidido: un solo diseño (esquinas) con logo y marca, fecha y hora, nombre de la playa, aire, agua,
+> viento, bandera (solo en temporada) y el hashtag **#MontevideoPlayas**. La playa es la del detalle
+> abierto (no se verifica la ubicación). No se guarda la foto ni se cuenta el uso. Pendiente si se
+> quiere: diseños Polaroid/Historia, elegir de la galería, calidad del agua, y probar HEIC en iPhone.
 
 ## La idea original
 
