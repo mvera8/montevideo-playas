@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Opcion, Punto, Tramo } from "@/lib/transporte/planificador";
 import type { Llegada } from "@/lib/transporte/tiempo-real";
 import { postJson, redondear } from "@/lib/ubicacion";
+import BotonUbicacion from "./BotonUbicacion";
 import SeccionPlegable from "./SeccionPlegable";
 
 export type TramoBus = Extract<Tramo, { tipo: "omnibus" }>;
@@ -119,13 +120,7 @@ export default function ComoIr({
       {!origen && (
         <div className="space-y-2">
           <div className="flex gap-2">
-            <button
-              onClick={onUsarUbicacion}
-              disabled={ubicando}
-              className="flex-1 rounded-xl bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-60"
-            >
-              {ubicando ? "Ubicando…" : "Usar mi ubicación"}
-            </button>
+            <BotonUbicacion texto="Usar mi ubicación" ubicando={ubicando} onClick={onUsarUbicacion} principal />
             <button
               onClick={onElegirEnMapa}
               className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium ring-1 ${

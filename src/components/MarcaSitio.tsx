@@ -6,12 +6,12 @@ import { SITIO } from "@/lib/sitio";
 export default function MarcaSitio({ claro = false }: { claro?: boolean }) {
   return (
     <Link href="/" className="flex items-center gap-2.5" aria-label={`${SITIO.nombre}, inicio`}>
-      <Image src="/logo.svg" alt="" width={40} height={39} className="h-10 w-auto shrink-0 drop-shadow-sm" />
+      <Image src="/logo.svg" alt="" width={50} height={40} className="h-10 w-auto shrink-0 drop-shadow-sm" />
       <span className="leading-tight">
-        <span className={`block text-[15px] font-semibold tracking-tight ${claro ? "text-white" : "text-slate-900 dark:text-white"}`}>
+        <span className={`block text-[15px] font-semibold tracking-tight ${claro ? "text-white" : "text-slate-900"}`}>
           {SITIO.nombre}
         </span>
-        <span className={`block text-xs ${claro ? "text-white/70" : "text-slate-500 dark:text-slate-400"}`}>{SITIO.alcance}</span>
+        <span className={`block text-xs ${claro ? "text-white/70" : "text-slate-500"}`}>{SITIO.alcance}</span>
       </span>
     </Link>
   );

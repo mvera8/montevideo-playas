@@ -81,7 +81,7 @@ export default function Terminos() {
       bajada="Qué es este sitio, cuánto podés confiar en cada dato y de dónde sale la información."
     >
       <Destacado tono="aviso">
-        <p className="font-semibold text-slate-900 dark:text-white">Lo más importante</p>
+        <p className="font-semibold text-slate-900">Lo más importante</p>
         <ul className="mt-2">
           <li>
             {SITIO.nombre} es un servicio <strong>informativo e independiente</strong>. No es un sitio oficial y no
@@ -204,7 +204,7 @@ export default function Terminos() {
 
       <h2 id="fuentes">Fuentes de datos y licencias</h2>
       <p>Agradecemos a quienes publican estos datos. Los derechos sobre cada dato pertenecen a su fuente.</p>
-      <div className="not-prose mt-4 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+      <div className="not-prose mt-4 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {FUENTES.map((f) => (
           <div key={f.nombre} className="p-4">
             <a href={f.url} target="_blank" rel="noreferrer" className="font-semibold">

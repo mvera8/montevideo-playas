@@ -34,10 +34,10 @@ export default async function NovedadPage({ params }: PageProps<"/novedades/[slu
         </>
       }
     >
-      <article className="mt-8 space-y-4 text-[17px] leading-relaxed text-slate-700 dark:text-slate-300">
+      <article className="mt-8 space-y-4 text-[17px] leading-relaxed text-slate-700">
         {novedad.cuerpo.map((b, i) =>
           b.tipo === "subtitulo" ? (
-            <h2 key={i} className="pt-4 text-xl font-semibold text-slate-900 dark:text-white">
+            <h2 key={i} className="pt-4 text-xl font-semibold text-slate-900">
               {b.texto}
             </h2>
           ) : b.tipo === "lista" ? (
@@ -54,7 +54,7 @@ export default async function NovedadPage({ params }: PageProps<"/novedades/[slu
         )}
       </article>
 
-      <div className="mt-12 flex flex-col items-start gap-4 rounded-3xl bg-slate-900 p-6 text-white sm:flex-row sm:items-center sm:justify-between sm:p-8 dark:bg-slate-900 dark:ring-1 dark:ring-white/10">
+      <div className="mt-12 flex flex-col items-start gap-4 rounded-3xl bg-slate-900 p-6 text-white sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div>
           <p className="text-lg font-semibold">Mirá todas las playas en el mapa</p>
           <p className="text-sm text-white/70">Es gratis y no necesitás registrarte.</p>
@@ -63,7 +63,7 @@ export default async function NovedadPage({ params }: PageProps<"/novedades/[slu
       </div>
 
       <p className="mt-8 text-sm">
-        <Link href="/novedades" className="text-sky-700 hover:underline dark:text-sky-300">
+        <Link href="/novedades" className="text-sky-700 hover:underline">
           ← Todas las novedades
         </Link>
       </p>

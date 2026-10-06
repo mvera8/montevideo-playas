@@ -1,12 +1,22 @@
 Prompts
 
-...
+Comparar:
+https://m.montevideo.gub.uy/playas/
+
+Foto: en mobile agrandar nombre playa y agregar al lado del boton de me gusta un boton de camara que saque la foto (o sea que haga la idea: foto-de-playa.md)
 
 ---
 
+Camaras
 Logo
 
 Layout de las paginas (no el mapa) tambien depende de algo? (imagen zara)
+
+MV marca
+
+Limitantes
+- 100 emails por dia
+- Request? APIs
 
 Servidor
 
@@ -22,11 +32,15 @@ Seguridad de datos
 
 Reportar algo? como en waze
 
+bandera de salud?
+
 -
 
 Reportar algo?
 
 Rey de la playa? - pagina aparte con actuales reyes o reinas, si ya sos rey o reina de una playa no podes ser de otra
+
+
 
 ------
 

@@ -16,6 +16,9 @@ import "server-only";
 // celda con dato más cercana. La caja se arma redondeando el punto a la grilla, así todas las playas
 // de Montevideo comparten la misma URL (un solo pedido cacheado). Ojo: en el Río de la Plata, a
 // 0,5°, la ola es la de afuera de la costa; es orientativa.
+//
+// Si un servidor ERDDAP no responde (pasa: coastwatch.pfeg.noaa.gov tuvo caídas de conexión), se
+// deja de consultar por 5 min (PAUSA_FALLA) y la app sigue sin ese dato.
 
 type Point = { lat: number; lon: number };
 
@@ -24,8 +27,23 @@ const TIMEOUT = 10_000;
 
 type Celda = { lat: number; lon: number; valor: number };
 
+// Si un servidor no responde (caído, timeout o error 5xx), no lo volvemos a intentar por PAUSA_FALLA:
+// los pedidos fallidos no quedan en la caché de datos, así que sin esto cada render esperaría el
+// timeout completo de nuevo. En memoria, por servidor (agua y olas son servidores distintos).
+const PAUSA_FALLA = 5 * 60_000;
+const caidoHasta = new Map<string, number>();
+
 async function erddapCsv(url: string, revalidate: number) {
-  const res = await fetch(url, { next: { revalidate }, signal: AbortSignal.timeout(TIMEOUT) });
+  const host = new URL(url).host;
+  if ((caidoHasta.get(host) ?? 0) > Date.now()) throw new Error(`ERDDAP en pausa tras una falla: ${host}`);
+  let res: Response;
+  try {
+    res = await fetch(url, { next: { revalidate }, signal: AbortSignal.timeout(TIMEOUT) });
+  } catch (e) {
+    caidoHasta.set(host, Date.now() + PAUSA_FALLA);
+    throw e;
+  }
+  if (res.status >= 500) caidoHasta.set(host, Date.now() + PAUSA_FALLA);
   if (!res.ok) throw new Error(`ERDDAP falló (${res.status}): ${url}`);
   // Encabezado + fila de unidades, después: time,profundidad,lat,lon,valor
   return (await res.text())

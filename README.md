@@ -89,7 +89,9 @@ Antes se usaba Open-Meteo, que gratis es solo para uso no comercial.
   `https://pae-paha.pacioos.hawaii.edu/erddap/griddap/ww3_global.csv?Thgt[(desde):(hasta)][(0.0)][(lat)][(lon)]`
   (longitud 0–360). Hora a hora, 7 días, 0,5°: en el Río de la Plata es la ola de afuera, orientativa. Cache 1 h.
 - En ERDDAP las celdas de tierra vienen como `NaN`: se pide una cajita de ±0,5° y se usa la celda con
-  dato más cercana. Timeout de 10 s; si el mar falla, la app sigue sin agua ni olas.
+  dato más cercana. Timeout de 10 s; si el mar falla, la app sigue sin agua ni olas. Si un servidor no
+  responde (timeout, error de red o 5xx) no se vuelve a consultar por 5 min, para no esperar el timeout en
+  cada render (los pedidos fallidos no quedan en la caché de datos).
 
 ## Alertas de INUMET
 
