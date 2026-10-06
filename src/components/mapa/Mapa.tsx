@@ -25,7 +25,9 @@ import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import CalidadAgua from "./CalidadAgua";
 import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
 import FotoPlaya from "./FotoPlaya";
+import { useTeclado } from "./useTeclado";
 import type { Sello } from "@/lib/sello-foto";
+import { estadoCielo } from "@/lib/iconos-clima";
 import Pronostico from "./Pronostico";
 import ServiciosCerca from "./ServiciosCerca";
 import SeccionPlegable, { GrupoPlegable } from "./SeccionPlegable";
@@ -67,18 +69,20 @@ const BANDERAS: Record<NonNullable<Guardavidas["bandera"]>, { label: string; col
 };
 
 // Datos para el sello de la foto: solo lo vigente (la bandera, en temporada y si la IM la informa).
-function selloDe(playa: Playa, temporada: Temporada): Sello {
+// El lugar es la casilla elegida en el mapa (con su dirección); si no hay, la ciudad.
+function selloDe(playa: Playa, temporada: Temporada, casillaId: string | null): Sello {
   const c = playa.clima;
   const agua = playa.agua?.temperatura?.valor ?? c?.waterTemp ?? null;
   const estado = estadoPlaya(playa);
   const bandera = temporada.activa && estado !== "sin-datos" ? BANDERAS[estado] : null;
+  const casilla = playa.guardavidas.find((g) => g.id === casillaId);
   return {
     playa: playa.nombre,
-    datos: [
-      ...(c ? [`Aire ${Math.round(c.airTemp)}°`] : []),
-      ...(agua != null ? [`Agua ${Math.round(agua)}°`] : []),
-      ...(c ? [`Viento ${Math.round(c.windSpeed)} km/h ${c.windDirectionLabel}`] : []),
-    ],
+    lugar: casilla ? [casilla.nombre, casilla.direccion].filter(Boolean).join(" · ") : "Montevideo, Uruguay",
+    cielo: c && estadoCielo(c),
+    aire: c && Math.round(c.airTemp),
+    agua: agua != null ? Math.round(agua) : null,
+    viento: c && `${Math.round(c.windSpeed)} km/h ${c.windDirectionLabel}`,
     bandera: bandera && { label: `Bandera ${bandera.corto[0]}`, color: bandera.color },
   };
 }
@@ -712,6 +716,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     if (window.matchMedia("(max-width: 767px)").matches) alternarPanel(false);
   }
 
+  const teclado = useTeclado();
   // En móvil la hoja inferior baja al plegar; en escritorio se mueve todo el panel.
   const hoja = `transition-[translate,visibility] duration-300 ease-out motion-reduce:transition-none ${
     abierto ? "" : "max-md:invisible max-md:translate-y-[110%]"
@@ -853,7 +858,11 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
 
         {/* Panel general (sin playa seleccionada) */}
         {!playa && (
-          <section className={`${hoja} pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-slate-50 p-3 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:bg-transparent md:p-0 md:shadow-none md:ring-0 dark:bg-slate-950 md:dark:bg-transparent`}>
+          <section
+            // Con el teclado abierto (celular), la hoja sube por encima de él y usa el alto que queda debajo
+            // del buscador; si no, el teclado tapaba los resultados.
+            style={teclado ? { transform: `translateY(-${teclado}px)`, maxHeight: `calc(100dvh - ${teclado}px - 5rem)` } : undefined}
+            className={`${hoja} pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-slate-50 p-3 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:bg-transparent md:p-0 md:shadow-none md:ring-0 dark:bg-slate-950 md:dark:bg-transparent`}>
             <PanelGeneral
               playas={resultados}
               todas={playas}
@@ -963,17 +972,20 @@ function Detalle({
             <h2 className="text-2xl font-semibold tracking-tight md:text-xl">{playa.nombre}</h2>
             <div className="flex items-center gap-2">
               <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
-              <FotoPlaya slug={playa.slug} sello={selloDe(playa, temporada)} />
+              <FotoPlaya slug={playa.slug} sello={selloDe(playa, temporada, casillaId)} />
             </div>
           </div>
           {playa.descripcion && <p className="mt-2 text-sm text-slate-500">{playa.descripcion}</p>}
         </div>
         <button
           onClick={onCerrar}
-          className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+          className="-mr-2 -mt-1 grid h-11 w-11 shrink-0 touch-manipulation place-items-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
           aria-label="Cerrar"
         >
-          ✕
+          {/* Misma cruz que el botón del menú (arriba a la derecha) */}
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
         </button>
       </div>
       {/* Fuera del encabezado para que la tarjeta de info use todo el ancho */}
