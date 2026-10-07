@@ -9,8 +9,9 @@ import { SITIO } from "@/lib/sitio";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: `Novedades · ${SITIO.marca}`,
+  title: "Novedades",
   description: `Novedades de la temporada de playas en ${SITIO.nombre} y del sitio.`,
+  alternates: { canonical: "/novedades" },
 };
 
 export default function NovedadesPage() {

@@ -6,6 +6,7 @@ https://m.montevideo.gub.uy/playas/
 ---
 
 Fotos
+Dominio
 
 MV marca
 
@@ -16,8 +17,6 @@ Limitantes
 Servidor
 
 Apis performance (quota) y uso
-
-Dominio
 
 Analytics
 

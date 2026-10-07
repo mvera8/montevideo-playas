@@ -4,8 +4,9 @@ import PaginaLegal, { Destacado } from "@/components/legal/PaginaLegal";
 import { SITIO } from "@/lib/sitio";
 
 export const metadata: Metadata = {
-  title: `Privacidad · ${SITIO.nombre}`,
+  title: "Privacidad",
   description: "Qué datos usa Playas UY, para qué y qué no hacemos con ellos.",
+  alternates: { canonical: "/privacidad" },
 };
 
 export default function Privacidad() {
@@ -19,7 +20,10 @@ export default function Privacidad() {
             Si das <strong>“me gusta”</strong> a una playa, se crea una cuenta anónima en tu navegador y guardamos qué playas
             te gustan. Nadie más ve quién dio cada me gusta: solo se muestra el total.
           </li>
-          <li>No usamos cookies, publicidad ni herramientas de analítica o seguimiento.</li>
+          <li>
+            Usamos <strong>Google Analytics</strong> para contar visitas y ver qué páginas se usan, con cookies de
+            medición. No usamos publicidad ni vendemos datos.
+          </li>
           <li>
             Tu <strong>ubicación</strong> se usa solo si la pedís, para calcular cómo llegar a una playa.{" "}
             <strong>No la guardamos</strong> ni la asociamos a vos.
@@ -129,6 +133,32 @@ export default function Privacidad() {
         guardar o leer tus me gusta).
       </p>
 
+      <h2 id="analitica">Estadísticas de uso (Google Analytics)</h2>
+      <p>
+        Para saber cuántas personas usan el sitio, qué páginas visitan y desde qué tipo de dispositivo, usamos{" "}
+        <strong>Google Analytics 4</strong>, de Google LLC. Tu navegador le envía datos como las páginas que visitás, la
+        página de la que llegaste, el tipo de dispositivo y navegador, el idioma, la ubicación aproximada (país y
+        ciudad, deducida de tu IP) y un identificador aleatorio que se guarda en cookies (<code>_ga</code> y{" "}
+        <code>_ga_*</code>, que duran hasta 2 años). Google Analytics 4 no guarda tu dirección IP completa.
+      </p>
+      <p>
+        Usamos esos datos solo en forma de estadísticas agregadas para mejorar el sitio: no los cruzamos con otros datos,
+        no identificamos a nadie y no tenemos activadas las funciones de publicidad ni de compartir datos con otros
+        productos de Google. Los servidores de Google pueden estar fuera de Uruguay. Más información en la{" "}
+        <a href="https://policies.google.com/technologies/partner-sites?hl=es" target="_blank" rel="noreferrer">
+          explicación de Google
+        </a>
+        .
+      </p>
+      <p>
+        Para no ser contado podés borrar o bloquear las cookies del sitio en tu navegador, usar un bloqueador de
+        contenido o instalar el{" "}
+        <a href="https://tools.google.com/dlpage/gaoptout?hl=es" target="_blank" rel="noreferrer">
+          complemento de inhabilitación de Google Analytics
+        </a>
+        . El sitio funciona igual.
+      </p>
+
       <h2 id="tecnicos">Datos técnicos</h2>
       <p>
         Como cualquier sitio web, al visitarlo tu navegador envía datos técnicos como tu dirección IP, el tipo de
@@ -147,7 +177,8 @@ export default function Privacidad() {
         registro.
       </p>
       <p>
-        Los me gusta se guardan en Supabase, como se explica en <Link href="#me-gusta">Me gusta</Link>. Los mensajes de
+        Las estadísticas de visitas las procesa Google, como se explica en{" "}
+        <Link href="#analitica">Estadísticas de uso</Link>. Los me gusta se guardan en Supabase, como se explica en <Link href="#me-gusta">Me gusta</Link>. Los mensajes de
         contacto se envían con Mailgun, como se explica en <Link href="#contacto">Formulario de contacto</Link>.
       </p>
       <p>
@@ -159,8 +190,8 @@ export default function Privacidad() {
 
       <h2 id="finalidad">Para qué usamos los datos</h2>
       <p>
-        Solo para mostrarte la información que pediste, contar los me gusta y responder tus mensajes. No vendemos ni compartimos datos
-        personales, no mostramos publicidad y no hacemos perfiles. La base para usar tu ubicación es tu consentimiento,
+        Solo para mostrarte la información que pediste, contar los me gusta, responder tus mensajes y medir en forma
+        agregada cómo se usa el sitio. No vendemos datos personales, no mostramos publicidad y no hacemos perfiles. La base para usar tu ubicación es tu consentimiento,
         que das al aceptar el permiso del navegador y podés retirar en cualquier momento; la de los me gusta, también tu
         consentimiento, que das al tocar el botón.
       </p>

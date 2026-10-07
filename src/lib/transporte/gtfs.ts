@@ -274,7 +274,7 @@ async function construir(zip: Uint8Array, version: string): Promise<Indice> {
     grilla.set(k, [...(grilla.get(k) ?? []), i]);
   });
 
-  console.log(`[gtfs] v${version}: ${paradas.length} paradas, ${patrones.length} variantes en ${Date.now() - t0} ms`);
+  console.info(`[gtfs] v${version}: ${paradas.length} paradas, ${patrones.length} variantes en ${Date.now() - t0} ms`);
   return { version, paradas, patrones, porVariante, porParada, calendario, grilla };
 }
 

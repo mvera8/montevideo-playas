@@ -6,8 +6,9 @@ import { contactoActivo } from "@/lib/contacto";
 import { SITIO } from "@/lib/sitio";
 
 export const metadata: Metadata = {
-  title: `Contacto · ${SITIO.nombre}`,
+  title: "Contacto",
   description: `Escribile a ${SITIO.nombre}: consultas, errores en los datos o sugerencias.`,
+  alternates: { canonical: "/contacto" },
 };
 
 export default function ContactoPage() {

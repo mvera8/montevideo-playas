@@ -6,6 +6,9 @@ const ALCANCE = "Playas";
 
 export const SITIO = {
   nombre: NOMBRE,
+  // Dominio principal (Vercel). playas.uy, www.playas.uy y playas.uy/montevideo redirigen acá (ver
+  // next.config.ts). Lo usan metadataBase, el sitemap y robots.txt.
+  url: "https://montevideo.playas.uy",
   alcance: ALCANCE,
   marca: `${NOMBRE} · ${ALCANCE}`,
   // Persona o empresa responsable del sitio y del tratamiento de datos (Ley 18.331).
@@ -14,6 +17,6 @@ export const SITIO = {
   // no se use un dominio propio en Mailgun, tiene que estar en sus "Authorized Recipients".
   contacto: "tinchobolso8@gmail.com",
   // Proveedor donde se aloja el sitio (aparece en la política de privacidad).
-  hosting: "[COMPLETAR: proveedor de hosting, p. ej. Vercel]",
-  actualizado: "6 de octubre de 2026",
+  hosting: "Vercel Inc.",
+  actualizado: "7 de octubre de 2026",
 };
