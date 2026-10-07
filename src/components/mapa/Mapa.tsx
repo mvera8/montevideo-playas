@@ -12,7 +12,7 @@ import {
   setWorkerUrl,
 } from "maplibre-gl";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Weather } from "@/lib/weather";
@@ -21,7 +21,7 @@ import type { Opcion, Punto } from "@/lib/transporte/planificador";
 import { CapaCasillas, type CasillaMapa } from "./capa-casillas";
 import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./ComoIr";
 import AlertaInumet from "./AlertaInumet";
-import PanelGeneral, { estadoPlaya, type EstadoBandera } from "./PanelGeneral";
+import PanelGeneral, { ESTADOS, estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import CalidadAgua from "./CalidadAgua";
 import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
 import FotoPlaya from "./FotoPlaya";
@@ -68,22 +68,17 @@ const BANDERAS: Record<NonNullable<Guardavidas["bandera"]>, { label: string; col
   black: { label: "Negra · sin guardavidas", color: "#1b1b1b", corto: ["negra", "negras"] },
 };
 
-// Datos para el sello de la foto: solo lo vigente (la bandera, en temporada y si la IM la informa).
-// El lugar es la casilla elegida en el mapa (con su dirección); si no hay, la ciudad.
-function selloDe(playa: Playa, temporada: Temporada, casillaId: string | null): Sello {
+// Datos para el sello de la foto: solo lo vigente. La bandera va en gris fuera de temporada o si la IM
+// no la informa. Los me gusta los agrega FotoPlaya (frescos, del cliente).
+function selloDe(playa: Playa, temporada: Temporada): Omit<Sello, "meGusta"> {
   const c = playa.clima;
-  const agua = playa.agua?.temperatura?.valor ?? c?.waterTemp ?? null;
   const estado = estadoPlaya(playa);
-  const bandera = temporada.activa && estado !== "sin-datos" ? BANDERAS[estado] : null;
-  const casilla = playa.guardavidas.find((g) => g.id === casillaId);
   return {
     playa: playa.nombre,
-    lugar: casilla ? [casilla.nombre, casilla.direccion].filter(Boolean).join(" · ") : "Montevideo, Uruguay",
     cielo: c && estadoCielo(c),
     aire: c && Math.round(c.airTemp),
-    agua: agua != null ? Math.round(agua) : null,
     viento: c && `${Math.round(c.windSpeed)} km/h ${c.windDirectionLabel}`,
-    bandera: bandera && { label: `Bandera ${bandera.corto[0]}`, color: bandera.color },
+    bandera: temporada.activa && estado !== "sin-datos" ? BANDERAS[estado].color : ESTADOS["sin-datos"].color,
   };
 }
 
@@ -142,6 +137,32 @@ function aCasillas(playas: Playa[]): (CasillaMapa & { slug: string; nombre: stri
   });
 }
 
+// Datos al día al volver: el celular deja la pestaña dormida (o Safari la restaura de su caché) con el
+// HTML de cuando se abrió, y el clima, la lluvia y las banderas quedaban viejos. Si pasaron más de
+// 10 min (el doble de la revalidación de la página), se piden de nuevo los datos del servidor:
+// `router.refresh()` trae solo el payload RSC y no pierde el estado (playa abierta, zoom, búsqueda).
+const REFRESCAR_TRAS_MS = 10 * 60_000;
+
+function useRefrescarAlVolver() {
+  const router = useRouter();
+  useEffect(() => {
+    let cargado = Date.now();
+    const alVolver = (e?: PageTransitionEvent) => {
+      if (document.visibilityState !== "visible") return;
+      if (!e?.persisted && Date.now() - cargado < REFRESCAR_TRAS_MS) return;
+      cargado = Date.now();
+      router.refresh();
+    };
+    const visible = () => alVolver();
+    document.addEventListener("visibilitychange", visible);
+    window.addEventListener("pageshow", alVolver); // restaurada desde la caché de atrás/adelante
+    return () => {
+      document.removeEventListener("visibilitychange", visible);
+      window.removeEventListener("pageshow", alVolver);
+    };
+  }, [router]);
+}
+
 // Si es de día, con la hora del navegador: el `isDay` que trae el HTML es del momento en que se
 // generó (ISR), que puede ser de anoche. Se recalcula en cada amanecer/atardecer y al volver a la
 // pestaña (los timers se frenan con la pantalla apagada).
@@ -168,6 +189,7 @@ function useEsDeDia() {
 
 export default function Mapa({ playas: playasHtml, temporada, fuente, error, climaCiudad: climaHtml, alertas }: Props) {
   const esDeDia = useEsDeDia();
+  useRefrescarAlVolver();
   const climaCiudad = useMemo(() => climaHtml && { ...climaHtml, isDay: esDeDia }, [climaHtml, esDeDia]);
   // Todas las playas están en Montevideo: el amanecer y el atardecer cambian menos de un minuto.
   const playas = useMemo(
@@ -784,11 +806,12 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         </span>
       </button>
 
-      {/* Marca flotante a la derecha del botón del panel (se desplaza junto con él). */}
+      {/* Marca flotante a la derecha del botón del panel (se desplaza junto con él). En móvil se oculta
+          con el teclado abierto: la hoja de resultados sube hasta el buscador y quedaba encima. */}
       <Link
         href="/"
         aria-label={`${SITIO.marca}: ir al inicio`}
-        className={`absolute left-3 top-[72px] z-20 flex h-10 items-center gap-1 rounded-2xl bg-white/95 px-3 text-xs font-semibold tracking-tight text-slate-900 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate] duration-300 ease-out motion-reduce:transition-none md:left-[72px] md:top-4 md:h-12 md:px-4 md:text-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 dark:bg-slate-900/95 dark:text-white dark:ring-white/10 dark:hover:bg-slate-900 ${
+        className={`absolute left-3 ${teclado ? "max-md:hidden" : ""} top-[72px] z-20 flex h-10 items-center gap-1 rounded-2xl bg-white/95 px-3 text-xs font-semibold tracking-tight text-slate-900 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate] duration-300 ease-out motion-reduce:transition-none md:left-[72px] md:top-4 md:h-12 md:px-4 md:text-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 dark:bg-slate-900/95 dark:text-white dark:ring-white/10 dark:hover:bg-slate-900 ${
           abierto ? "md:translate-x-[356px]" : ""
         }`}
       >
@@ -797,7 +820,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       </Link>
 
       {/* Estilo del mapa y menú del sitio, arriba a la derecha. En móvil el estilo va dentro del menú. */}
-      <div className="absolute right-3 top-[72px] z-20 flex gap-2 md:right-4 md:top-4">
+      <div className={`absolute right-3 top-[72px] z-20 flex gap-2 md:right-4 md:top-4 ${teclado ? "max-md:hidden" : ""}`}>
         <div className="max-md:hidden">
           <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
         </div>
@@ -872,6 +895,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
               climaCiudad={climaCiudad}
               alertas={alertas}
               busqueda={busqueda}
+              buscando={teclado > 0 || busqueda.trim() !== ""}
               filtro={filtro}
               onFiltro={setFiltro}
               onElegir={elegirPlaya}
@@ -972,7 +996,7 @@ function Detalle({
             <h2 className="text-2xl font-semibold tracking-tight md:text-xl">{playa.nombre}</h2>
             <div className="flex items-center gap-2">
               <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
-              <FotoPlaya slug={playa.slug} sello={selloDe(playa, temporada, casillaId)} />
+              <FotoPlaya slug={playa.slug} sello={selloDe(playa, temporada)} meGusta={playa.meGusta} />
             </div>
           </div>
           {playa.descripcion && <p className="mt-2 text-sm text-slate-500">{playa.descripcion}</p>}

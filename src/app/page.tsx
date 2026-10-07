@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import BotonMapa from "@/components/BotonMapa";
@@ -22,6 +23,11 @@ import fotoCasilla from "../../public/fotos/casilla-guardavidas-buceo.jpg";
 // la cuenta regresiva de la temporada es un cálculo local y las novedades están escritas a mano.
 // ISR cada 5 min, igual que /favoritas, para que el podio no quede viejo sin volver dinámica la página.
 export const revalidate = 300;
+
+// Barra de Safari en el celular del color del hero (si no, queda blanca arriba de la foto): `themeColor`
+// para Safari hasta iOS 18; Safari 26 ya no lo usa y toma el fondo del body (ver `fondo-oscuro` en
+// globals.css). El pie también es oscuro, así que el rebote del scroll arriba y abajo queda parejo.
+export const viewport: Viewport = { themeColor: "#0f172a" };
 
 const trazo = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
@@ -198,7 +204,7 @@ export default async function Home() {
   const favoritas = await getFavoritas();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#fbf8f2]">
+    <div className="fondo-oscuro flex min-h-dvh flex-col bg-[#fbf8f2]">
       {/* Hero */}
       <section className="relative isolate overflow-hidden bg-slate-900 text-white">
         <Image
@@ -222,7 +228,7 @@ export default async function Home() {
               100% gratis · sin registro
             </Etiqueta>
             <h1 className="mt-6 text-5xl font-semibold leading-[1.02] tracking-tight text-balance sm:text-6xl lg:text-7xl">
-              Todas las playas de {SITIO.alcance}, en un{" "}
+              Todas las playas de {SITIO.nombre}, en un{" "}
               <em className="font-serif font-normal italic tracking-normal text-amber-200">mapa.</em>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-white/80 sm:mx-0">

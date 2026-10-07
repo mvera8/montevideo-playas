@@ -47,6 +47,11 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+/* Páginas con hero oscuro (home): Safari 26 pinta su barra con el fondo del body. */
+body:has(.fondo-oscuro) {
+  background: #0f172a;
+}
+
 @keyframes aparecer {
   from {
     opacity: 0;

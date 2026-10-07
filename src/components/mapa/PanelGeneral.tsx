@@ -46,6 +46,7 @@ type Props = {
   climaCiudad: Weather | null;
   alertas: AlertasInumet | null;
   busqueda: string;
+  buscando: boolean; // teclado abierto o texto en el buscador: en móvil se muestran solo las playas
   filtro: EstadoBandera | null;
   onFiltro: (f: EstadoBandera | null) => void;
   onElegir: (p: Playa) => void;
@@ -63,6 +64,7 @@ export default function PanelGeneral({
   climaCiudad,
   alertas,
   busqueda,
+  buscando,
   filtro,
   onFiltro,
   onElegir,
@@ -72,26 +74,35 @@ export default function PanelGeneral({
 }: Props) {
   return (
     <div className="space-y-3">
-      <PildorasPlayas playas={playas} busqueda={busqueda} temporadaActiva={temporada.activa} onElegir={onElegir} />
-      <AlertaInumet alertas={alertas} />
-      {climaCiudad && <ClimaAhora clima={climaCiudad} ciudad={SITIO.alcance} />}
-      {!temporada.activa && <FueraDeTemporada temporada={temporada} />}
-      {fuente === "respaldo" && (
-        <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800">
-          <strong>Sin datos de la Intendencia.</strong> Se muestran playas de respaldo.
-          {error && <span className="mt-1 block text-xs opacity-80">{error}</span>}
-        </div>
-      )}
-      <Recomendador
-        playas={todas}
-        temporada={temporada}
-        origen={origen}
-        ubicando={ubicando}
-        onUsarUbicacion={onUsarUbicacion}
+      <PildorasPlayas
+        playas={playas}
+        busqueda={busqueda}
+        enFilas={buscando}
+        temporadaActiva={temporada.activa}
         onElegir={onElegir}
       />
-      {/* Fuera de temporada no hay banderas: el resumen vuelve el 15/11. */}
-      {temporada.activa && <ResumenBanderas playas={todas} filtro={filtro} onFiltro={onFiltro} />}
+      {/* Buscando en móvil, el poco lugar que deja el teclado es para los resultados. */}
+      <div className={`space-y-3 ${buscando ? "max-md:hidden" : ""}`}>
+        <AlertaInumet alertas={alertas} />
+        {climaCiudad && <ClimaAhora clima={climaCiudad} ciudad={SITIO.nombre} />}
+        {!temporada.activa && <FueraDeTemporada temporada={temporada} />}
+        {fuente === "respaldo" && (
+          <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800">
+            <strong>Sin datos de la Intendencia.</strong> Se muestran playas de respaldo.
+            {error && <span className="mt-1 block text-xs opacity-80">{error}</span>}
+          </div>
+        )}
+        <Recomendador
+          playas={todas}
+          temporada={temporada}
+          origen={origen}
+          ubicando={ubicando}
+          onUsarUbicacion={onUsarUbicacion}
+          onElegir={onElegir}
+        />
+        {/* Fuera de temporada no hay banderas: el resumen vuelve el 15/11. */}
+        {temporada.activa && <ResumenBanderas playas={todas} filtro={filtro} onFiltro={onFiltro} />}
+      </div>
 
       {/* En móvil el listado son las píldoras de arriba: el título y las tarjetas van solo en escritorio. */}
       <div className="flex items-center justify-between px-1 pt-1 max-md:hidden">
@@ -142,22 +153,32 @@ export default function PanelGeneral({
 function PildorasPlayas({
   playas,
   busqueda,
+  enFilas,
   temporadaActiva,
   onElegir,
 }: {
   playas: Playa[];
   busqueda: string;
+  enFilas: boolean; // buscando: en varias filas en vez de una que se desliza de costado
   temporadaActiva: boolean;
   onElegir: (p: Playa) => void;
 }) {
   return (
-    <nav aria-label="Playas" className="sticky -top-3 z-10 -mx-3 -mt-3 bg-slate-50 pb-1 pt-5 md:hidden dark:bg-slate-950">
+    // En filas no es sticky: más alta que la hoja, las últimas quedarían fuera de alcance.
+    <nav
+      aria-label="Playas"
+      className={`${enFilas ? "" : "sticky -top-3 z-10"} -mx-3 -mt-3 bg-slate-50 pb-1 pt-5 md:hidden dark:bg-slate-950`}
+    >
       {playas.length === 0 ? (
         <p className="px-4 py-2 text-sm text-slate-500">
           {busqueda ? `Ninguna playa coincide con “${busqueda}”.` : "Ninguna playa con esa bandera."}
         </p>
       ) : (
-        <ul className="flex snap-x gap-2 overflow-x-auto overscroll-x-contain px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <ul
+          className={`flex gap-2 px-3 pb-2 ${
+            enFilas ? "flex-wrap" : "snap-x overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          }`}
+        >
           {playas.map((p) => (
             <li key={p.slug} className="shrink-0 snap-start scroll-ml-3">
               <button

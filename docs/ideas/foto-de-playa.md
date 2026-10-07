@@ -4,9 +4,9 @@
 > cada playa: abre la cámara, arma la foto con el sello (diseño "esquinas") y permite compartir o
 > descargar. Código: `src/lib/sello-foto.ts` y `src/components/mapa/FotoPlaya.tsx`.
 >
-> Decidido: un solo diseño, tipo tarjeta: el hashtag **#MontevideoPlayas** en una píldora arriba a la
-> derecha; abajo el nombre de la playa, una fila con íconos (cielo + aire, gota + agua, viento, bandera
-> solo en temporada) y el logo con la casilla elegida en el mapa (o "Montevideo, Uruguay"). La playa es la del detalle
+> Decidido: un solo diseño: el hashtag **#MontevideoPlayas** en una píldora arriba a la derecha y abajo
+> dos tarjetas de vidrio esmerilado (como las de la home): logo + nombre de la playa, y cielo + aire,
+> viento, bandera (ícono del color vigente; gris fuera de temporada) y me gusta de la temporada. La playa es la del detalle
 > abierto (no se verifica la ubicación). No se guarda la foto ni se cuenta el uso. Pendiente si se
 > quiere: diseños Polaroid/Historia, elegir de la galería, calidad del agua, y probar HEIC en iPhone.
 

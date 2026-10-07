@@ -13,7 +13,7 @@ export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: `Playas favoritas · ${SITIO.marca}`,
-  description: `Las playas de ${SITIO.alcance} con más me gusta esta temporada.`,
+  description: `Las playas de ${SITIO.nombre} con más me gusta esta temporada.`,
 };
 
 export default async function FavoritasPage() {

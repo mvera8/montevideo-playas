@@ -30,6 +30,5 @@ export const ICONO_CIELO: Record<EstadoCielo, string[]> = {
   tormenta: ["M7 13h10a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.5A3.3 3.3 0 0 0 7 13Z", "M12.5 13 10 17.5h3.5L11 22"],
 };
 
-// Gota (temperatura del agua) y viento.
-export const ICONO_GOTA = ["M12 3.5s-6 6.6-6 11a6 6 0 0 0 12 0c0-4.4-6-11-6-11Z"];
+// Viento.
 export const ICONO_VIENTO = ["M3 8h10a3 3 0 1 0-3-3", "M3 12h15a3 3 0 1 1-3 3", "M3 16h7"];
