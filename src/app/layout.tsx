@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { SITIO } from "@/lib/sitio";
@@ -22,9 +23,23 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: SITIO.marca,
+  metadataBase: new URL(SITIO.url),
+  // Cada página pone solo su título ("Contacto") y la marca se agrega acá.
+  title: { default: SITIO.marca, template: `%s · ${SITIO.marca}` },
   description: `Playas, guardavidas, calidad del agua y clima en ${SITIO.nombre}.`,
+  openGraph: { siteName: SITIO.marca, locale: "es_UY", type: "website" },
+  twitter: { card: "summary_large_image" },
 };
+
+// Color de la barra del navegador en el celular: el mismo fondo del sitio en claro y oscuro (globals.css).
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f9fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1620" },
+  ],
+};
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -33,6 +48,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
+      {/* Google Analytics 4 (ver README, "Analytics"). Sin ID no se carga: en local y previews no mide. */}
+      {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
     </html>
   );
 }

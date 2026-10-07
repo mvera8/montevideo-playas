@@ -1,0 +1,20 @@
+{
+  "name": "next-checks",
+  "version": "0.1.0",
+  "description": "Chequeos de calidad para sitios Next.js (App Router): iconos, iPhone, SEO, imágenes, accesibilidad y seguridad básica. Sin dependencias.",
+  "type": "module",
+  "bin": {
+    "next-checks": "./cli.mjs"
+  },
+  "files": [
+    "cli.mjs",
+    "lib",
+    "reglas",
+    "checks.config.example.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

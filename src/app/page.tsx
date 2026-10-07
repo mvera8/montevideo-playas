@@ -1,4 +1,4 @@
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import BotonMapa from "@/components/BotonMapa";
@@ -27,6 +27,9 @@ export const revalidate = 300;
 // Barra de Safari en el celular del color del hero (si no, queda blanca arriba de la foto): `themeColor`
 // para Safari hasta iOS 18; Safari 26 ya no lo usa y toma el fondo del body (ver `fondo-oscuro` en
 // globals.css). El pie también es oscuro, así que el rebote del scroll arriba y abajo queda parejo.
+// Título y descripción salen del layout raíz.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
 export const viewport: Viewport = { themeColor: "#0f172a" };
 
 const trazo = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;

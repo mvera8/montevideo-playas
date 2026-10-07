@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import BotonMapa from "@/components/BotonMapa";
 import PaginaSitio from "@/components/PaginaSitio";
 import { fechaNovedad, getNovedad, getNovedades } from "@/lib/novedades";
-import { SITIO } from "@/lib/sitio";
 
 // Una nota de /novedades. Las publicadas se generan al compilar; una con fecha futura da 404 hasta
 // ese día y después se genera sola (ISR, cada hora).
@@ -17,7 +16,11 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/novedades/[slug]">): Promise<Metadata> {
   const novedad = getNovedad((await params).slug);
   if (!novedad) return {};
-  return { title: `${novedad.titulo} · ${SITIO.nombre}`, description: novedad.resumen };
+  return {
+    title: novedad.titulo,
+    description: novedad.resumen,
+    alternates: { canonical: `/novedades/${novedad.slug}` },
+  };
 }
 
 export default async function NovedadPage({ params }: PageProps<"/novedades/[slug]">) {

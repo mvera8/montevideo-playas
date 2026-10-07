@@ -8,9 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "node scripts/copiar-worker-maplibre.mjs",
-    "orientaciones": "node --env-file=.env.local scripts/calcular-orientaciones.mjs"
+    "orientaciones": "node --env-file=.env.local scripts/calcular-orientaciones.mjs",
+    "checks": "node checks/cli.mjs",
+    "checks:url": "node checks/cli.mjs --url http://localhost:3000"
   },
   "dependencies": {
+    "@next/third-parties": "^16.4.0",
     "@supabase/supabase-js": "^2.117.2",
     "fflate": "^0.8.3",
     "maplibre-gl": "^6.11.2",

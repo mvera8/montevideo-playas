@@ -12,8 +12,9 @@ import { SITIO } from "@/lib/sitio";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: `Playas favoritas · ${SITIO.marca}`,
+  title: "Playas favoritas",
   description: `Las playas de ${SITIO.nombre} con más me gusta esta temporada.`,
+  alternates: { canonical: "/favoritas" },
 };
 
 export default async function FavoritasPage() {

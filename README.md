@@ -16,6 +16,27 @@ npm run dev
 
 Sin credenciales la página muestra una lista de playas de respaldo con clima pero sin guardavidas.
 
+## Dominio y hosting (Vercel)
+
+- **Principal**: `https://montevideo.playas.uy` (`SITIO.url` en `src/lib/sitio.ts`). De ahí salen
+  `metadataBase` (`src/app/layout.tsx`), `src/app/sitemap.ts` y `src/app/robots.ts`.
+- **Redirecciones 308** (`next.config.ts`): `playas.uy/*` y `www.playas.uy/*` → `montevideo.playas.uy/*`
+  (conserva la ruta), y `/montevideo/*` desde cualquier host → `montevideo.playas.uy/*`. `playas.uy`
+  queda reservado para una futura portada de todo Uruguay (ver "Extender a todo Uruguay"): ese día
+  se sacan las reglas por host.
+- **En Vercel** (Project → Settings → Domains): agregar `montevideo.playas.uy`, `playas.uy` y
+  `www.playas.uy` al mismo proyecto, los tres como "Connect to an environment: Production" (sin la
+  opción "Redirect to" de Vercel, para que las reglas de `next.config.ts` manejen las rutas).
+- **DNS** (en el panel del registrador de `.uy`): `playas.uy` → registro `A` a la IP que muestre
+  Vercel (hoy `76.76.21.21`); `montevideo` y `www` → `CNAME` al valor que muestre Vercel
+  (`cname.vercel-dns.com` o uno propio del proyecto). Alternativa: delegar los nameservers a Vercel
+  (`ns1.vercel-dns.com`, `ns2.vercel-dns.com`). El certificado HTTPS lo emite Vercel solo.
+- **Validar**: `curl -sI https://playas.uy/montevideo/playas` → `308` con
+  `location: https://montevideo.playas.uy/playas`; `curl -s https://montevideo.playas.uy/robots.txt`.
+  En local: `curl -sI -H "Host: playas.uy" http://localhost:3000/terminos`.
+- Mailgun: para enviar desde `contacto@playas.uy` (y sacar el sandbox) agregar el dominio en Mailgun,
+  cargar sus registros DNS y cambiar `MAILGUN_DOMAIN`.
+
 ## API
 
 | Endpoint | Devuelve |
@@ -301,6 +322,25 @@ plan gratis: 100/día, un dominio). Código: `src/lib/contacto.ts` (envío y top
   aprox., sin pedidos). Se muestra como “aprox.”: la fecha oficial la anuncia la IM.
 - Estructura común de las páginas de texto: `EncabezadoSitio` arriba, título + contenido
   (`PaginaSitio`) y `PieSitio`. La home usa el mismo encabezado en modo `sobreFoto`.
+
+## Analytics (Google Analytics 4)
+
+`<GoogleAnalytics>` de `@next/third-parties/google` en `src/app/layout.tsx`. Elegido en vez de Vercel
+Analytics porque el plan gratis de Vercel lo permite en un solo proyecto.
+
+- **Configurar:** en https://analytics.google.com crear una propiedad GA4 → Admin → Flujos de datos →
+  Web (`https://montevideo.playas.uy`) y copiar el ID de medición (`G-XXXXXXX`) en `NEXT_PUBLIC_GA_ID`
+  (`.env.local` para probar, y en Vercel → Settings → Environment Variables solo para **Production**,
+  así las previews no ensucian los datos). Sin ID no se carga nada.
+- **Privacidad:** dejar **desactivadas** las "señales de Google" y el uso compartido de datos
+  (Admin → Recopilación de datos), porque la política de privacidad dice que no se usan para
+  publicidad. Retención de datos: 14 meses. Si se activa algo de eso, actualizar `/privacidad`.
+- **Cookies:** `_ga` y `_ga_*` (hasta 2 años). Se carga sin aviso de consentimiento (decisión
+  10/2026); la política lo informa en "Estadísticas de uso".
+- **Performance:** el script `gtag.js` se pide después de la hidratación (no bloquea el render ni
+  vuelve dinámica ninguna página).
+- **Validar:** con el ID cargado, abrir el sitio y ver la visita en GA → Informes → Tiempo real, o
+  en la pestaña Network buscar `collect?v=2`.
 
 ## Legal y privacidad
 
