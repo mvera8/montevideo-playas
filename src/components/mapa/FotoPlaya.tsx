@@ -3,13 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import Modal, { BotonModal } from "@/components/Modal";
 import { crearFotoConSello, HASHTAG, type Sello } from "@/lib/sello-foto";
+import type { TotalesMeGusta } from "@/lib/me-gusta";
+import { meGustaDisponible, useTotalesMeGusta } from "@/lib/me-gusta-cliente";
 import { Spinner } from "./BotonUbicacion";
 
 // Botón 📷 al lado del me gusta: abre la cámara, le agrega el sello con los datos de la playa
 // (src/lib/sello-foto.ts) y muestra la foto lista para compartir o descargar. Todo en el dispositivo.
 // Solo en pantallas táctiles (celular/tablet, `pointer-coarse`): en la computadora `capture` se ignora
 // y el navegador abriría el selector de archivos en vez de la cámara.
-export default function FotoPlaya({ slug, sello }: { slug: string; sello: Sello }) {
+export default function FotoPlaya({
+  slug,
+  sello,
+  meGusta,
+}: {
+  slug: string;
+  sello: Omit<Sello, "meGusta">;
+  meGusta: TotalesMeGusta | null;
+}) {
+  const totales = useTotalesMeGusta(slug, meGusta);
   const input = useRef<HTMLInputElement>(null);
   const [estado, setEstado] = useState<"nada" | "armando" | "lista" | "error">("nada");
   const [foto, setFoto] = useState<{ archivo: File; url: string } | null>(null);
@@ -25,7 +36,7 @@ export default function FotoPlaya({ slug, sello }: { slug: string; sello: Sello 
     if (!archivo) return;
     setEstado("armando");
     try {
-      const blob = await crearFotoConSello(archivo, sello);
+      const blob = await crearFotoConSello(archivo, { ...sello, meGusta: meGustaDisponible ? (totales?.temporada ?? null) : null });
       const final = new File([blob], `montevideo-playas-${slug}.jpg`, { type: "image/jpeg" });
       setFoto({ archivo: final, url: URL.createObjectURL(blob) });
       setEstado("lista");

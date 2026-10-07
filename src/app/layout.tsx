@@ -23,7 +23,7 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: SITIO.marca,
-  description: `Playas, guardavidas, calidad del agua y clima en ${SITIO.alcance}.`,
+  description: `Playas, guardavidas, calidad del agua y clima en ${SITIO.nombre}.`,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -80,6 +80,9 @@ Antes se usaba Open-Meteo, que gratis es solo para uso no comercial.
     calcula localmente (`src/lib/sol.ts`). Mín/máx de "hoy" es de las horas que quedan del día.
   - "Es de día" (tema noche del mapa, widget, "De noche" del ranking) se recalcula en el navegador
     con su hora (`useEsDeDia` en `Mapa.tsx`): el HTML puede ser de una regeneración ISR de anoche.
+  - Al volver a la pestaña del mapa después de 10 min (o si Safari la restaura de su caché), se piden
+    los datos de nuevo con `router.refresh()` (`useRefrescarAlVolver` en `Mapa.tsx`): en el celular la
+    pestaña queda dormida con el clima de cuando se abrió (p. ej. sin la lluvia que empezó después).
   - El cielo viene como `symbol_code` y se traduce a códigos WMO (`SIMBOLO`).
 - **Temperatura del agua — NOAA OISST v2.1 NRT** (`src/lib/mar.ts`), por ERDDAP:
   `https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21NrtAgg_LonPM180.csv?sst[(last)][(0.0)][(-35.5):(-34.5)][(-56.5):(-55.5)]`
@@ -223,9 +226,12 @@ compartir (Web Share API con archivos; si no se puede, se descarga). Solo se mue
 (`pointer: coarse`): en la computadora `capture` no abre la cámara sino el selector de archivos. Código: `src/lib/sello-foto.ts`
 (Canvas 2D, sin librerías) y `src/components/mapa/FotoPlaya.tsx`.
 
-- **No usa fuentes nuevas**: el sello toma los datos que ya tiene el detalle (aire, agua, viento y la
-  bandera solo en temporada) con el ícono del cielo (`src/lib/iconos-clima.ts`, compartido con el widget
-  del clima), más la casilla elegida en el mapa, el logo (`public/logo.svg`) y el hashtag #MontevideoPlayas.
+- **No usa fuentes nuevas**: el sello toma los datos que ya tiene el detalle (aire con el ícono del cielo
+  de `src/lib/iconos-clima.ts`, compartido con el widget del clima; viento; bandera, en gris fuera de
+  temporada o sin dato; me gusta de la temporada), más el logo (`public/logo.svg`) y el hashtag
+  #MontevideoPlayas. Las tarjetas de vidrio desenfocan la foto con `ctx.filter` (Safari 18+) o, si no
+  está, achicándola y volviéndola a agrandar. Si la foto es horizontal (ancho > alto, ya con la
+  orientación EXIF corregida), las tarjetas van en una columna a la derecha para no tapar media foto.
 - **Todo en el dispositivo**: la foto no se sube, no se guarda y no se cuenta. Redibujarla en Canvas
   borra el EXIF (incluido el GPS).
 - 1080 px de ancho, alto proporcional con tope de 1920 (recorte al centro); JPEG 0,9. La orientación la

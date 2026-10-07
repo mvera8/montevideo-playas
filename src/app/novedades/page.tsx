@@ -10,7 +10,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: `Novedades · ${SITIO.marca}`,
-  description: `Novedades de la temporada de playas en ${SITIO.alcance} y del sitio.`,
+  description: `Novedades de la temporada de playas en ${SITIO.nombre} y del sitio.`,
 };
 
 export default function NovedadesPage() {
