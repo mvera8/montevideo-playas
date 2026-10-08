@@ -1,3 +1,4 @@
+import { IconArrowRight } from "@tabler/icons-react";
 import Link from "next/link";
 
 // Botón principal del sitio: lleva al mapa de playas. Se repite en la home, las novedades y el
@@ -41,9 +42,7 @@ export default function BotonMapa({
           grande ? "h-11 w-11" : "-mr-2 h-6 w-6"
         }`}
       >
-        <svg viewBox="0 0 24 24" className={grande ? "h-5 w-5" : "h-3.5 w-3.5"} fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12h14M13 6l6 6-6 6" />
-        </svg>
+        <IconArrowRight className={grande ? "h-5 w-5" : "h-3.5 w-3.5"} stroke={2.4} />
       </span>
     </Link>
   );

@@ -1,3 +1,4 @@
+import { IconArrowUpRight, IconBus, IconCompass, IconDroplet, IconFlag, IconSun } from "@tabler/icons-react";
 import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,44 +34,14 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export const viewport: Viewport = { themeColor: "#0f172a" };
 
-const trazo = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
-
-const ICONOS = {
-  bandera: (
-    <>
-      <path d="M6 21V4" />
-      <path d="M6 4.5h11l-2.5 4 2.5 4H6" />
-    </>
-  ),
-  agua: <path d="M12 3.5s6 6.4 6 10.6a6 6 0 0 1-12 0C6 9.9 12 3.5 12 3.5Z" />,
-  clima: (
-    <>
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
-    </>
-  ),
-  brujula: (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" />
-    </>
-  ),
-  omnibus: (
-    <>
-      <rect x="4.5" y="3.5" width="15" height="14" rx="2.5" />
-      <path d="M4.5 11h15M8 20.5v-3M16 20.5v-3M8 14.5h.01M16 14.5h.01" />
-    </>
-  ),
-};
+// Íconos de Tabler (@tabler/icons-react), como en el resto del sitio.
+const ICONOS = { bandera: IconFlag, agua: IconDroplet, clima: IconSun, brujula: IconCompass, omnibus: IconBus };
 
 type Icono = keyof typeof ICONOS;
 
 function Ico({ nombre, className = "h-5 w-5" }: { nombre: Icono; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden {...trazo}>
-      {ICONOS[nombre]}
-    </svg>
-  );
+  const Componente = ICONOS[nombre];
+  return <Componente className={className} stroke={1.8} aria-hidden />;
 }
 
 // Las 4 tarjetas de "Qué es" y la franja al pie del hero. `tono`: fondo pastel de cada tarjeta.
@@ -169,9 +140,7 @@ function WidgetMapa({ diasParaInicio, activa }: { diasParaInicio: number; activa
             aria-label="Abrir el mapa de playas"
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-slate-900 transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 motion-reduce:transition-none"
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden {...trazo} strokeWidth={2.4}>
-              <path d="M7 17 17 7M9 7h8v8" />
-            </svg>
+            <IconArrowUpRight className="h-4 w-4" stroke={2.4} aria-hidden />
           </Link>
         </div>
         <p className="mt-2 text-sm text-white/75">

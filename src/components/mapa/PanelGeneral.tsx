@@ -1,5 +1,6 @@
 "use client";
 
+import { IconAlertTriangleFilled } from "@tabler/icons-react";
 import Link from "next/link";
 import { SITIO } from "@/lib/sitio";
 import type { AlertasInumet } from "@/lib/inumet";
@@ -208,9 +209,7 @@ function FueraDeTemporada({ temporada }: { temporada: Temporada }) {
     <div className="rounded-2xl bg-red-600 p-4 text-white shadow-sm dark:bg-red-900">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="currentColor" aria-hidden>
-            <path d="M12 2 1 21h22L12 2Zm0 6 .01 0c.55 0 1 .45 1 1v5a1 1 0 1 1-2 0V9c0-.55.45-1 1-1Zm0 10.5a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Z" />
-          </svg>
+          <IconAlertTriangleFilled className="h-5 w-5 shrink-0" aria-hidden />
           <p className="font-semibold">Fuera de temporada</p>
         </div>
         <p className="text-right leading-none">

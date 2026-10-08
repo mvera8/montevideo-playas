@@ -1,5 +1,6 @@
 "use client";
 
+import { IconChevronRight } from "@tabler/icons-react";
 import { createContext, useContext, useId, useState, type ReactNode } from "react";
 
 type Grupo = { abierta: string | null; setAbierta: (clave: string | null) => void };
@@ -33,12 +34,14 @@ export default function SeccionPlegable({
   clave = titulo,
   resumen,
   resumenSoloCerrada = false,
+  ancla,
   children,
 }: {
   titulo: string;
   clave?: string; // identifica la sección dentro de un GrupoPlegable
   resumen?: ReactNode;
   resumenSoloCerrada?: boolean; // ocultar el resumen al abrir si el contenido ya lo repite
+  ancla?: string; // id de la sección, para llevarla a la vista (p. ej. al tocar el agua viva del mapa)
   children: ReactNode;
 }) {
   const grupo = useContext(GrupoContexto);
@@ -48,7 +51,7 @@ export default function SeccionPlegable({
   const id = useId();
 
   return (
-    <section className="mt-3 border-t border-slate-100 pt-1 dark:border-slate-800">
+    <section id={ancla} className="mt-3 scroll-mt-2 border-t border-slate-100 pt-1 dark:border-slate-800">
       <h3>
         <button
           onClick={alternar}
@@ -56,16 +59,7 @@ export default function SeccionPlegable({
           aria-controls={id}
           className="flex w-full items-center gap-2 rounded-lg py-2 text-left"
         >
-          <svg
-            viewBox="0 0 24 24"
-            className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${abierta ? "rotate-90" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            aria-hidden
-          >
-            <path d="m9 6 6 6-6 6" />
-          </svg>
+          <IconChevronRight className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${abierta ? "rotate-90" : ""}`} stroke={2.5} aria-hidden />
           <span className="shrink-0 text-xs font-medium uppercase tracking-wider text-slate-500">{titulo}</span>
           {resumen && !(resumenSoloCerrada && abierta) && (
             <span className="ml-auto min-w-0 text-right text-xs leading-5 text-slate-600 dark:text-slate-300">{resumen}</span>

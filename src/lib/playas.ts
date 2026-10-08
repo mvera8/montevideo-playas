@@ -8,6 +8,7 @@ import {
   type VencimientoIm,
 } from "./im";
 import orientaciones from "@/data/orientaciones.json";
+import { aguasVivasPara, getAguasVivas, type AguasVivasPlaya } from "./aguas-vivas";
 import { getCalidadAgua, type CalidadAgua } from "./calidad-agua";
 import { getMeGusta, type TotalesMeGusta } from "./me-gusta";
 import { orientacionRespaldo } from "./recomendacion";
@@ -43,6 +44,7 @@ export type Playa = {
   agua: CalidadAgua | null; // calidad del agua (datos abiertos de la IM)
   servicios: Servicio[]; // baños y bebederos públicos cercanos (IM)
   meGusta: TotalesMeGusta | null; // me gusta del sitio (Supabase); null si la base no responde
+  aguasVivas: AguasVivasPlaya | null; // aguas vivas reportadas en iNaturalist; null si no respondió
 };
 
 export type PlayasResult = {
@@ -192,10 +194,10 @@ function promedioCircular(rumbos: (number | null)[]): number | null {
   return Math.round(((Math.atan2(x, y) * 180) / Math.PI + 360) % 360);
 }
 
-// Suma clima (MET Norway y NOAA), calidad del agua y servicios cercanos (IM) y me gusta (Supabase) a cada
-// playa, en paralelo.
-async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios" | "orientacion" | "meGusta">[]): Promise<Playa[]> {
-  const [clima, agua, servicios, meGusta] = await Promise.all([
+// Suma clima (MET Norway y NOAA), calidad del agua y servicios cercanos (IM), me gusta (Supabase) y
+// aguas vivas (iNaturalist) a cada playa, en paralelo.
+async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios" | "orientacion" | "meGusta" | "aguasVivas">[]): Promise<Playa[]> {
+  const [clima, agua, servicios, meGusta, aguasVivas] = await Promise.all([
     getWeatherForPoints(playas.map((p) => ({ lat: p.lat, lon: p.lon }))).catch((e) => {
       console.error(e);
       return [] as Weather[];
@@ -203,6 +205,7 @@ async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios" | "o
     getCalidadAgua(),
     getServicios(),
     getMeGusta(),
+    getAguasVivas(),
   ]);
   return playas.map((p, i) => ({
     ...p,
@@ -211,10 +214,11 @@ async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios" | "o
     orientacion: promedioCircular(p.guardavidas.map((g) => g.orientacion)) ?? orientacionRespaldo(p.slug),
     servicios: serviciosCerca(servicios, p.guardavidas.length ? p.guardavidas : [p]),
     meGusta: meGusta ? (meGusta.get(p.slug) ?? { temporada: 0, siempre: 0 }) : null,
+    aguasVivas: aguasVivasPara(aguasVivas, p),
   }));
 }
 
-function respaldo(): Omit<Playa, "clima" | "agua" | "servicios" | "orientacion" | "meGusta">[] {
+function respaldo(): Omit<Playa, "clima" | "agua" | "servicios" | "orientacion" | "meGusta" | "aguasVivas">[] {
   return RESPALDO.map((b) => ({
     slug: slugify(b.nombre),
     nombre: b.nombre,

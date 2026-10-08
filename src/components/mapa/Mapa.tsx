@@ -1,5 +1,6 @@
 "use client";
 
+import { IconLayoutGrid, IconMapPin, IconSearch, IconX } from "@tabler/icons-react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
   GeolocateControl,
@@ -18,8 +19,9 @@ import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Weather } from "@/lib/weather";
 import type { AlertasInumet } from "@/lib/inumet";
 import type { Opcion, Punto } from "@/lib/transporte/planificador";
-import { CapaCasillas, type CasillaMapa } from "./capa-casillas";
+import { CapaCasillas, type AguaVivaMapa, type CasillaMapa } from "./capa-casillas";
 import ComoIr, { claveTramo, type LlegadasPorTramo, type TramoBus } from "./ComoIr";
+import AguasVivas, { ANCLA_AGUAS_VIVAS, reportesCerca } from "./AguasVivas";
 import AlertaInumet from "./AlertaInumet";
 import PanelGeneral, { ESTADOS, estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import CalidadAgua from "./CalidadAgua";
@@ -97,6 +99,16 @@ function resumenCasillas(guardavidas: Guardavidas[], temporada: Temporada) {
       </span>
     ));
   return partes.length ? <span className="inline-flex gap-2">{partes}</span> : "Banderas sin datos";
+}
+
+// Un agua viva 3D frente a cada playa con reportes recientes cerca (los mismos del chip de su sección).
+function aAguasVivas(playas: Playa[]): AguaVivaMapa[] {
+  return playas.flatMap((p) => {
+    const cerca = reportesCerca(p.aguasVivas);
+    return cerca.length
+      ? [{ slug: p.slug, lng: p.lon, lat: p.lat, orientacion: p.orientacion, peligrosa: cerca.some((a) => a.peligrosa) }]
+      : [];
+  });
 }
 
 const fechaFmt = new Intl.DateTimeFormat("es-UY", {
@@ -239,6 +251,9 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     return inicial && playas.some((p) => p.slug === inicial) ? inicial : null;
   });
   const [casillaId, setCasillaId] = useState<string | null>(null);
+  // Sección del detalle a abrir al elegir la playa (p. ej. "Aguas vivas" al tocar su agua viva en el mapa).
+  // `n` cambia en cada toque para reabrirla aunque sea la misma playa.
+  const [seccion, setSeccion] = useState<{ slug: string; clave: string; n: number } | null>(null);
 
   // Cómo ir: origen del usuario (GPS o tocando el mapa) y opción elegida.
   const [origen, setOrigen] = useState<Punto | null>(null);
@@ -260,6 +275,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
   }, []);
 
   const casillas = useMemo(() => aCasillas(playas), [playas]);
+  const aguasVivas = useMemo(() => aAguasVivas(playas), [playas]);
   // Servicios de todas las playas, sin repetir (uno puede quedar cerca de dos playas).
   const servicios = useMemo(() => {
     const m = new Map<string, Servicio>();
@@ -507,8 +523,26 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       map.on("mouseenter", "servicios", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "servicios", () => (map.getCanvas().style.cursor = ""));
 
-      map.on("click", "casillas-hit", (e: MapLayerMouseEvent) => {
+      // Agua viva 3D: abre su playa en la sección "Aguas vivas". Gana sobre la casilla si se superponen.
+      map.on("click", (e) => {
         if (eligiendoRef.current) return;
+        const s = capa.aguaVivaEn(e.point);
+        if (!s) return;
+        setSlug(s);
+        setCasillaId(null);
+        setSeccion((prev) => ({ slug: s, clave: "Aguas vivas", n: (prev?.n ?? 0) + 1 }));
+        abiertoRef.current = true;
+        setAbierto(true);
+      });
+      let sobreAguaViva = false;
+      map.on("mousemove", (e) => {
+        const ahora = Boolean(capa.aguaVivaEn(e.point));
+        if (ahora !== sobreAguaViva) map.getCanvas().style.cursor = ahora ? "pointer" : "";
+        sobreAguaViva = ahora;
+      });
+
+      map.on("click", "casillas-hit", (e: MapLayerMouseEvent) => {
+        if (eligiendoRef.current || capa.aguaVivaEn(e.point)) return;
         const f = e.features?.[0];
         if (!f) return;
         setSlug(f.properties.slug as string);
@@ -576,6 +610,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
   useEffect(() => {
     const map = mapRef.current;
     if (!listo || !map) return;
+    capaRef.current?.setAguasVivas(aguasVivas);
     capaRef.current?.setCasillas(casillas);
     (map.getSource("casillas") as GeoJSONSource).setData({
       type: "FeatureCollection",
@@ -593,7 +628,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         properties: { nombre: p.nombre },
       })),
     });
-  }, [listo, casillas, playas]);
+  }, [listo, casillas, aguasVivas, playas]);
 
   // Recorrido elegido → mapa (y encuadre).
   useEffect(() => {
@@ -684,6 +719,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
 
   function elegirPlaya(p: Playa) {
     setSlug(p.slug);
+    setSeccion(null);
     setCasillaId(p.guardavidas.length ? null : `playa:${p.slug}`);
     setBusqueda("");
   }
@@ -774,31 +810,9 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         }`}
       >
         <span className="relative h-5 w-5" aria-hidden>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            className={`absolute inset-0 transition duration-300 motion-reduce:transition-none ${abierto ? "rotate-0 opacity-100" : "-rotate-90 opacity-0"}`}
-          >
-            <path d="M6 6l12 12M18 6 6 18" />
-          </svg>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`absolute inset-0 transition duration-300 motion-reduce:transition-none ${abierto ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`}
-          >
-            {/* Grilla de tablero: "ver la info", sin sugerir de qué lado sale el panel (costado en escritorio, abajo en móvil). */}
-            <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
-            <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
-            <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
-            <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
-          </svg>
+          <IconX className={`absolute inset-0 h-full w-full transition duration-300 motion-reduce:transition-none ${abierto ? "rotate-0 opacity-100" : "-rotate-90 opacity-0"}`} />
+          {/* Grilla de tablero: "ver la info", sin sugerir de qué lado sale el panel (costado en escritorio, abajo en móvil). */}
+          <IconLayoutGrid className={`absolute inset-0 h-full w-full transition duration-300 motion-reduce:transition-none ${abierto ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`} />
         </span>
       </button>
 
@@ -849,10 +863,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       >
         {/* Buscador: filtra el listado de playas */}
         <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/95 px-4 py-3 shadow-lg ring-1 ring-black/5 backdrop-blur max-md:mr-14 dark:bg-slate-900/95 dark:ring-white/10">
-          <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" />
-          </svg>
+          <IconSearch className="h-5 w-5 shrink-0 text-slate-400" aria-hidden />
           <input
             value={busqueda}
             onChange={(e) => {
@@ -910,6 +921,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
               temporada={temporada}
               alertas={alertas}
               casillaId={casillaId}
+              seccion={seccion?.slug === playa.slug ? seccion : null}
               onCasilla={setCasillaId}
               onCerrar={cerrar}
               onVerServicio={verServicio}
@@ -969,6 +981,7 @@ function Detalle({
   temporada,
   alertas,
   casillaId,
+  seccion,
   onCasilla,
   onCerrar,
   onVerServicio,
@@ -978,12 +991,18 @@ function Detalle({
   temporada: Temporada;
   alertas: AlertasInumet | null;
   casillaId: string | null;
+  seccion: { clave: string; n: number } | null;
   onCasilla: (id: string) => void;
   onCerrar: () => void;
   onVerServicio: (s: Servicio) => void;
   comoIr: React.ReactNode;
 }) {
   const c = playa.clima;
+  // Al abrir una sección desde el mapa (agua viva), llevarla a la vista dentro del panel.
+  const nSeccion = seccion?.n;
+  useEffect(() => {
+    if (nSeccion) requestAnimationFrame(() => document.getElementById(ANCLA_AGUAS_VIVAS)?.scrollIntoView({ block: "start", behavior: "smooth" }));
+  }, [nSeccion]);
   return (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -1003,9 +1022,7 @@ function Detalle({
           aria-label="Cerrar"
         >
           {/* Misma cruz que el botón del menú (arriba a la derecha) */}
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-            <path d="M6 6l12 12M18 6 6 18" />
-          </svg>
+          <IconX className="h-6 w-6" aria-hidden />
         </button>
       </div>
       {/* Fuera del encabezado para que la tarjeta de info use todo el ancho */}
@@ -1028,7 +1045,7 @@ function Detalle({
       )}
 
       {/* Orden: ¿se puede? (casillas, agua) → ¿cuándo? → ¿cómo llego? → ¿qué hay? */}
-      <GrupoPlegable inicial="casillas" reiniciarCon={playa.slug}>
+      <GrupoPlegable inicial={seccion?.clave ?? "casillas"} reiniciarCon={`${playa.slug}:${seccion?.n ?? 0}`}>
         <SeccionPlegable
           titulo={`Casillas (${playa.guardavidas.length})`}
           clave="casillas"
@@ -1081,6 +1098,7 @@ function Detalle({
         </SeccionPlegable>
 
         <CalidadAgua agua={playa.agua} />
+        <AguasVivas datos={playa.aguasVivas} />
         <Pronostico slug={playa.slug} />
         {comoIr}
         <ServiciosCerca servicios={playa.servicios} onVer={onVerServicio} />
@@ -1128,10 +1146,7 @@ function ModalUbicacion({
       onCerrar={onCerrar}
       titulo={titulo}
       icono={
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-          <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z" />
-          <circle cx="12" cy="9.5" r="2.5" />
-        </svg>
+        <IconMapPin className="h-5 w-5" aria-hidden />
       }
       acciones={
         <>

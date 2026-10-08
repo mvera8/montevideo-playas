@@ -182,10 +182,12 @@ export default function Privacidad() {
         contacto se envían con Mailgun, como se explica en <Link href="#contacto">Formulario de contacto</Link>.
       </p>
       <p>
-        El clima, las alertas meteorológicas, los datos de playas, la calidad del agua, los baños y bebederos y los
-        horarios de ómnibus los consultamos desde nuestro servidor (MET Norway, NOAA, Inumet, Intendencia de Montevideo y
-        OpenStreetMap), sin enviarles ningún
-        dato tuyo.
+        El clima, las alertas meteorológicas, los datos de playas, la calidad del agua, las aguas vivas reportadas, los
+        baños y bebederos y los horarios de ómnibus los consultamos desde nuestro servidor (MET Norway, NOAA, Inumet,
+        Intendencia de Montevideo, iNaturalist y OpenStreetMap), sin enviarles ningún dato tuyo. De las observaciones
+        de iNaturalist, que son públicas, mostramos solo la especie, la fecha y el lugar aproximado, sin el nombre de
+        quien la cargó; si abrís el enlace a una observación, pasás al sitio de iNaturalist y rige su política de
+        privacidad.
       </p>
 
       <h2 id="finalidad">Para qué usamos los datos</h2>

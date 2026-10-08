@@ -54,6 +54,13 @@ const FUENTES = [
     licencia: "Datos públicos del gobierno de EE. UU. y de PacIOOS, de uso y redistribución libres.",
   },
   {
+    nombre: "iNaturalist",
+    url: "https://www.inaturalist.org",
+    usa: "Avistamientos de aguas vivas cargados por la comunidad en la costa de Montevideo (especie, fecha y lugar aproximado, con enlace a cada observación).",
+    licencia: "Cada observación conserva la licencia que eligió su autor (CC0, CC BY, CC BY-NC u otras). Solo mostramos hechos con enlace a la fuente; no reproducimos fotos ni textos.",
+    licenciaUrl: "https://www.inaturalist.org/pages/terms",
+  },
+  {
     nombre: "OpenStreetMap, OpenMapTiles y OpenFreeMap",
     url: "https://www.openstreetmap.org/copyright",
     usa: "Mapa base (calles, costa, edificios) y baños, bebederos y duchas cargados por la comunidad.",
@@ -109,7 +116,7 @@ export default function Terminos() {
       <h2 id="servicio">El servicio</h2>
       <p>
         {SITIO.nombre} reúne información pública sobre las playas de Montevideo: casillas y banderas, calidad del agua,
-        clima y alertas de Inumet, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas, sacarte una foto con los datos de la playa, leer novedades de la
+        clima y alertas de Inumet, aguas vivas reportadas por la comunidad, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas, sacarte una foto con los datos de la playa, leer novedades de la
         temporada y escribirnos desde el formulario de contacto. Usarlo es gratuito y
         no requiere registro. Al usar el sitio aceptás estos términos.
       </p>
@@ -154,6 +161,18 @@ export default function Terminos() {
         consultarlas en la última hora lo indicamos en vez de decir que no hay alertas. Que no veas una alerta acá{" "}
         <strong>no garantiza que no la haya</strong>: <strong>las alertas oficiales son las de Inumet</strong>{" "}
         (inumet.gub.uy) y, ante una emergencia, las indicaciones del Sinae y del 911.
+      </p>
+
+      <h3 id="aguas-vivas">Aguas vivas</h3>
+      <p>
+        No hay un monitoreo oficial de aguas vivas en Montevideo. Mostramos los avistamientos que personas voluntarias
+        cargan en iNaturalist, con la distancia a cada playa: algunos están identificados por la comunidad y otros no
+        (lo indicamos), y la ubicación puede ser aproximada. Solo mostramos los de los últimos 10 días; si no hay ninguno, no mostramos la sección.
+        El agua viva que aparece en el mapa frente a una playa indica que hubo al menos un reporte a menos de 5 km en
+        ese período, no que haya aguas vivas en ese lugar exacto ni ahora.
+        Se reportan muy pocas por temporada, así que <strong>que no haya reportes no significa que no haya aguas
+        vivas</strong>. Los consejos que acompañan los reportes son generales y no reemplazan la atención médica: ante una
+        picadura, consultá al guardavidas o a un servicio de salud.
       </p>
 
       <h3>Recomendaciones</h3>

@@ -6,6 +6,7 @@ import {
   CylinderGeometry,
   Matrix4,
   PlaneGeometry,
+  SphereGeometry,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
@@ -158,4 +159,55 @@ export function crearGeometriaBandera(): BufferGeometry {
   g.deleteAttribute("uv");
   g.deleteAttribute("normal");
   return g;
+}
+
+// Agua viva flotando frente a la playa (aguas vivas reportadas cerca). Unidades = metros, Y arriba.
+// Campana (media esfera achatada) + tentáculos finos en el borde + brazos orales al centro. Todo en una
+// geometría con `aParte` (0 = campana, 1 = tentáculo/brazo) y `aLargo` (0 en la raíz → 1 en la punta)
+// para que el vertex shader haga el latido y la ondulación sin trabajo en CPU.
+export const AGUA_VIVA = { radio: 1.9, yBorde: 4.4, largoTentaculo: 3.4 };
+
+export function crearGeometriaAguaViva(): BufferGeometry {
+  const { radio, yBorde, largoTentaculo } = AGUA_VIVA;
+  const partes: BufferGeometry[] = [];
+  const marcar = (g: BufferGeometry, parte: number, raizY: number, largo: number) => {
+    const pos = g.getAttribute("position");
+    const aParte = new Float32Array(pos.count).fill(parte);
+    const aLargo = new Float32Array(pos.count);
+    for (let i = 0; i < pos.count; i++) aLargo[i] = largo ? Math.min(Math.max((raizY - pos.getY(i)) / largo, 0), 1) : 0;
+    g.deleteAttribute("uv");
+    g.setAttribute("aParte", new BufferAttribute(aParte, 1));
+    g.setAttribute("aLargo", new BufferAttribute(aLargo, 1));
+    partes.push(g.index ? g.toNonIndexed() : g);
+  };
+
+  // Campana: media esfera achatada, abierta hacia abajo.
+  const campana = new SphereGeometry(radio, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+  campana.scale(1, 0.72, 1);
+  campana.translate(0, yBorde, 0);
+  marcar(campana, 0, yBorde, 0);
+
+  // Tentáculos finos alrededor del borde, de largos distintos.
+  const n = 10;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const largo = largoTentaculo * (0.75 + 0.25 * ((i * 7) % 3) / 2);
+    const t = new BoxGeometry(0.18, largo, 0.18, 1, 8, 1);
+    t.translate(Math.cos(a) * radio * 0.9, yBorde - largo / 2, Math.sin(a) * radio * 0.9);
+    marcar(t, 1, yBorde, largoTentaculo);
+  }
+  // Brazos orales: cintas anchas al centro, más cortas.
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI + 0.4;
+    const largo = largoTentaculo * 0.7;
+    const b = new PlaneGeometry(0.7, largo, 1, 8);
+    b.rotateY(a);
+    b.translate(Math.cos(a) * 0.25, yBorde - largo / 2, Math.sin(a) * 0.25);
+    marcar(b, 1, yBorde, largoTentaculo);
+  }
+
+  const merged = mergeGeometries(partes)!;
+  partes.forEach((g) => g.dispose());
+  merged.computeBoundingSphere();
+  return merged;
 }
