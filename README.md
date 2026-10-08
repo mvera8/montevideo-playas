@@ -56,8 +56,26 @@ Las llamadas a la IM (`imGet` en `src/lib/im.ts`) se cachean 5 min con `unstable
 entre instancias. Ojo: `next: { revalidate }` en un `fetch` con `Authorization` no sirve, porque el
 header entra en la clave del cache y el token cambia por instancia y cada ~5 min.
 
-Si la IM informa vencimiento de la bandera, se respeta; si no lo informa, la bandera solo
-se considera válida en temporada (15/11 – 30/04). Fuera de temporada aparecen grises ("sin servicio").
+### Vencimiento de las banderas
+
+La API oficial (`/beaches/lifeguardstations`) **no trae** `healthFlagExpiration` ni `safetyFlagExpiration`
+(verificado 08/10/2026). Se toman del endpoint que usa el sitio móvil de la IM:
+
+- URL: `https://m.montevideo.gub.uy/playas/api/casillas`. Es GeoJSON (`features[].properties`) y no pide
+  autenticación. Usa los mismos `id` de casilla que la API (`MVD:lifeguardstation:N`) y trae además
+  `healthFlagCauseLongDesc`, el texto de la recomendación.
+- Medido: ~2,7 KB con gzip, ~0,1 s. Manda `cache-control: no-cache`, sin ETag. Se cachea 5 min con
+  `unstable_cache` (`getImVencimientos` en `src/lib/im.ts`), igual que la API.
+- No está documentado. Si falla o cambia de forma, se sigue con la API sola (devuelve `null` y se loguea).
+- Quirk: `healthFlag` llega como **texto** (`"true"`/`"false"`) en ambos endpoints, así que se compara con `"true"`.
+
+Si hay vencimiento, se respeta, también fuera de temporada. Si no lo hay, la bandera solo se considera
+válida en temporada (15/11 – 30/04).
+
+**Bandera sanitaria** (roja con cruz verde, "no apta para baños"): la IM la usa todo el año, p. ej. por
+24 h después de lluvias (causa 9, "Lluvias"; el 08/10/2026 estaba en las 32 casillas). En el mapa 3D va
+en el mismo mástil, debajo de la bandera de seguridad. Si no hay bandera de seguridad, ocupa su lugar en
+vez del paño gris. En el panel aparece en cada casilla (no en el título de la sección), con la recomendación de la IM.
 
 ## Mapa 3D
 

@@ -4,6 +4,13 @@ import { unstable_cache } from "next/cache";
 // Cliente de Montevideo API (Intendencia de Montevideo).
 // Docs: https://api.montevideo.gub.uy/apidocs/beaches
 // Auth: OAuth2 client_credentials. El token dura ~5 minutos.
+//
+// Vencimientos de las banderas: la API oficial NO trae `healthFlagExpiration` ni
+// `safetyFlagExpiration` (verificado 08/10/2026). Se toman del endpoint que usa el sitio móvil de la IM,
+// https://m.montevideo.gub.uy/playas/api/casillas: GeoJSON público (sin auth), ~2,7 KB con gzip,
+// ~0,1 s, `cache-control: no-cache`, sin ETag. Mismos `id` de casilla que la API. No está documentado:
+// si falla o cambia, se sigue con la API sola (sin vencimientos → solo vale la temporada).
+// `healthFlag` llega como texto ("true"/"false") en ambos endpoints, no como booleano.
 
 const API_BASE = "https://api.montevideo.gub.uy/api/environment";
 const DEFAULT_TOKEN_URL =
@@ -18,7 +25,7 @@ export type ImLifeguardStation = {
   name: string;
   address?: string;
   beach: string;
-  healthFlag?: boolean | null;
+  healthFlag?: boolean | "true" | "false" | null; // en la práctica, texto
   healthFlagCause?: number | null;
   healthFlagCauseDesc?: string | null;
   healthFlagExpiration?: string | null;
@@ -105,4 +112,43 @@ function imGet<T>(path: string): Promise<T> {
 
 export function getImLifeguardStations() {
   return imGet<ImLifeguardStation[]>("/beaches/lifeguardstations");
+}
+
+const URL_CASILLAS_MOVIL = "https://m.montevideo.gub.uy/playas/api/casillas";
+
+export type VencimientoIm = {
+  healthFlagExpiration: string | null;
+  healthFlagCauseLongDesc: string | null; // "Se recomienda no bañarse en las 24hs posteriores a lluvias."
+  safetyFlagExpiration: string | null;
+};
+
+type CasillaMovil = { properties: { id: string } & Partial<Record<keyof VencimientoIm, string | null>> };
+
+async function getVencimientosSinCache(): Promise<Record<string, VencimientoIm>> {
+  const res = await fetch(URL_CASILLAS_MOVIL, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(`IM casillas (sitio móvil) falló (${res.status})`);
+  const { features } = (await res.json()) as { features: CasillaMovil[] };
+  return Object.fromEntries(
+    features.map(({ properties: p }) => [
+      p.id,
+      {
+        healthFlagExpiration: p.healthFlagExpiration ?? null,
+        healthFlagCauseLongDesc: p.healthFlagCauseLongDesc || null,
+        safetyFlagExpiration: p.safetyFlagExpiration ?? null,
+      },
+    ]),
+  );
+}
+
+// Mismo TTL que la API (5 min): la IM cambia la bandera sanitaria en el día (p. ej. tras lluvias).
+const getVencimientosCacheado = unstable_cache(getVencimientosSinCache, ["im-vencimientos-v1"], { revalidate: 300 });
+
+/** Vencimientos de las banderas por id de casilla; null si el sitio móvil de la IM no responde. */
+export async function getImVencimientos(): Promise<Record<string, VencimientoIm> | null> {
+  try {
+    return await getVencimientosCacheado();
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 }

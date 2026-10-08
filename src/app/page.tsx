@@ -6,6 +6,7 @@ import EncabezadoSitio from "@/components/EncabezadoSitio";
 import Etiqueta from "@/components/Etiqueta";
 import PieSitio from "@/components/PieSitio";
 import PodioFavoritas from "@/components/PodioFavoritas";
+import PreguntasFrecuentes from "@/components/PreguntasFrecuentes";
 import TarjetaNovedad from "@/components/TarjetaNovedad";
 import { getNovedades } from "@/lib/novedades";
 import { getMeGusta } from "@/lib/me-gusta";
@@ -391,6 +392,8 @@ export default async function Home() {
             </Link>
           </section>
         )}
+
+        <PreguntasFrecuentes />
       </main>
 
       <PieSitio>

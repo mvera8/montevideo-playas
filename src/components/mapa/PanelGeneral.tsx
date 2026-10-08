@@ -7,6 +7,7 @@ import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Punto } from "@/lib/transporte/planificador";
 import type { Weather } from "@/lib/weather";
 import AlertaInumet from "./AlertaInumet";
+import { SANITARIA } from "./BanderaSanitaria";
 import ClimaAhora from "./ClimaAhora";
 import { ContadorMeGusta } from "./MeGusta";
 import Recomendador from "./Recomendador";
@@ -331,7 +332,7 @@ function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; tempo
         </span>
       </div>
 
-      <IconoCasilla color={ESTADOS[estado].color} />
+      <IconoCasilla color={ESTADOS[estado].color} sanitaria={playa.guardavidas.some((g) => g.banderaSanitaria?.activa)} />
 
       <div className="mt-auto flex w-full items-end justify-between">
         <span>
@@ -367,8 +368,10 @@ function GotaAgua({ estado }: { estado: keyof typeof AGUA }) {
   );
 }
 
-// Mini casilla de guardavidas (misma silueta que el modelo 3D) con la bandera del estado.
-function IconoCasilla({ color }: { color: string }) {
+// Mini casilla de guardavidas (misma silueta que el modelo 3D) con la bandera del estado. Como en la casilla
+// 3D, la bandera sanitaria va debajo de la de seguridad, o en su lugar si no hay (fuera de temporada).
+function IconoCasilla({ color, sanitaria }: { color: string; sanitaria: boolean }) {
+  const sinBandera = color === ESTADOS["sin-datos"].color;
   return (
     <svg viewBox="0 0 64 40" className="my-2 h-10 w-full" aria-hidden>
       <g stroke="#9aa1a8" strokeWidth="1.5">
@@ -383,7 +386,13 @@ function IconoCasilla({ color }: { color: string }) {
       <rect x="22.5" y="14" width="15" height="5" fill="#3c4a55" />
       <path d="M17 11h26l-3-3H20z" fill="#e9e2d0" />
       <line x1="47" y1="4" x2="47" y2="26" stroke="#c9ced4" strokeWidth="1.2" />
-      <path d="M47 4.5h9l-1.5 2.5 1.5 2.5h-9z" fill={color} />
+      {!(sanitaria && sinBandera) && <path d="M47 4.5h9l-1.5 2.5 1.5 2.5h-9z" fill={color} />}
+      {sanitaria && (
+        <g transform={sinBandera ? undefined : "translate(0 6.5)"}>
+          <path d="M47 4.5h9v5h-9z" fill={SANITARIA.fondo} />
+          <path d="M50.9 4.9h1.2v1.5h1.5v1.2h-1.5v1.5h-1.2V7.6h-1.5V6.4h1.5z" fill={SANITARIA.cruz} />
+        </g>
+      )}
     </svg>
   );
 }

@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 // Botón principal del sitio: lleva al mapa de playas. Se repite en la home, las novedades y el
-// encabezado, así que va en un solo lugar.
+// encabezado, así que va en un solo lugar. `href` permite usar el mismo botón para otro destino
+// (p. ej. Contacto en las preguntas frecuentes).
 const TAMANOS = {
   chico: "gap-2 px-4 py-2 text-sm",
   grande: "gap-3 py-2.5 pl-7 pr-2.5 text-lg",
@@ -19,16 +20,18 @@ export default function BotonMapa({
   tono = "oscuro",
   texto = "Abrir el mapa de playas",
   className = "",
+  href = "/playas",
 }: {
   tamano?: keyof typeof TAMANOS;
   tono?: keyof typeof TONOS;
   texto?: string;
   className?: string;
+  href?: string;
 }) {
   const grande = tamano === "grande";
   return (
     <Link
-      href="/playas"
+      href={href}
       className={`group inline-flex items-center rounded-full font-semibold shadow-lg shadow-black/10 transition-colors ${TAMANOS[tamano]} ${TONOS[tono]} ${className}`}
     >
       {texto}

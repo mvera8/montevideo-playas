@@ -1,9 +1,11 @@
 import "server-only";
 import {
   getImLifeguardStations,
+  getImVencimientos,
   hasImCredentials,
   type ImLifeguardStation,
   type SafetyFlag,
+  type VencimientoIm,
 } from "./im";
 import orientaciones from "@/data/orientaciones.json";
 import { getCalidadAgua, type CalidadAgua } from "./calidad-agua";
@@ -24,7 +26,9 @@ export type Guardavidas = {
   // (npm run orientaciones); null si la casilla es nueva y todavía no está calculada.
   orientacion: number | null;
   bandera: Exclude<SafetyFlag, "noData"> | null;
-  banderaSanitaria: { activa: boolean; causa: string | null } | null;
+  // Bandera sanitaria (roja con cruz verde, "no apta para baños"): la IM la usa todo el año, p. ej.
+  // las 24 h posteriores a lluvias. Se muestra junto con la de seguridad.
+  banderaSanitaria: { activa: boolean; causa: string | null; detalle: string | null } | null;
 };
 
 export type Playa = {
@@ -129,17 +133,24 @@ function coordenadas(s: ImLifeguardStation): [number, number] {
   return [-Math.abs(lon), -Math.abs(lat)];
 }
 
-function toGuardavidas(s: ImLifeguardStation, temporadaActiva: boolean): Guardavidas {
+// `venc`: vencimientos del sitio móvil de la IM (la API no los trae; ver src/lib/im.ts).
+function toGuardavidas(s: ImLifeguardStation, temporadaActiva: boolean, venc: VencimientoIm | undefined): Guardavidas {
   const [lon, lat] = coordenadas(s);
   const bandera =
     s.safetyFlag &&
     s.safetyFlag !== "noData" &&
-    vigente(s.safetyFlagExpiration, temporadaActiva)
+    vigente(s.safetyFlagExpiration ?? venc?.safetyFlagExpiration, temporadaActiva)
       ? s.safetyFlag
       : null;
+  // Llega como texto: "false" sería verdadero si se usara tal cual.
+  const sanitaria = s.healthFlag === true || s.healthFlag === "true";
   const banderaSanitaria =
-    s.healthFlag != null && vigente(s.healthFlagExpiration, temporadaActiva)
-      ? { activa: s.healthFlag, causa: s.healthFlagCauseDesc ?? null }
+    s.healthFlag != null && vigente(s.healthFlagExpiration ?? venc?.healthFlagExpiration, temporadaActiva)
+      ? {
+          activa: sanitaria,
+          causa: s.healthFlagCauseDesc || null,
+          detalle: sanitaria ? (venc?.healthFlagCauseLongDesc ?? null) : null,
+        }
       : null;
   return {
     id: s.id,
@@ -229,12 +240,12 @@ export async function getPlayas(): Promise<PlayasResult> {
   try {
     // El endpoint /beaches de la IM devuelve casillas, no playas: las playas se
     // arman agrupando las casillas por su código de playa.
-    const stations = await getImLifeguardStations();
+    const [stations, vencimientos] = await Promise.all([getImLifeguardStations(), getImVencimientos()]);
 
     const porPlaya = new Map<string, Guardavidas[]>();
     for (const s of stations) {
       const codigo = s.beach || "sin-playa";
-      porPlaya.set(codigo, [...(porPlaya.get(codigo) ?? []), toGuardavidas(s, temporada.activa)]);
+      porPlaya.set(codigo, [...(porPlaya.get(codigo) ?? []), toGuardavidas(s, temporada.activa, vencimientos?.[s.id])]);
     }
 
     const playas = [...porPlaya.entries()]

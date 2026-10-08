@@ -21,12 +21,14 @@ import {
   crearGeometriaBandera,
   crearGeometriaCasilla,
 } from "./modelo";
+import { SANITARIA } from "./BanderaSanitaria";
 
 export type CasillaMapa = {
   id: string;
   lng: number;
   lat: number;
   bandera: "green" | "yellow" | "red" | "black" | null;
+  sanitaria: boolean; // bandera sanitaria activa (roja con cruz verde)
   vientoDeg: number | null; // de dónde sopla (0 = norte)
   vientoKmh: number | null;
   orientacion: number; // rumbo hacia el agua (0 = norte, 180 = sur): hacia ahí mira el frente
@@ -39,12 +41,22 @@ const COLORES: Record<NonNullable<CasillaMapa["bandera"]> | "none", string> = {
   black: "#1b1b1b",
   none: "#c9ced4", // fuera de temporada / sin datos
 };
+const SEPARACION_BANDERAS = BANDERA.alto + 0.3; // la sanitaria va debajo de la de seguridad, en el mismo mástil
+
+// Banderas de una casilla, de arriba hacia abajo. Sin bandera de seguridad (fuera de temporada) la
+// sanitaria ocupa su lugar en vez del paño gris.
+function banderasDe(c: CasillaMapa): { color: string; cruz: boolean }[] {
+  const sanitaria = { color: SANITARIA.fondo, cruz: true };
+  if (!c.bandera) return [c.sanitaria ? sanitaria : { color: COLORES.none, cruz: false }];
+  return c.sanitaria ? [{ color: COLORES[c.bandera], cruz: false }, sanitaria] : [{ color: COLORES[c.bandera], cruz: false }];
+}
 
 const FRAME_MS = 1000 / 30; // la bandera se anima a 30 fps para no recargar la GPU
 const ZOOM_ANIMACION = 13; // más lejos la bandera es muy chica: el mapa queda quieto
 
 // Una sola escena Three.js compartiendo el contexto WebGL de MapLibre.
-// Casillas y banderas son InstancedMesh → 2 draw calls para todas las playas.
+// Casillas y banderas son InstancedMesh → 2 draw calls para todas las playas. Una casilla puede tener
+// dos banderas (seguridad arriba, sanitaria abajo): cada bandera es una instancia.
 // El flameo de la bandera se calcula en el vertex shader (cero trabajo en CPU por frame).
 export class CapaCasillas implements CustomLayerInterface {
   readonly id = "casillas-3d";
@@ -93,15 +105,20 @@ export class CapaCasillas implements CustomLayerInterface {
 
     this.banderaMat = new ShaderMaterial({
       side: DoubleSide,
-      uniforms: { uTime: { value: 0 } },
+      uniforms: { uTime: { value: 0 }, uCruz: { value: new Color(SANITARIA.cruz) } },
       vertexShader: /* glsl */ `
         uniform float uTime;
         attribute float aViento;
         attribute vec3 aColor;
+        attribute float aCruz;
         varying vec3 vColor;
         varying float vShade;
+        varying vec2 vPos;
+        varying float vCruz;
         void main() {
           vec3 p = position;
+          vPos = p.xy;
+          vCruz = aCruz;
           float u = p.x / ${BANDERA.ancho.toFixed(2)};
           float fase = instanceMatrix[3].x * 0.37 + instanceMatrix[3].z * 0.23;
           float amp = mix(0.06, 0.32, aViento);
@@ -117,10 +134,16 @@ export class CapaCasillas implements CustomLayerInterface {
           gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(p, 1.0);
         }`,
       fragmentShader: /* glsl */ `
+        uniform vec3 uCruz;
         varying vec3 vColor;
         varying float vShade;
+        varying vec2 vPos;
+        varying float vCruz;
         void main() {
-          gl_FragColor = vec4(vColor * vShade, 1.0);
+          // Cruz centrada en el paño (metros, sin deformar por el flameo).
+          vec2 q = abs(vPos - vec2(${(BANDERA.ancho / 2).toFixed(2)}, ${(-BANDERA.alto / 2).toFixed(2)}));
+          float cruz = vCruz * float((q.x < 0.17 && q.y < 0.6) || (q.y < 0.17 && q.x < 0.6));
+          gl_FragColor = vec4(mix(vColor, uCruz, cruz) * vShade, 1.0);
           #include <colorspace_fragment>
         }`,
     });
@@ -210,19 +233,25 @@ export class CapaCasillas implements CustomLayerInterface {
       new MeshLambertMaterial({ vertexColors: true }),
       n,
     );
+    // Mismo orden que en actualizarMatrices: por casilla, de arriba hacia abajo.
+    const banderas = this.casillas.flatMap((c) =>
+      banderasDe(c).map((b) => ({ ...b, viento: Math.min(Math.max(((c.vientoKmh ?? 15) - 5) / 35, 0), 1) })),
+    );
+    const nb = banderas.length;
     const geoBandera = crearGeometriaBandera();
-    const viento = new Float32Array(n);
-    this.casillas.forEach((c, i) => {
-      viento[i] = Math.min(Math.max(((c.vientoKmh ?? 15) - 5) / 35, 0), 1);
-    });
-    const colores = new Float32Array(n * 3);
+    const viento = new Float32Array(nb);
+    const colores = new Float32Array(nb * 3);
+    const cruz = new Float32Array(nb);
     const color = new Color();
-    this.casillas.forEach((c, i) => {
-      color.set(COLORES[c.bandera ?? "none"]).toArray(colores, i * 3); // lineal
+    banderas.forEach((b, i) => {
+      viento[i] = b.viento;
+      cruz[i] = b.cruz ? 1 : 0;
+      color.set(b.color).toArray(colores, i * 3); // lineal
     });
     geoBandera.setAttribute("aViento", new InstancedBufferAttribute(viento, 1));
     geoBandera.setAttribute("aColor", new InstancedBufferAttribute(colores, 3));
-    this.banderasMesh = new InstancedMesh(geoBandera, this.banderaMat!, n);
+    geoBandera.setAttribute("aCruz", new InstancedBufferAttribute(cruz, 1));
+    this.banderasMesh = new InstancedMesh(geoBandera, this.banderaMat!, nb);
 
     for (const m of [this.casillasMesh, this.banderasMesh]) {
       m.frustumCulled = false; // la cámara es la del mapa; son pocas instancias
@@ -244,11 +273,12 @@ export class CapaCasillas implements CustomLayerInterface {
 
     const base = new Matrix4();
     const bandera = new Matrix4();
-    const mastil = new Matrix4().makeTranslation(MASTIL_POS.x, MASTIL_POS.y, MASTIL_POS.z);
+    const mastil = new Matrix4();
     const rot = new Matrix4();
     const giro = new Matrix4();
     const giroInverso = new Matrix4();
 
+    let j = 0; // índice de bandera
     this.casillas.forEach((c, i) => {
       const m = MercatorCoordinate.fromLngLat([c.lng, c.lat], 0);
       const x = (m.x - this.origen.x) / this.escalaMerc;
@@ -265,8 +295,11 @@ export class CapaCasillas implements CustomLayerInterface {
       // de la casilla: se deshace el giro antes de aplicar el del viento.
       const rumbo = (((c.vientoDeg ?? 135) + 180) * Math.PI) / 180;
       rot.makeRotationY(Math.PI / 2 - rumbo);
-      bandera.copy(base).multiply(mastil).multiply(giroInverso).multiply(rot);
-      this.banderasMesh!.setMatrixAt(i, bandera);
+      banderasDe(c).forEach((_, nivel) => {
+        mastil.makeTranslation(MASTIL_POS.x, MASTIL_POS.y - nivel * SEPARACION_BANDERAS, MASTIL_POS.z);
+        bandera.copy(base).multiply(mastil).multiply(giroInverso).multiply(rot);
+        this.banderasMesh!.setMatrixAt(j++, bandera);
+      });
     });
     this.casillasMesh!.instanceMatrix.needsUpdate = true;
     this.banderasMesh!.instanceMatrix.needsUpdate = true;
