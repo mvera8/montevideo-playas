@@ -1,5 +1,6 @@
 "use client";
 
+import { IconHeartFilled } from "@tabler/icons-react";
 import Link from "next/link";
 import { useTotalesAlDia } from "@/lib/me-gusta-cliente";
 import type { TotalesMeGusta } from "@/lib/me-gusta-temporada";
@@ -57,12 +58,7 @@ export default function RankingFavoritas({ inicial }: { inicial: Favorita[] }) {
                 )}
               </span>
               <span className="relative flex items-center gap-1 text-sm font-semibold tabular-nums text-rose-600">
-                <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
-                  <path
-                    d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z"
-                    fill="currentColor"
-                  />
-                </svg>
+                <IconHeartFilled className="h-4 w-4" aria-hidden />
                 {numero.format(p.temporada)}
                 <span className="sr-only"> me gusta</span>
               </span>

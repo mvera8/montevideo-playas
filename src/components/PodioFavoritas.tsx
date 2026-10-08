@@ -1,5 +1,6 @@
 "use client";
 
+import { IconHeartFilled } from "@tabler/icons-react";
 import Link from "next/link";
 import { useTotalesAlDia } from "@/lib/me-gusta-cliente";
 import type { TotalesMeGusta } from "@/lib/me-gusta-temporada";
@@ -51,17 +52,7 @@ export default function PodioFavoritas({ inicial, errorServidor }: { inicial: Fa
               {p.nombre}
             </span>
             <span className="flex items-center gap-1.5 text-sm font-semibold tabular-nums text-rose-300">
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4 fill-current"
-                aria-hidden
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z" />
-              </svg>
+              <IconHeartFilled className="h-4 w-4" aria-hidden />
               {numero.format(p.temporada)}
               <span className="sr-only"> me gusta</span>
             </span>

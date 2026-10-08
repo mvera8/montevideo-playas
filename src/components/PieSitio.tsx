@@ -1,5 +1,7 @@
 import Link from "next/link";
+import FirmaMartinVera from "@/components/FirmaMartinVera";
 import MarcaSitio from "@/components/MarcaSitio";
+import { SITIO } from "@/lib/sitio";
 import { ENLACES_LEGALES, ENLACES_PRINCIPALES, type EnlaceSitio } from "@/lib/navegacion";
 
 // Pie de todas las páginas menos el mapa. `children`: créditos propios de la página (p. ej. la foto
@@ -47,6 +49,14 @@ export default function PieSitio({ children }: { children?: React.ReactNode }) {
             abiertas: la fuente oficial manda. En la playa, seguí a los guardavidas. Emergencias: 911.
           </p>
           {children}
+        </div>
+      </div>
+      <div className="border-t border-white/10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-4 text-xs text-neutral-400 sm:flex-row sm:justify-between sm:px-6">
+          <p>
+            © {new Date().getFullYear()} {SITIO.marca}. Todos los derechos reservados.
+          </p>
+          <FirmaMartinVera />
         </div>
       </div>
     </footer>

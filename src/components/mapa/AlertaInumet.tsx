@@ -1,5 +1,6 @@
 "use client";
 
+import { IconAlertTriangleFilled } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import type { AdvertenciaInumet, AlertasInumet, NivelAlerta } from "@/lib/inumet";
 
@@ -58,9 +59,7 @@ function Advertencia({ adv, pdf, ahora }: { adv: AdvertenciaInumet; pdf: string 
   return (
     <section className={`rounded-2xl p-4 shadow-sm ${n.clase}`}>
       <div className="flex items-center gap-2">
-        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="currentColor" aria-hidden>
-          <path d="M12 2 1 21h22L12 2Zm0 6 .01 0c.55 0 1 .45 1 1v5a1 1 0 1 1-2 0V9c0-.55.45-1 1-1Zm0 10.5a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Z" />
-        </svg>
+        <IconAlertTriangleFilled className="h-5 w-5 shrink-0" aria-hidden />
         <p className="font-semibold">Advertencia {n.label} de Inumet</p>
       </div>
       <p className="mt-1.5 text-sm font-medium">{adv.fenomeno}</p>

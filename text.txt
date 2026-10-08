@@ -4,9 +4,10 @@ Prompts
 
 ---
 
-MV marca
 
 Probar Correo
+
+Errores
 
 Servidor
 
@@ -14,30 +15,26 @@ Analytics
 
 Seguridad de datos
 
-Reportar algo? como en waze
-
 Anti demandas
+
+Instagram
+
+
 
 -
 
-Reportar algo?
+Acciones:
+
+- Me gusta (ok)
+
+- Reportar algo?
 widget de si algo pasa en la esquina derecha en /playas
 
-Rey de la playa? - pagina aparte con actuales reyes o reinas, si ya sos rey o reina de una playa no podes ser de otra
+- Rey de la playa? - pagina aparte con actuales reyes o reinas, si ya sos rey o reina de una playa no podes ser de otra
 
+- Subscribción email playa por dia?
 
 ------
-
-LEGAL:
-
-Antes de publicar, completá los datos marcados en src/lib/sitio.ts: quién es el responsable, un correo de contacto y dónde está alojado el sitio. Hoy aparecen como "[COMPLETAR: …]" en las páginas, para que no se escapen.
-
-----
-
-Subscribción email playa por dia?
-
-----
-
 
 
 Producto

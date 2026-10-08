@@ -41,7 +41,7 @@ Sin credenciales la página muestra una lista de playas de respaldo con clima pe
 
 | Endpoint | Devuelve |
 | --- | --- |
-| `GET /api/playas` | Playas con sus casillas de guardavidas y clima |
+| `GET /api/playas` | Playas con sus casillas de guardavidas, clima, calidad del agua y aguas vivas reportadas |
 | `GET /api/guardavidas` | Casillas (lista plana) y estado de la temporada |
 | `GET /api/clima` | Clima actual en Montevideo |
 | `GET /api/clima/[playa]` | Clima en una playa, p. ej. `/api/clima/pocitos` |
@@ -84,6 +84,14 @@ vez del paño gris. En el panel aparece en cada casilla (no en el título de la 
   Todas las casillas son un `InstancedMesh` y todas las banderas otro → 2 draw calls en total.
   El flameo es un vertex shader; solo se anima a zoom ≥ 13, a 30 fps, y se pausa con la pestaña oculta
   o con `prefers-reduced-motion`.
+- Aguas vivas: frente a cada playa con reportes a menos de 5 km en los últimos 10 días (los mismos del chip
+  "reportes cerca", `reportesCerca` en `AguasVivas.tsx`) flota un agua viva 3D, violeta, o roja si alguno es
+  fragata portuguesa u Olindias. Un `InstancedMesh` más (1 draw call), semitransparente: el latido de la
+  campana, los tentáculos y el sube y baja van en el vertex shader, con el mismo reloj de 30 fps que las
+  banderas; de noche brilla. Se corre hacia el agua según la orientación de la playa (más lejos de cerca,
+  para no quedar encima de la casilla del medio). Al tocarla se abre la playa con la sección "Aguas vivas"
+  desplegada y a la vista: como se corre con el zoom, no hay capa GeoJSON de toque; `aguaVivaEn` de la capa
+  proyecta dónde quedó cada una en el último cuadro y compara con el punto tocado.
 - El worker de MapLibre se copia a `public/maplibre` en `postinstall`.
 - La IM agrupa casillas por código de playa (`beach`); su endpoint `/beaches` devuelve casillas, no playas.
 - `/playas?playa=pocitos` abre directamente esa playa.
@@ -170,6 +178,38 @@ no se muestra nada).
   última lectura buena tiene más de 1 h, se muestra "sin datos recientes" con enlace a INUMET.
 - **Validar**: `curl -s https://www.inumet.gub.uy/alerta | grep -o 'var alerta = .\{0,300\}'`; para ver
   una advertencia real con el formato completo, el Wayback Machine del 19/02/2026 (`/web/20260219134431id_/https://www.inumet.gub.uy/alerta`).
+
+## Aguas vivas reportadas
+
+`src/lib/aguas-vivas.ts` trae los **avistamientos de aguas vivas (medusas) que la comunidad sube a
+iNaturalist** en la costa de Montevideo, y `AguasVivas.tsx` los muestra en el detalle de cada playa
+(sección "Aguas vivas", con la distancia a la playa) y, si hay reportes cerca, un agua viva 3D en el mapa
+(ver "Mapa 3D"). No hay un monitoreo oficial de aguas vivas.
+
+- **URL**: `https://api.inaturalist.org/v2/observations` (JSON, sin API key; pide `User-Agent` y no
+  pasar de ~60 pedidos/min). Un solo pedido para toda la costa: caja `swlat=-34.98&swlng=-56.45&nelat=-34.75&nelng=-55.95`
+  (Punta Espinillo a Lagomar), `d1` = hace 11 días (10 de vigencia + 1 de margen por la zona horaria), `order_by=observed_on`.
+- **Taxones**: `taxon_id=48332,48921,68095` (Scyphozoa, Hydrozoa, Cubozoa) y `without_taxon_id=203710`
+  (Hydra, de agua dulce). `quality_grade=research,needs_id` (la segunda se marca "sin confirmar");
+  `geoprivacy=open&taxon_geoprivacy=open`, porque las coordenadas ocultas se corren hasta ~20 km.
+  Se descartan las de precisión peor que 5 km. Las especies que aparecen: *Lychnorhiza lucerna* (la
+  más común), *Chrysaora lactea*, *Olindias sambaquiensis* y *Physalia* (fragata portuguesa); los
+  nombres en español están en `NOMBRES` porque iNaturalist casi no los tiene.
+- **Quirk**: usar la **v2 con `fields=`** (solo los campos usados): ~1,6 KB. La v1 no tiene `fields` y
+  manda fotos, identificaciones y usuario: ~550 KB por 5 observaciones. Tarda ~1,8 s.
+- **Frecuencia medida (08/10/2026)**: ~31 observaciones en 2018-2026 en toda la caja, 2 a 7 por año,
+  casi todas de noviembre a marzo. Muy pocas: la interfaz aclara que la falta de reportes no significa
+  que no haya aguas vivas.
+- **Vigencia**: un reporte cuenta como actual hasta 10 días (`DIAS_VIGENCIA`; un arribazón dura días) y
+  solo se piden esos días (`d1`). Sin reportes vigentes en la costa, o si iNaturalist no responde, la
+  sección "Aguas vivas" de la playa **no se muestra** (con 2 a 7 reportes por año estaría casi siempre
+  vacía). "Cerca" = a menos de 5 km (`KM_CERCA`).
+- **Cache**: `next: { revalidate: 3600 }` (1 h), timeout de 8 s y, si falla, pausa de 5 min. Si no
+  responde, la sección no se muestra (no se afirma que no haya).
+- **Licencias**: cada observación tiene la suya (CC0, CC BY, CC BY-NC o todos los derechos). Solo se
+  muestran hechos (especie, fecha, lugar aproximado) con enlace a la observación; nada de fotos, textos ni
+  nombre de usuario.
+- **Validar**: `curl -s "https://api.inaturalist.org/v2/observations?swlat=-34.98&swlng=-56.45&nelat=-34.75&nelng=-55.95&taxon_id=48332,48921,68095&per_page=5&order_by=observed_on&fields=id,observed_on,place_guess,taxon.name"`
 
 ## Baños, bebederos y duchas cercanos
 

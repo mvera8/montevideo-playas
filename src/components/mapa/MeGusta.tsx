@@ -1,5 +1,6 @@
 "use client";
 
+import { IconHeart, IconHeartFilled } from "@tabler/icons-react";
 import Link from "next/link";
 import { useState } from "react";
 import type { TotalesMeGusta } from "@/lib/me-gusta";
@@ -12,16 +13,9 @@ const numero = new Intl.NumberFormat("es-UY");
 const color = (lleno: boolean) => (lleno ? "text-rose-600 dark:text-rose-400" : "text-slate-400 dark:text-slate-500");
 
 function Corazon({ lleno, className = "h-4 w-4" }: { lleno: boolean; className?: string }) {
+  const Icono = lleno ? IconHeartFilled : IconHeart;
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path
-        d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z"
-        fill={lleno ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <Icono className={className} stroke={1.8} aria-hidden />
   );
 }
 

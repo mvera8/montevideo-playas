@@ -1,3 +1,4 @@
+import { IconMessageQuestion, IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
 import BotonMapa from "@/components/BotonMapa";
 import Etiqueta from "@/components/Etiqueta";
@@ -151,17 +152,7 @@ export default function PreguntasFrecuentes() {
               <details className="group rounded-2xl bg-white shadow-sm ring-1 ring-sky-100 open:ring-sky-200">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 text-left font-medium text-slate-900 hover:text-sky-700 sm:px-6 [&::-webkit-details-marker]:hidden">
                   {p.pregunta}
-                  <svg
-                    viewBox="0 0 24 24"
-                    aria-hidden
-                    className="h-5 w-5 shrink-0 text-sky-700 transition-transform group-open:rotate-45 motion-reduce:transition-none"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.8}
-                    strokeLinecap="round"
-                  >
-                    <path d="M12 4v16M4 12h16" />
-                  </svg>
+                  <IconPlus className="h-5 w-5 shrink-0 text-sky-700 transition-transform group-open:rotate-45 motion-reduce:transition-none" stroke={1.8} aria-hidden />
                 </summary>
                 <p className="px-5 pb-6 leading-relaxed text-slate-600 sm:px-6 sm:pr-14 [&_a]:text-sky-700 [&_a]:underline [&_strong]:font-semibold [&_strong]:text-slate-800">
                   {p.respuesta}
@@ -172,21 +163,7 @@ export default function PreguntasFrecuentes() {
         </ul>
 
         <div className="mt-16 flex flex-col items-center text-center">
-          <svg
-            viewBox="0 0 48 48"
-            aria-hidden
-            className="h-14 w-14 text-sky-700"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 10.5a10 10 0 1 1 9.5 13.6l-1 .1 6 3.3-1.4-5.2A10 10 0 0 1 20 10.5Z" fill="white" />
-            <path d="M24 14h10M24 18h8" />
-            <path d="M8 31a9 9 0 1 1 5.3 8.2L7 41l2-5.3A9 9 0 0 1 8 31Z" fill="white" />
-            <path d="M14.7 28.6a2.3 2.3 0 1 1 3.2 2.1c-.6.3-.9.8-.9 1.4v.6M17 35.5h.01" />
-          </svg>
+          <IconMessageQuestion className="h-14 w-14 text-sky-700" stroke={1.4} aria-hidden />
           <h3 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">¿Te quedó alguna duda?</h3>
           <p className="mt-3 max-w-md text-slate-500">
             Escribinos para consultas, errores en los datos o ideas para el sitio.

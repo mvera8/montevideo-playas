@@ -1,5 +1,6 @@
 "use client";
 
+import { IconLoader2, IconMapPin } from "@tabler/icons-react";
 // Botón que pide la ubicación ("Sumar mi viaje", "Usar mi ubicación"). Mientras el navegador busca,
 // muestra un spinner y late suave para que se note que está haciendo algo; al tocarlo se achica un
 // poco. `select-none` evita que en iPhone un toque largo seleccione el texto en vez de apretar.
@@ -32,10 +33,7 @@ export default function BotonUbicacion({
         </>
       ) : (
         <>
-          <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-            <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z" />
-            <circle cx="12" cy="9.5" r="2.5" />
-          </svg>
+          <IconMapPin className="h-4 w-4 shrink-0" aria-hidden />
           {texto}
         </>
       )}
@@ -45,9 +43,6 @@ export default function BotonUbicacion({
 
 export function Spinner({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={`shrink-0 animate-spin motion-reduce:animate-none ${className}`} fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
+    <IconLoader2 className={`shrink-0 animate-spin motion-reduce:animate-none ${className}`} aria-hidden />
   );
 }

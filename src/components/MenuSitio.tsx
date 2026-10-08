@@ -1,5 +1,6 @@
 "use client";
 
+import { IconBeach, IconFileText, IconHeart, IconHome, IconMail, IconMenu2, IconNews, IconShieldCheck, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -16,42 +17,14 @@ import { SITIO } from "@/lib/sitio";
 
 const sinSuscripcion = () => () => {};
 
-const trazo = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
-
-const ICONOS: Record<EnlaceSitio["icono"], React.ReactNode> = {
-  inicio: <path d="M4 11.5 12 5l8 6.5M6 10v9h4.5v-5h3v5H18v-9" />,
-  playas: (
-    <>
-      <path d="M3 18c1.5 0 1.5-1 3-1s1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1" />
-      <circle cx="16.5" cy="7.5" r="3" />
-      <path d="M3 14c2-3 5-4.5 9-4" />
-    </>
-  ),
-  favoritas: <path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z" />,
-  novedades: (
-    <>
-      <rect x="4" y="4.5" width="16" height="15" rx="2" />
-      <path d="M8 9h8M8 12.5h8M8 16h5" />
-    </>
-  ),
-  terminos: (
-    <>
-      <path d="M6 3.5h8l4 4v13H6Z" />
-      <path d="M9 12h6M9 15.5h6" />
-    </>
-  ),
-  privacidad: (
-    <>
-      <path d="M12 3.5 19 6v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6l7-2.5Z" />
-      <path d="m9 12 2 2 4-4" />
-    </>
-  ),
-  contacto: (
-    <>
-      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
-      <path d="m4 7 8 6 8-6" />
-    </>
-  ),
+const ICONOS: Record<EnlaceSitio["icono"], typeof IconHome> = {
+  inicio: IconHome,
+  playas: IconBeach,
+  favoritas: IconHeart,
+  novedades: IconNews,
+  terminos: IconFileText,
+  privacidad: IconShieldCheck,
+  contacto: IconMail,
 };
 
 const TINTA = "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white";
@@ -92,6 +65,7 @@ export default function MenuSitio({
   }, [abierto]);
 
   const enlace = ({ href, label, icono }: EnlaceSitio) => {
+    const Icono = ICONOS[icono];
     const actual = href === pathname;
     return (
       <li key={href}>
@@ -105,9 +79,7 @@ export default function MenuSitio({
               : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
           }`}
         >
-          <svg viewBox="0 0 24 24" className={`h-5 w-5 shrink-0 ${actual ? "text-sky-600 dark:text-sky-300" : "text-slate-400"}`} aria-hidden {...trazo}>
-            {ICONOS[icono]}
-          </svg>
+          <Icono className={`h-5 w-5 shrink-0 ${actual ? "text-sky-600 dark:text-sky-300" : "text-slate-400"}`} stroke={1.8} aria-hidden />
           {label}
         </Link>
       </li>
@@ -146,9 +118,7 @@ export default function MenuSitio({
             aria-label="Cerrar menú"
             className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
           >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden {...trazo} strokeWidth={2}>
-              <path d="M6 6l12 12M18 6 6 18" />
-            </svg>
+            <IconX className="h-5 w-5" aria-hidden />
           </button>
         </div>
 
@@ -175,9 +145,7 @@ export default function MenuSitio({
         title="Menú"
         className={`grid shrink-0 place-items-center ${BOTON[variante]}`}
       >
-        <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden {...trazo} strokeWidth={2}>
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
+        <IconMenu2 className="h-5 w-5" aria-hidden />
       </button>
 
       {enCliente && createPortal(cajonMenu, document.body)}

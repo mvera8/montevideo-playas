@@ -1,5 +1,6 @@
 "use client";
 
+import { IconCamera } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import Modal, { BotonModal } from "@/components/Modal";
 import { crearFotoConSello, HASHTAG, type Sello } from "@/lib/sello-foto";
@@ -74,10 +75,7 @@ export default function FotoPlaya({
         {estado === "armando" ? (
           <Spinner />
         ) : (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinejoin="round" aria-hidden>
-            <path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1.5-2h6l1.5 2h2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5Z" />
-            <circle cx="12" cy="12.5" r="3.5" />
-          </svg>
+          <IconCamera className="h-4 w-4" stroke={1.8} aria-hidden />
         )}
       </button>
       <input ref={input} type="file" accept="image/*" capture="environment" onChange={alElegir} className="hidden" />

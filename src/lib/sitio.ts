@@ -12,7 +12,7 @@ export const SITIO = {
   alcance: ALCANCE,
   marca: `${NOMBRE} · ${ALCANCE}`,
   // Persona o empresa responsable del sitio y del tratamiento de datos (Ley 18.331).
-  responsable: "[COMPLETAR: nombre o razón social]",
+  responsable: "Martín Vera",
   // Correo público de contacto y destino del formulario de /contacto (ver src/lib/contacto.ts): mientras
   // no se use un dominio propio en Mailgun, tiene que estar en sus "Authorized Recipients".
   contacto: "tinchobolso8@gmail.com",
