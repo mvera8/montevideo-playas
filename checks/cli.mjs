@@ -14,9 +14,10 @@ import seo from "./reglas/seo.mjs";
 import imagenes from "./reglas/imagenes.mjs";
 import codigo from "./reglas/codigo.mjs";
 import analytics from "./reglas/analytics.mjs";
+import producto from "./reglas/producto.mjs";
 import reglasUrl, { crearContextoUrl, descubrirPaginas } from "./reglas/url.mjs";
 
-const REGLAS = [...iconos, ...seo, ...imagenes, ...codigo, ...analytics];
+const REGLAS = [...iconos, ...seo, ...imagenes, ...codigo, ...producto, ...analytics];
 // Comentario en la línea anterior: `// next-checks-ignore` (todas) o `// next-checks-ignore alt, next-image`.
 // También se respetan los eslint-disable equivalentes para no duplicar comentarios.
 const ESLINT_EQUIVALENTE = { "next-image": "no-img-element", "link-interno": "no-html-link-for-pages", "console-log": "no-console" };

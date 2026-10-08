@@ -175,6 +175,36 @@ const reglas = [
     },
   },
   {
+    id: "url-404",
+    categoria: "Sitio en vivo",
+    titulo: "404 real y con la navegación del sitio",
+    nivel: "warn",
+    async run(ctx) {
+      const r = await ctx.pedir(`/no-existe-${Date.now().toString(36)}`);
+      if (r.status === 200) return [{ msg: "Una ruta inexistente responde 200 (soft 404): Google la indexa como página válida.", nivel: "error" }];
+      if (r.status !== 404) return [{ msg: `Una ruta inexistente responde ${r.status || r.error} en vez de 404.` }];
+      if (/This page could not be found/i.test(r.texto))
+        return [{ msg: "El 404 es el genérico de Next (en inglés y sin navegación).", arreglo: "Creá app/not-found.tsx con un mensaje y link al inicio." }];
+      return [];
+    },
+  },
+  {
+    id: "url-responsive",
+    categoria: "Sitio en vivo",
+    titulo: "Viewport para móvil",
+    nivel: "error",
+    run: (ctx) =>
+      porPagina(ctx, (p) => {
+        const v = meta(p.texto, "viewport");
+        if (v == null) return [{ msg: "Sin meta viewport: en el celular se ve como escritorio achicado." }];
+        const h = [];
+        if (!/width\s*=\s*device-width/i.test(v)) h.push({ msg: `El viewport no tiene width=device-width ("${v}").` });
+        if (/user-scalable\s*=\s*(no|0)|maximum-scale\s*=\s*1(\.0)?\b/i.test(v))
+          h.push({ msg: "El viewport bloquea el zoom (accesibilidad).", nivel: "warn" });
+        return h;
+      }).slice(0, 1),
+  },
+  {
     id: "url-robots-sitemap",
     categoria: "Sitio en vivo",
     titulo: "robots.txt y sitemap.xml",

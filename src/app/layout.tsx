@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   description: `Playas, guardavidas, calidad del agua y clima en ${SITIO.nombre}.`,
   openGraph: { siteName: SITIO.marca, locale: "es_UY", type: "website" },
   twitter: { card: "summary_large_image" },
+  // Nombre sugerido en iOS al "Agregar a inicio" (sin esto usa el <title> o el short_name del manifest).
+  appleWebApp: { title: `${SITIO.nombre} ${SITIO.alcance}` },
 };
 
 // Color de la barra del navegador en el celular: el mismo fondo del sitio en claro y oscuro (globals.css).

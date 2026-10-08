@@ -15,6 +15,12 @@ import { SITIO } from "./sitio";
 //   5 "Authorized Recipients": agregar SITIO.contacto ahí (Sending → Domains → el sandbox → Authorized
 //   Recipients) y aceptar el correo de verificación. Si no, Mailgun responde 403. Con dominio propio
 //   verificado, cambiar MAILGUN_DOMAIN y se puede enviar a cualquier dirección.
+// - Dominio propio: en Mailgun se usa el subdominio `mg.playas.uy` (lo recomienda Mailgun y deja libre
+//   el MX de playas.uy para recibir). Registros DNS (panel de ANTEL, NS anteldata.com.uy): los TXT de
+//   SPF y DKIM y el CNAME de tracking que muestra Mailgun para mg.playas.uy, y `_dmarc.playas.uy` TXT
+//   `v=DMARC1; p=none`. El remitente sale como contacto@playas.uy (sin el `mg.`): DMARC en modo
+//   relajado acepta la firma DKIM de mg.playas.uy para playas.uy.
+// - Recibir en contacto@playas.uy NO pasa por acá: lo hace un reenvío (MX de playas.uy, ver README).
 // - Responder: el correo de quien escribe va en `h:Reply-To`, así "Responder" le contesta directo.
 // - No se guarda nada en el servidor: el mensaje solo queda en la bandeja de entrada y en los
 //   registros de Mailgun (Dashboard → Send → Logs, retención corta en el plan gratis).
@@ -31,12 +37,14 @@ export function contactoActivo() {
 }
 
 export async function enviarContacto({ nombre, correo, mensaje }: { nombre: string; correo: string; mensaje: string }) {
-  const dominio = process.env.MAILGUN_DOMAIN;
+  const dominio = process.env.MAILGUN_DOMAIN!;
+  // Con un subdominio de envío (mg.playas.uy) el remitente usa el dominio principal; con el sandbox, el sandbox.
+  const remitente = `contacto@${dominio.replace(/^mg\./, "")}`;
   const res = await fetch(`${API}/v3/${dominio}/messages`, {
     method: "POST",
     headers: { Authorization: `Basic ${Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString("base64")}` },
     body: new URLSearchParams({
-      from: `${SITIO.nombre} <contacto@${dominio}>`,
+      from: `${SITIO.nombre} ${SITIO.alcance} <${remitente}>`,
       to: SITIO.contacto,
       "h:Reply-To": correo,
       subject: `Contacto de ${nombre} · ${SITIO.nombre}`,

@@ -5,18 +5,9 @@ https://m.montevideo.gub.uy/playas/
 
 ---
 
-Fotos
-Dominio
-
 MV marca
 
-Limitantes
-- 100 emails por dia
-- Request? APIs
-
 Servidor
-
-Apis performance (quota) y uso
 
 Analytics
 
@@ -26,12 +17,14 @@ Reportar algo? como en waze
 
 bandera de salud?
 
+Anti demandas
+
 -
 
 Reportar algo?
+widget de si algo pasa en la esquina derecha en /playas
 
 Rey de la playa? - pagina aparte con actuales reyes o reinas, si ya sos rey o reina de una playa no podes ser de otra
-
 
 
 ------

@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 
 // Cliente de Montevideo API (Intendencia de Montevideo).
 // Docs: https://api.montevideo.gub.uy/apidocs/beaches
@@ -80,17 +81,26 @@ export async function getToken(servicio: ImServicio = "playas"): Promise<string>
   return json.access_token;
 }
 
-async function imGet<T>(path: string): Promise<T> {
+async function imGetSinCache(path: string): Promise<unknown> {
   const token = await getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-    next: { revalidate: 300 },
+    cache: "no-store",
   });
   if (res.status === 401) invalidarToken("playas");
   if (!res.ok) {
     throw new Error(`IM ${path} falló (${res.status}): ${await res.text()}`);
   }
-  return res.json() as Promise<T>;
+  return res.json();
+}
+
+// 5 min compartidos entre todas las instancias. Con `next: { revalidate }` en el fetch el token
+// (header Authorization) quedaba en la clave del cache: cada instancia y cada token nuevo (~5 min)
+// era un pedido más a la IM. Los errores no se cachean.
+const imGetCacheado = unstable_cache(imGetSinCache, ["im-get-v1"], { revalidate: 300 });
+
+function imGet<T>(path: string): Promise<T> {
+  return imGetCacheado(path) as Promise<T>;
 }
 
 export function getImLifeguardStations() {

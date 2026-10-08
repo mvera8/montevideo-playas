@@ -14,8 +14,8 @@ import { getTemporada, nombrePlayaPorSlug, playasConocidas } from "@/lib/playas"
 import { SITIO } from "@/lib/sitio";
 // Import estático: next/image sabe el tamaño, genera el blur y sirve AVIF/WebP al ancho justo.
 // Origen y licencia de las fotos: README, "Home y novedades".
-import fotoPortada from "../../public/fotos/atardecer-rambla-montevideo.jpg";
-import fotoCasilla from "../../public/fotos/casilla-guardavidas-buceo.jpg";
+import fotoPortada from "../../public/fotos/atardecer-rambla-montevideo.webp";
+import fotoCasilla from "../../public/fotos/casilla-guardavidas-buceo.webp";
 
 // Home: qué hace el sitio y cómo llegar al mapa (/playas). El único dato externo es el podio de
 // favoritas (totales de me gusta, un pedido chico a Supabase cacheado 5 min, ver src/lib/me-gusta.ts;
