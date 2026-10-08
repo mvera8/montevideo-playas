@@ -6,10 +6,11 @@ import { SITIO } from "@/lib/sitio";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: SITIO.marca,
-    short_name: SITIO.nombre,
+    // Nombre debajo del ícono (iOS lo toma de appleWebApp.title en layout.tsx).
+    short_name: `${SITIO.nombre} ${SITIO.alcance}`,
     description: `Playas, guardavidas, calidad del agua y clima en ${SITIO.nombre}.`,
     lang: "es-UY",
-    start_url: "/playas",
+    start_url: "/",
     display: "standalone",
     theme_color: "#0b1620",
     background_color: "#0b1620",

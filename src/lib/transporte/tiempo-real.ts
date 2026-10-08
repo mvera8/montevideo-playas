@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { getToken, invalidarToken } from "../im";
 import { getIndice, type Patron } from "./gtfs";
 
@@ -8,6 +9,8 @@ import { getIndice, type Patron } from "./gtfs";
 
 const BUSES = "https://api.montevideo.gub.uy/api/transportepublico/buses";
 const CACHE_MS = 15_000; // una sola llamada con todos los ómnibus, compartida por todos los usuarios
+// Si la copia compartida tiene más que esto (nadie la pidió en un rato), se pide de nuevo en el momento.
+const COMPARTIDO_MAX_MS = 60_000;
 const VIEJO_MS = 5 * 60_000;
 
 type BusIm = {
@@ -33,18 +36,32 @@ const g = globalThis as unknown as { __buses?: { datos: BusIm[]; hora: number; p
 g.__buses ??= { datos: [], hora: 0 };
 const cache = g.__buses;
 
+async function traerBuses(): Promise<{ hora: number; datos: BusIm[] }> {
+  const res = await fetch(BUSES, {
+    headers: { Authorization: `Bearer ${await getToken("transporte")}` },
+    cache: "no-store",
+  });
+  if (res.status === 401) invalidarToken("transporte");
+  if (!res.ok) throw new Error(`Buses IM falló (${res.status})`);
+  return { hora: Date.now(), datos: await res.json() };
+}
+
+// Cache compartido entre todas las instancias del servidor (Data Cache de Next; en Vercel es global).
+// No alcanza con `next: { revalidate }` en el fetch: el header Authorization es parte de la clave y
+// cada instancia tiene su propio token, así que cada una cacheaba aparte. La respuesta pesa ~460 KB
+// (1.232 ómnibus, medido 08/10/2026), dentro del tope de 2 MB por entrada. Los errores no se cachean.
+const busesCompartidos = unstable_cache(traerBuses, ["im-buses-v1"], { revalidate: CACHE_MS / 1000 });
+
 async function getBuses(): Promise<BusIm[]> {
   if (Date.now() - cache.hora < CACHE_MS) return cache.datos;
   cache.promesa ??= (async () => {
     try {
-      const res = await fetch(BUSES, {
-        headers: { Authorization: `Bearer ${await getToken("transporte")}` },
-        cache: "no-store",
-      });
-      if (res.status === 401) invalidarToken("transporte");
-      if (!res.ok) throw new Error(`Buses IM falló (${res.status})`);
-      cache.datos = await res.json();
-      cache.hora = Date.now();
+      let r = await busesCompartidos();
+      // unstable_cache devuelve lo viejo y revalida de fondo: si hace rato que nadie pedía, eso
+      // puede tener horas y no sirve para estimar llegadas.
+      if (Date.now() - r.hora > COMPARTIDO_MAX_MS) r = await traerBuses();
+      cache.datos = r.datos;
+      cache.hora = r.hora;
       return cache.datos;
     } catch (e) {
       // Ante un error (p. ej. límite de uso), devolvemos lo último que tengamos.

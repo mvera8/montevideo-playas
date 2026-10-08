@@ -50,6 +50,12 @@ Sin credenciales la página muestra una lista de playas de respaldo con clima pe
 | `POST /api/como-ir` `{desde, hasta}` | Opciones en ómnibus (directas o con 1 trasbordo) |
 | `GET /api/omnibus/llegadas?tramos=variante:parada,...` | Estimación en vivo de los próximos ómnibus |
 
+Cache: `/api/playas` y `/api/guardavidas` son ISR de 5 min; `/api/clima/[playa]` y
+`/api/pronostico/[playa]` mandan `s-maxage=600` y las sirve el CDN de Vercel sin invocar la función.
+Las llamadas a la IM (`imGet` en `src/lib/im.ts`) se cachean 5 min con `unstable_cache`, compartido
+entre instancias. Ojo: `next: { revalidate }` en un `fetch` con `Authorization` no sirve, porque el
+header entra en la clave del cache y el token cambia por instancia y cada ~5 min.
+
 Si la IM informa vencimiento de la bandera, se respeta; si no lo informa, la bandera solo
 se considera válida en temporada (15/11 – 30/04). Fuera de temporada aparecen grises ("sin servicio").
 
@@ -86,8 +92,10 @@ geométrica de 5 muestras que publica la IM. `src/lib/calidad-agua.ts` los cruza
 
 ## Clima y mar
 
-Todas las fuentes son gratis **también para uso comercial** (con publicidad), citando la fuente.
-Antes se usaba Open-Meteo, que gratis es solo para uso no comercial.
+Todas las fuentes son gratis **también para uso comercial**, citando la fuente (hoy el sitio no
+tiene publicidad; elegirlas así deja la puerta abierta). Antes se usaba Open-Meteo, que gratis es
+solo para uso no comercial. Ojo: el plan Hobby de Vercel sí es solo para uso no comercial; si algún
+día se suma publicidad, hay que pasar a Pro.
 
 - **Clima — MET Norway** Locationforecast 2.0 (`src/lib/weather.ts`):
   `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=-34.90&lon=-56.15` (JSON, CC BY 4.0).
@@ -191,11 +199,16 @@ un solo servicio): `IM_TRANSPORTE_CLIENT_ID` / `IM_TRANSPORTE_CLIENT_SECRET`.
   del STM (paradas, horarios y recorridos). Busca viajes directos y con un trasbordo, con paradas
   a ≤ 900 m del origen y ≤ 800 m de la playa, y ordena por hora de llegada.
 - El GTFS (~17 MB) se descarga una vez por versión, se guarda en el directorio temporal y se
-  procesa en streaming (~2 s). `src/instrumentation.ts` lo precarga al iniciar el servidor.
+  procesa en streaming (~2 s). `src/instrumentation.ts` lo precarga al iniciar el servidor, **salvo en
+  Vercel** (`VERCEL` definida): ahí cada instancia nueva lo correría aunque nunca atienda "cómo ir"
+  (CPU activa del plan Hobby: 4 h por mes), así que se arma la primera vez que alguien lo usa (~3 s).
 - En vivo: `upcomingbuses` de la IM devuelve vacío, así que la llegada se estima proyectando la
   posición GPS de cada ómnibus (`/buses`) sobre el recorrido de su variante
   (en este feed `shape_id` = `lineVariantId`). `/buses` se consulta como máximo cada 15 s para
-  todos los usuarios, por el límite de uso de la IM.
+  todos los usuarios y todas las instancias (`unstable_cache`, ~460 KB con 1.232 ómnibus medido el
+  08/10/2026; tope de 2 MB por entrada), por el límite de uso de la IM ("un número razonable de
+  consultas por segundo", sin cifra; uso intensivo: pci@imm.gub.uy). Si la copia compartida tiene más
+  de 60 s (nadie la pidió en un rato), se pide de nuevo en el momento.
 - No contempla feriados ni horarios especiales.
 
 ## Me gusta
@@ -274,6 +287,17 @@ plan gratis: 100/día, un dominio). Código: `src/lib/contacto.ts` (envío y top
   envía a "Authorized Recipients"** (hasta 5, cada uno confirma por correo). Agregar ahí
   `SITIO.contacto`; si no, Mailgun responde 403. Con dominio propio verificado (DNS SPF/DKIM),
   cambiar `MAILGUN_DOMAIN`.
+- **Dominio propio (contacto@playas.uy):** el DNS de playas.uy está en ANTEL (`ns1/ns2.anteldata.com.uy`).
+  1. Enviar: en Mailgun agregar `mg.playas.uy` (región US) y cargar en ANTEL los registros que muestra
+     (TXT SPF y TXT DKIM de `mg.playas.uy`, CNAME `email.mg.playas.uy`; los MX de `mg` no hacen falta),
+     más `_dmarc.playas.uy` TXT `v=DMARC1; p=none`. Verificar en Mailgun y poner
+     `MAILGUN_DOMAIN=mg.playas.uy` en `.env.local` y Vercel. El código manda como `contacto@playas.uy`.
+  2. Recibir: `playas.uy` no tiene MX (medido 08/10/2026), así que un correo a contacto@playas.uy rebota.
+     Hace falta un reenvío a la casilla real (MX de `playas.uy` al servicio de reenvío). Recién con eso
+     andando, cambiar `SITIO.contacto` a `contacto@playas.uy` (aparece en `/terminos` y `/privacidad`) y
+     sumar el servicio de reenvío a la política de privacidad.
+  - Validar: `dig +short TXT mg.playas.uy`, `dig +short MX playas.uy`; mandar el formulario y en Gmail
+    "Mostrar original" debe decir SPF, DKIM y DMARC `PASS`.
 - **API:** `POST https://api.mailgun.net/v3/<dominio>/messages` (UE: `api.eu.mailgun.net`), Basic
   auth `api:<clave>`, form-urlencoded `{from, to, subject, text, h:Reply-To}`. `fetch` directo, sin
   SDK. El correo de quien escribe va en `h:Reply-To`.
@@ -287,7 +311,7 @@ plan gratis: 100/día, un dominio). Código: `src/lib/contacto.ts` (envío y top
 
 ## Home y novedades
 
-- **Foto de portada** (`public/fotos/atardecer-rambla-montevideo.jpg`): “Atardecer 2017” de Marinna,
+- **Foto de portada** (`public/fotos/atardecer-rambla-montevideo.webp`): “Atardecer 2017” de Marinna,
   [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Atardecer_2017.jpg), **CC BY-SA 4.0**
   (atribución obligatoria: va en el pie de la home y en `/terminos#fuentes`). Rambla, Barrio Sur.
   - Cómo bajarla de nuevo (o buscar otra): la API de Commons da las licencias sin scrapear.
@@ -295,10 +319,11 @@ plan gratis: 100/día, un dominio). Código: `src/lib/contacto.ts` (envío y top
     (mirar `extmetadata.LicenseShortName` y `Artist`). Para el archivo, pedir `iiurlwidth=2560`
     y usar `thumburl`: las URL `/thumb/...px-` armadas a mano devuelven un HTML de error si el
     ancho no es uno de los que Commons tiene cacheados. Mandar un `User-Agent` propio.
-  - Se guardó a 2560 px y calidad 80 (`sips -Z 2560 -s formatOptions 80`, ~1,2 MB). No hace falta
+  - Se guardó a 2560 px y calidad 80 (`sips -Z 2560 -s formatOptions 80`) y después se pasó a WebP
+    (~320 KB; la de la casilla, ~95 KB) para que `npm run checks` no la marque. No hace falta
     más chica: `next/image` (import estático) sirve AVIF/WebP al ancho de cada pantalla y genera
     el blur del placeholder. En la home se usa dos veces (hero con `preload` y banda de favoritas, lazy).
-- **Foto de “¿Por qué Playas UY?”** (`public/fotos/casilla-guardavidas-buceo.jpg`): “Playa Buceo” de
+- **Foto de “¿Por qué Playas UY?”** (`public/fotos/casilla-guardavidas-buceo.webp`): “Playa Buceo” de
   Agustín Fernández, foto de la Intendencia de Montevideo subida a
   [Commons](https://commons.wikimedia.org/wiki/File:Playa_Buceo_-_20230113dicimouyaf0028.jpg),
   **CC BY-SA 4.0** (atribución en el pie de la home y en `/terminos#fuentes`). El original es de

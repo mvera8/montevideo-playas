@@ -11,7 +11,7 @@ const reglas = [
   {
     id: "sin-png",
     categoria: "Imágenes",
-    titulo: "Sin PNG/GIF/BMP (usar WebP o AVIF)",
+    titulo: "Imágenes en WebP/AVIF",
     nivel: "warn",
     run(ctx) {
       const dirs = [ctx.publicDir, ctx.appDir].filter(Boolean);
@@ -22,7 +22,16 @@ const reglas = [
           msg: `Imagen ${path.extname(f).slice(1).toUpperCase()}: pasala a WebP/AVIF (o SVG si es un dibujo/logo).`,
           archivo: ctx.rel(f),
           arreglo: `npx sharp-cli -i ${ctx.rel(f)} -o ${path.dirname(ctx.rel(f))} -f webp  (y actualizá las referencias)`,
-        }));
+        }))
+        .concat(
+          // JPG: next/image ya los sirve en WebP/AVIF, pero si se usan en CSS, <img> o og:image van tal cual.
+          recorrer(ctx.publicDir, [".jpg", ".jpeg"]).map((f) => ({
+            msg: "JPG: si no pasa siempre por next/image, pasalo a WebP (pesa ~30% menos).",
+            archivo: ctx.rel(f),
+            nivel: "info",
+            arreglo: `npx sharp-cli -i ${ctx.rel(f)} -o ${path.dirname(ctx.rel(f))} -f webp -q 80`,
+          })),
+        );
     },
   },
   {

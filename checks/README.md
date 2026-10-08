@@ -50,7 +50,7 @@ Sale con código 1 si hay errores, así que sirve en CI o como `"prebuild": "npm
 | `robots` / `sitemap` (warn) | `app/robots.ts` y `app/sitemap.ts` |
 | `open-graph` (warn) | `app/opengraph-image.*` o `openGraph.images` |
 | `not-found` (info) | `app/not-found.tsx` propio |
-| `sin-png` (warn) | PNG/GIF/BMP en `public/` o `app/` → WebP/AVIF/SVG (excepto íconos que deben ser PNG) |
+| `sin-png` (warn) | PNG/GIF/BMP en `public/` o `app/` → WebP/AVIF/SVG (excepto íconos que deben ser PNG); JPG de `public/` como info |
 | `peso-imagenes` (warn) | Imágenes de `public/` de más de 400 KB |
 | `alt` (error) | `<img>` / `<Image>` sin `alt`, o con alt genérico ("imagen", "foto.jpg") |
 | `next-image` (warn) | `<img>` crudo en vez de `next/image` |
@@ -58,7 +58,14 @@ Sale con código 1 si hay errores, así que sirve en CI o como `"prebuild": "npm
 | `secreto-publico` (error) | `NEXT_PUBLIC_*SECRET*`, `*SERVICE_ROLE*`, `*PRIVATE*`, `*PASSWORD*` (se mandan al navegador) |
 | `console-log` (warn) | `console.log` olvidados |
 | `link-interno` (warn) | `<a href="/...">` en vez de `next/link` |
-| `analytics` (warn) | Algún analytics montado (Vercel, Google, PostHog, Plausible, Umami, Fathom, Clarity, Cloudflare…) y que un paquete instalado no quede sin usar |
+| `error-boundary` (warn) | `app/error.tsx` propio (y `global-error.tsx` como info) |
+| `estados-carga` (info) | Páginas `async` sin `loading.tsx` ni `<Suspense>` (salvo estáticas/ISR: `revalidate`, `generateStaticParams`) |
+| `responsive` (warn) | Viewport que bloquea el zoom y anchos fijos ≥ 480px (`w-[800px]`, `width: 800`) sin variante `sm:`/`md:` |
+| `legales` (warn) | Páginas de términos (`/terminos`, `/terms`…) y privacidad (`/privacidad`, `/privacy`) |
+| `cookies` (warn) | Si hay analytics con cookies (GA, PostHog, Clarity, Meta Pixel) o cookies propias: que la privacidad las mencione; aviso de consentimiento como info |
+| `contacto` (warn) | Página de contacto o algún `mailto:`/`tel:`/`wa.me` |
+| `textos-relleno` (warn) | Lorem ipsum, `[COMPLETAR]`, correos/teléfonos/dominios de ejemplo (fuera de comentarios) |
+| `analytics` (warn) | Algún analytics montado (Vercel, Google, PostHog, Plausible, Umami, Fathom, Clarity, Cloudflare…) y que un paquete instalado no quede sin usar. **Error** si está montado detrás de una `NEXT_PUBLIC_*` (ID) que no tiene valor en el entorno ni en `.env`/`.env.local`/`.env.production` |
 | `speed-insights` (info) | En proyectos de Vercel, `<SpeedInsights />` para medir Core Web Vitals reales |
 
 **Con `--url`** (revisa el HTML servido; páginas del `sitemap.xml`, máx. 20, o `--paginas /,/contacto`)
@@ -72,6 +79,8 @@ Sale con código 1 si hay errores, así que sirve en CI o como `"prebuild": "npm
 | `url-h1` | Exactamente un `<h1>` por página |
 | `url-alt` | `<img>` renderizados sin alt (incluye los que vienen de librerías o CMS) |
 | `url-iconos` | favicon, apple-touch-icon, manifest y og:image responden 200; manifest con 192/512; lang y viewport |
+| `url-404` | Una ruta inexistente responde 404 (no 200) y no es el 404 genérico de Next |
+| `url-responsive` | `<meta name="viewport">` con `width=device-width` y sin bloquear el zoom |
 | `url-robots-sitemap` | `/robots.txt` y `/sitemap.xml` responden, robots apunta al sitemap y no bloquea todo |
 
 ## Opciones

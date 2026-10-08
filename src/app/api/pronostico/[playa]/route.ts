@@ -15,7 +15,8 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/pronostico/[pla
     const proximas = horas.filter((h) => h.hora >= ahora.slice(0, 13));
     return Response.json(
       { ahora, horas: proximas, luz, mejor: mejorFranja(playa.orientacion, horas, ahora, luz) },
-      { headers: { "Cache-Control": "public, max-age=600" } },
+      // s-maxage: la sirve el CDN de Vercel sin invocar la función (el clima de base se renueva cada 30 min).
+      { headers: { "Cache-Control": "public, max-age=600, s-maxage=600, stale-while-revalidate=1800" } },
     );
   } catch (e) {
     console.error(e);
