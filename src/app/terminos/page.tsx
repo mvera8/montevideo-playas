@@ -17,6 +17,12 @@ const FUENTES = [
     licencia: "Servicio gratuito del portal Montevideo API.",
   },
   {
+    nombre: "Intendencia de Montevideo — Sitio de playas",
+    url: "https://m.montevideo.gub.uy/playas/",
+    usa: "Hasta cuándo vale cada bandera (de seguridad y sanitaria) y la recomendación que acompaña a la bandera sanitaria.",
+    licencia: "Información pública del sitio de la Intendencia.",
+  },
+  {
     nombre: "Intendencia de Montevideo — Monitoreo de agua de playas",
     url: "https://catalogodatos.gub.uy/dataset/monitoreo-de-agua-de-playas",
     usa: "Enterococos, cianobacterias y temperatura del agua medidos en cada playa.",
@@ -114,7 +120,13 @@ export default function Terminos() {
       <h3>Banderas y guardavidas</h3>
       <p>
         Vienen de la Intendencia de Montevideo y pueden demorar en actualizarse. Fuera de la temporada de guardavidas (del
-        15 de noviembre al 30 de abril, aproximadamente) no hay vigilancia ni banderas vigentes.
+        15 de noviembre al 30 de abril, aproximadamente) no hay vigilancia ni banderas de seguridad vigentes.
+      </p>
+      <p>
+        La <strong>bandera sanitaria</strong> (roja con cruz verde, “no apta para baños”) la informa la Intendencia
+        todo el año, por ejemplo durante las 24 horas posteriores a lluvias. La mostramos junto con la bandera de
+        seguridad, solo mientras la Intendencia la da por vigente. Si no podemos saber hasta cuándo vale, fuera de
+        temporada no la mostramos: ante la duda, consultá el sitio de la Intendencia y respetá lo que indique la casilla.
       </p>
 
       <h3>Calidad del agua</h3>
@@ -203,6 +215,10 @@ export default function Terminos() {
         tomes a partir de la información (bañarte, ir a una playa, tomar un ómnibus) son tu responsabilidad. En la medida
         que la ley lo permita, {SITIO.responsable} no es responsable por daños derivados del uso del sitio o de errores en
         la información de terceros.
+      </p>
+      <p>
+        Las preguntas frecuentes de la página de inicio son un resumen de estos términos en lenguaje simple. Ante
+        cualquier diferencia, mandan estos términos y la información de las fuentes oficiales.
       </p>
 
       <h2 id="uso">Uso aceptable</h2>

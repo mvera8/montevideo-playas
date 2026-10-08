@@ -1,11 +1,12 @@
 Prompts
 
-Comparar:
-https://m.montevideo.gub.uy/playas/
+...
 
 ---
 
 MV marca
+
+Probar Correo
 
 Servidor
 
@@ -14,8 +15,6 @@ Analytics
 Seguridad de datos
 
 Reportar algo? como en waze
-
-bandera de salud?
 
 Anti demandas
 

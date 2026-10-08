@@ -39,6 +39,7 @@ import SelectorTema, { OpcionesTema } from "./SelectorTema";
 import MenuSitio from "@/components/MenuSitio";
 import Modal, { BotonModal } from "@/components/Modal";
 import Lluvia from "./Lluvia";
+import { AvisoSanitaria } from "./BanderaSanitaria";
 import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
 
 // Copiado por scripts/copiar-worker-maplibre.mjs (postinstall).
@@ -82,7 +83,7 @@ function selloDe(playa: Playa, temporada: Temporada): Omit<Sello, "meGusta"> {
   };
 }
 
-// "2 verdes · 1 amarilla", de la más grave a la más leve.
+// "2 verdes · 1 amarilla", de la más grave a la más leve. La bandera sanitaria se ve en cada casilla.
 function resumenCasillas(guardavidas: Guardavidas[], temporada: Temporada) {
   if (guardavidas.length === 0) return "Sin casillas informadas";
   if (!temporada.activa) return `Desde el ${fechaFmt.format(new Date(temporada.inicio))}`;
@@ -95,12 +96,6 @@ function resumenCasillas(guardavidas: Guardavidas[], temporada: Temporada) {
         {n} {BANDERAS[b].corto[n === 1 ? 0 : 1]}
       </span>
     ));
-  if (guardavidas.some((g) => g.banderaSanitaria?.activa))
-    partes.unshift(
-      <span key="sanitaria" className="text-orange-700 dark:text-orange-400">
-        Bandera sanitaria
-      </span>,
-    );
   return partes.length ? <span className="inline-flex gap-2">{partes}</span> : "Banderas sin datos";
 }
 
@@ -122,7 +117,7 @@ function aCasillas(playas: Playa[]): (CasillaMapa & { slug: string; nombre: stri
     const viento = { vientoDeg: p.clima?.windDirection ?? null, vientoKmh: p.clima?.windSpeed ?? null };
     if (p.guardavidas.length === 0)
       return [
-        { id: `playa:${p.slug}`, slug: p.slug, nombre: p.nombre, lng: p.lon, lat: p.lat, bandera: null, orientacion: p.orientacion, ...viento },
+        { id: `playa:${p.slug}`, slug: p.slug, nombre: p.nombre, lng: p.lon, lat: p.lat, bandera: null, sanitaria: false, orientacion: p.orientacion, ...viento },
       ];
     return p.guardavidas.map((g) => ({
       id: g.id,
@@ -131,6 +126,7 @@ function aCasillas(playas: Playa[]): (CasillaMapa & { slug: string; nombre: stri
       lng: g.lon,
       lat: g.lat,
       bandera: g.bandera,
+      sanitaria: Boolean(g.banderaSanitaria?.activa),
       orientacion: g.orientacion ?? p.orientacion, // el frente y la rampa apuntan al agua
       ...viento,
     }));
@@ -1064,11 +1060,7 @@ function Detalle({
                         <span className="block text-xs text-slate-600 dark:text-slate-400">
                           {b ? b.label : temporada.activa ? "Bandera sin datos" : "Sin servicio"}
                         </span>
-                        {g.banderaSanitaria?.activa && (
-                          <span className="mt-1 inline-block rounded bg-orange-100 px-1.5 py-0.5 text-xs text-orange-800 dark:bg-orange-950 dark:text-orange-300">
-                            Bandera sanitaria{g.banderaSanitaria.causa ? `: ${g.banderaSanitaria.causa}` : ""}
-                          </span>
-                        )}
+                        {g.banderaSanitaria?.activa && <AvisoSanitaria sanitaria={g.banderaSanitaria} />}
                       </span>
                     </button>
                     {g.comoIr && (
