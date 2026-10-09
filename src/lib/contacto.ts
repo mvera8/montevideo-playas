@@ -1,4 +1,5 @@
 import "server-only";
+import { crearLimite } from "./limite";
 import { SITIO } from "./sitio";
 
 // Envío del formulario de /contacto por correo con Mailgun (https://www.mailgun.com).
@@ -56,18 +57,5 @@ export async function enviarContacto({ nombre, correo, mensaje }: { nombre: stri
   if (!res.ok) throw new Error(`Mailgun ${res.status}: ${await res.text()}`);
 }
 
-// Tope por IP en memoria (5 mensajes por hora). Es por instancia del servidor: frena el abuso
-// simple; si llega spam en serio, sumar Turnstile al formulario.
-const VENTANA_MS = 60 * 60 * 1000;
-const MAX_POR_VENTANA = 5;
-const envios = new Map<string, number[]>();
-
-export function superaLimite(ip: string) {
-  const ahora = Date.now();
-  const recientes = (envios.get(ip) ?? []).filter((t) => ahora - t < VENTANA_MS);
-  if (recientes.length >= MAX_POR_VENTANA) return true;
-  recientes.push(ahora);
-  envios.set(ip, recientes);
-  if (envios.size > 1000) for (const [k, v] of envios) if (v.every((t) => ahora - t >= VENTANA_MS)) envios.delete(k);
-  return false;
-}
+// Tope por IP: 5 mensajes por hora (ver src/lib/limite.ts). Si llega spam en serio, sumar Turnstile al formulario.
+export const superaLimite = crearLimite({ max: 5, ventanaMs: 60 * 60 * 1000 });

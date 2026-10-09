@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 // paquete → cómo se ve en el código cuando está montado. `null` en paquete = se carga con un <script>.
-const PROVEEDORES = [
+export const PROVEEDORES = [
   { nombre: "Vercel Analytics", paquete: "@vercel/analytics", uso: /from\s+["']@vercel\/analytics[^"']*["']/ },
   { nombre: "Google Analytics (@next/third-parties)", paquete: "@next/third-parties", uso: /<Google(Analytics|TagManager)\b/ },
   { nombre: "PostHog", paquete: "posthog-js", uso: /posthog\.init\(|PostHogProvider/ },
@@ -71,7 +71,7 @@ const reglas = [
               msg: `${p.nombre} está montado pero ${v} no tiene valor: no se carga y no mide nada.`,
               archivo: a.rel,
               nivel: "error",
-              arreglo: `Definí ${v} en .env.local y en Vercel (Settings → Environment Variables, Production). Si ya está en Vercel, sumalo a .env.local para que este chequeo lo vea.`,
+              arreglo: `Definí ${v} en .env.local y en las variables de entorno del hosting (Production), y volvé a hacer el deploy. Si ya está en el hosting, sumalo a .env.local para que este chequeo lo vea.`,
             });
         }
       }
@@ -79,28 +79,13 @@ const reglas = [
         h.push({
           msg: "El sitio no tiene analytics: no vas a saber cuántas visitas tiene ni de dónde llegan.",
           arreglo:
-            'En Vercel: npm i @vercel/analytics y en app/layout.tsx <Analytics /> (import de "@vercel/analytics/next"); activalo en el panel del proyecto. Sumá también @vercel/speed-insights para medir Core Web Vitals. Acordate de mencionarlo en la política de privacidad.',
+            'Google Analytics 4: npm i @next/third-parties; en app/layout.tsx {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />} (import de "@next/third-parties/google"); NEXT_PUBLIC_GA_ID=G-XXXXXXX en .env.local y en el hosting. GA usa cookies: mencionalo en las políticas de privacidad y de cookies.',
         });
       }
+      // Lo que el código no puede saber: si el proveedor está activado. Eso lo confirma url-analytics.
+      for (const p of montados.filter((p) => p.nombre === "Vercel Analytics"))
+        h.push({ msg: `${p.nombre} no usa ID: mide solo si está activado en el panel de Vercel.`, nivel: "info", arreglo: "Confirmalo con npm run checks -- --url https://tu-sitio (regla url-analytics)." });
       return h;
-    },
-  },
-  {
-    id: "speed-insights",
-    categoria: "Analytics",
-    titulo: "Rendimiento real (Core Web Vitals)",
-    nivel: "info",
-    run(ctx) {
-      // Solo tiene sentido sugerirlo en sitios que ya usan Vercel Analytics o van a Vercel.
-      const enVercel = dependencias(ctx.raiz)["@vercel/analytics"] || fs.existsSync(path.join(ctx.raiz, ".vercel")) || fs.existsSync(path.join(ctx.raiz, "vercel.json"));
-      if (!enVercel) return [];
-      if (ctx.codigo().some((a) => /from\s+["']@vercel\/speed-insights[^"']*["']/.test(a.src))) return [];
-      return [
-        {
-          msg: "Sin Speed Insights: no ves cómo carga el sitio en los celulares de la gente.",
-          arreglo: 'npm i @vercel/speed-insights y <SpeedInsights /> (import de "@vercel/speed-insights/next") en app/layout.tsx.',
-        },
-      ];
     },
   },
 ];

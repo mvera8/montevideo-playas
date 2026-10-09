@@ -15,9 +15,12 @@ import imagenes from "./reglas/imagenes.mjs";
 import codigo from "./reglas/codigo.mjs";
 import analytics from "./reglas/analytics.mjs";
 import producto from "./reglas/producto.mjs";
+import seguridad from "./reglas/seguridad.mjs";
+import accesibilidad from "./reglas/accesibilidad.mjs";
 import reglasUrl, { crearContextoUrl, descubrirPaginas } from "./reglas/url.mjs";
 
-const REGLAS = [...iconos, ...seo, ...imagenes, ...codigo, ...producto, ...analytics];
+// Agrupadas por categoría (en el orden en que aparece cada una), aunque vengan de archivos distintos.
+const REGLAS = agrupar([...iconos, ...seo, ...imagenes, ...codigo, ...seguridad, ...producto, ...accesibilidad, ...analytics]);
 // Comentario en la línea anterior: `// next-checks-ignore` (todas) o `// next-checks-ignore alt, next-image`.
 // También se respetan los eslint-disable equivalentes para no duplicar comentarios.
 const ESLINT_EQUIVALENTE = { "next-image": "no-img-element", "link-interno": "no-html-link-for-pages", "console-log": "no-console" };
@@ -77,7 +80,7 @@ for (const r of REGLAS.filter(activa)) resultados.push(await correr(r, ctx));
 const base = valor("url") ?? config.url;
 if (base) {
   const rutas = await descubrirPaginas(base, { paginas: valor("paginas")?.split(",") ?? config.paginas, max: Number(valor("max") ?? 20) });
-  const ctxUrl = await crearContextoUrl(base, rutas);
+  const ctxUrl = { ...(await crearContextoUrl(base, rutas)), estatico: ctx };
   for (const r of reglasUrl.filter(activa)) resultados.push(await correr(r, ctxUrl));
 }
 
@@ -103,6 +106,11 @@ async function correr(regla, ctx) {
     // Un hallazgo puede bajar/subir su nivel, pero si la regla se configuró a mano, manda la config.
     .map((h) => ({ ...h, nivel: nivelConfig ?? h.nivel ?? regla.nivel }));
   return { id: regla.id, categoria: regla.categoria, titulo: regla.titulo, hallazgos };
+}
+
+function agrupar(reglas) {
+  const orden = [...new Set(reglas.map((r) => r.categoria))];
+  return [...reglas].sort((a, b) => orden.indexOf(a.categoria) - orden.indexOf(b.categoria));
 }
 
 /** `reglas: { id: "warn" }` o `reglas: { id: { nivel: "warn", ignorar: ["src/x/**"] } }`. */

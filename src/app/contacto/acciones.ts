@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { contactoActivo, enviarContacto, LIMITES, superaLimite } from "@/lib/contacto";
+import { ipDe } from "@/lib/limite";
 
 export type EstadoContacto = { ok: boolean; mensaje: string } | null;
 
@@ -21,7 +22,7 @@ export async function enviarMensaje(_previo: EstadoContacto, datos: FormData): P
   if (!CORREO.test(correo) || correo.length > LIMITES.correo) return { ok: false, mensaje: "Revisá tu correo." };
   if (mensaje.length < 5 || mensaje.length > LIMITES.mensaje) return { ok: false, mensaje: "Escribí un mensaje." };
 
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "desconocida";
+  const ip = ipDe(await headers());
   if (superaLimite(ip)) return { ok: false, mensaje: "Enviaste varios mensajes seguidos. Probá de nuevo en un rato." };
 
   try {

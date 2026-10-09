@@ -63,7 +63,7 @@ export function BotonModal({
       onClick={onClick}
       className={`w-full select-none rounded-xl px-4 py-2.5 text-sm font-medium transition-transform active:scale-[0.98] motion-reduce:transition-none ${
         principal
-          ? "bg-sky-600 text-white hover:bg-sky-700"
+          ? "bg-sky-700 text-white hover:bg-sky-800"
           : "ring-1 ring-slate-200 hover:bg-slate-50 dark:ring-slate-700 dark:hover:bg-slate-800"
       }`}
     >

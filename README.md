@@ -250,6 +250,10 @@ Lógica pura en `src/lib/recomendacion.ts` (sirve en cliente y servidor):
 
 ## Cómo ir en ómnibus
 
+`POST /api/como-ir` y `POST /api/viajes` tienen un límite de pedidos por IP en memoria
+(`src/lib/limite.ts`, el mismo que usa el formulario de contacto): 20 y 10 por minuto, con respuesta
+429 + `Retry-After`. Es por instancia: frena scripts simples; para algo más fuerte, Vercel Firewall.
+
 La API de transporte de la IM requiere **otra aplicación** en el portal (cada app se asocia a
 un solo servicio): `IM_TRANSPORTE_CLIENT_ID` / `IM_TRANSPORTE_CLIENT_SECRET`.
 

@@ -7,6 +7,30 @@ import { atributo, coincide, etiquetasJsx, recorrer } from "../lib/util.mjs";
 const PNG_PERMITIDOS = /^(apple-icon|apple-touch-icon|icon|favicon|android-chrome|opengraph-image|twitter-image)[\w.-]*\.png$/i;
 const ALT_GENERICO = /^(image|imagen|img|foto|photo|picture|logo|icon|icono|banner|untitled|alt)\d*$/i;
 
+// Los navegadores los piden solos en la raíz, aunque ningún código los mencione.
+const AUTO_PEDIDOS = /^(favicon\.ico|apple-touch-icon[\w-]*\.png)$/i;
+
+/**
+ * Imágenes de public/ que no aparecen en el código, CSS ni config. Cuenta como usada si se nombra el
+ * archivo o su carpeta (`/productos/${slug}.webp` usa todo public/productos/).
+ */
+function imagenesSinUso(ctx) {
+  const textos = [
+    ...ctx.codigo().map((a) => a.src),
+    ...(ctx.config.dirsCodigo ?? ["src", "app", "styles"]).flatMap((d) => recorrer(path.join(ctx.raiz, d), [".css", ".scss", ".sass", ".mdx", ".md", ".json"])).map((f) => fs.readFileSync(f, "utf8")),
+    ...fs.readdirSync(ctx.raiz).filter((f) => /^next\.config\.|\.webmanifest$/.test(f)).map((f) => fs.readFileSync(path.join(ctx.raiz, f), "utf8")),
+  ].join("\n");
+  return new Set(
+    recorrer(ctx.publicDir, [".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".svg", ".ico"]).filter((f) => {
+      const enPublic = path.relative(ctx.publicDir, f).split(path.sep).join("/");
+      if (AUTO_PEDIDOS.test(enPublic)) return false;
+      if (textos.includes(path.basename(f))) return false;
+      const carpeta = path.dirname(enPublic);
+      return carpeta === "." || !textos.includes(`/${carpeta}/`);
+    }),
+  );
+}
+
 const reglas = [
   {
     id: "sin-png",
@@ -41,13 +65,28 @@ const reglas = [
     nivel: "warn",
     run(ctx) {
       const maxKb = ctx.config.maxKbImagen ?? 400;
+      const sinUso = imagenesSinUso(ctx);
       return recorrer(ctx.publicDir, [".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".svg"])
         .map((f) => ({ f, kb: Math.round(fs.statSync(f).size / 1024) }))
         .filter(({ kb }) => kb > maxKb)
         .map(({ f, kb }) => ({
           msg: `${kb} KB (máximo ${maxKb} KB). Achicá la resolución o bajá la calidad.`,
           archivo: ctx.rel(f),
+          arreglo: sinUso.has(f) ? "No la encontré usada en el código: si sobra, borrala." : undefined,
         }));
+    },
+  },
+  {
+    id: "imagenes-sin-uso",
+    categoria: "Imágenes",
+    titulo: "Imágenes de public/ en uso",
+    nivel: "info",
+    run(ctx) {
+      return [...imagenesSinUso(ctx)].map((f) => ({
+        msg: "No aparece en el código: se publica igual y suma peso al deploy.",
+        archivo: ctx.rel(f),
+        arreglo: "Si sobra, borrala. Si se usa desde un CMS/base de datos, sumala a `reglas[\"imagenes-sin-uso\"].ignorar` en checks.config.mjs.",
+      }));
     },
   },
   {

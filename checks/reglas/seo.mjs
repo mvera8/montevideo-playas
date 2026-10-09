@@ -57,7 +57,8 @@ const reglas = [
       const h = [];
       for (const pagina of paginas) {
         const dir = path.dirname(pagina);
-        if (dir === ctx.appDir) continue; // la home usa la metadata del layout raíz
+        // La home (también dentro de un route group, `app/(site)/page.tsx`) usa la metadata del layout raíz.
+        if (ctx.ruta(pagina) === "/") continue;
         // Vale si la página o algún layout entre ella y la raíz exporta metadata.
         let tiene = false;
         for (let d = dir; d.startsWith(ctx.appDir) && d !== ctx.appDir && !tiene; d = path.dirname(d)) {

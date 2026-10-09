@@ -30,7 +30,16 @@ export function crearContexto(raiz, config) {
     return null;
   };
 
-  const layoutAbs = enApp("layout", ["tsx", "jsx", "js", "ts"]);
+  // Con varios root layouts (`app/(tienda)/layout.tsx`, `app/(admin)/layout.tsx`) no hay app/layout:
+  // vale el primero de un grupo que renderice <html>.
+  const layoutAbs =
+    enApp("layout", ["tsx", "jsx", "js", "ts"]) ??
+    (appDir
+      ? recorrer(appDir, EXT_CODIGO).find(
+          (f) => /^layout\.[jt]sx?$/.test(path.basename(f)) && /^\([^)]+\)$/.test(path.basename(path.dirname(f))) && path.dirname(path.dirname(f)) === appDir && /<html\b/.test(fs.readFileSync(f, "utf8")),
+        )
+      : null) ??
+    null;
   const layoutRaiz = layoutAbs ? { abs: layoutAbs, rel: rel(layoutAbs), src: fs.readFileSync(layoutAbs, "utf8") } : null;
 
   return {
@@ -39,6 +48,7 @@ export function crearContexto(raiz, config) {
     publicDir,
     config,
     rel,
+    ruta: (abs) => rutaDe(appDir, abs),
     enApp,
     enPublic: (nombre) => (existe(path.join(publicDir, nombre)) ? path.join(publicDir, nombre) : null),
     codigo: leerCodigo,
@@ -49,4 +59,16 @@ export function crearContexto(raiz, config) {
 /** ¿El archivo exporta metadata estática o generateMetadata? */
 export function exportaMetadata(src) {
   return /export\s+(const\s+metadata\b|(async\s+)?function\s+generateMetadata\b|const\s+generateMetadata\b)/.test(src);
+}
+
+/**
+ * Ruta pública de un archivo de app/: sin route groups, slots ni el nombre del archivo.
+ * `src/app/(site)/page.tsx` → "/", `src/app/blog/[slug]/page.tsx` → "/blog/[slug]".
+ */
+export function rutaDe(appDir, abs) {
+  const partes = path
+    .relative(appDir, path.dirname(abs))
+    .split(path.sep)
+    .filter((p) => p && !/^\(.*\)$/.test(p) && !p.startsWith("@"));
+  return "/" + partes.join("/");
 }
