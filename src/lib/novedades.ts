@@ -10,6 +10,10 @@ export type BloqueNovedad =
 
 export type Novedad = {
   slug: string;
+  /**
+   * Titular de la nota, en la página, las tarjetas y el `<title>`. Máximo 38 caracteres: el layout le suma
+   * " · Montevideo · Playas" (22) y con más de 60 en total Google lo corta.
+   */
   titulo: string;
   /** Día de publicación (AAAA-MM-DD, hora de Montevideo). */
   fecha: string;
@@ -50,7 +54,7 @@ const NOVEDADES: Novedad[] = [
   },
   {
     slug: "falta-poco-para-la-temporada",
-    titulo: "Falta poco para la temporada: qué ya podés mirar",
+    titulo: "Falta poco para la temporada",
     fecha: "2026-10-04",
     etiqueta: "Temporada",
     resumen:
@@ -80,7 +84,7 @@ const NOVEDADES: Novedad[] = [
   },
   {
     slug: "lanzamos-playas-uy",
-    titulo: "Lanzamos Playas UY: todas las playas de Montevideo en un mapa",
+    titulo: "Lanzamos Playas UY: un mapa de playas",
     fecha: "2026-10-04",
     etiqueta: "El sitio",
     resumen: "Un mapa gratuito y sin registro para elegir playa con la información pública en un solo lugar.",

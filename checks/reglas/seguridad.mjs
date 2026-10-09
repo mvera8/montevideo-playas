@@ -470,7 +470,10 @@ const reglas = [
             },
           ]
         : [];
-      if (!/Content-Security-Policy/i.test(fuentes))
+      // Solo Report-Only: avisa en la consola pero no bloquea (paso previo recomendado, no para quedarse).
+      if (/Content-Security-Policy-Report-Only/i.test(fuentes) && !/(?:key["']?\s*:\s*|\.set\(\s*)["'`]Content-Security-Policy["'`]/i.test(fuentes))
+        h.push({ msg: "Content-Security-Policy en modo solo reporte: avisa en la consola del navegador pero todavía no bloquea nada.", nivel: "info", arreglo: "Cuando en producción no aparezcan avisos \"[Report Only] Refused to…\" usando el sitio, cambiá el header a Content-Security-Policy." });
+      else if (!/Content-Security-Policy/i.test(fuentes))
         h.push({ msg: "Sin Content-Security-Policy: es la defensa más fuerte contra XSS, pero hay que ajustarla a los scripts que usa el sitio.", nivel: "info", arreglo: "Ver la guía de Next: node_modules/next/dist/docs (Content Security Policy). Empezá con Content-Security-Policy-Report-Only." });
       return h;
     },
