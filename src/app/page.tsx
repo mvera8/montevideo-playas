@@ -269,7 +269,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <main className="flex-1">
+      <main id="contenido" className="flex-1">
         {/* Qué hace */}
         <section id="que-hace" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-20 sm:px-6 sm:py-24">
           <div data-revelar className="text-center">

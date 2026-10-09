@@ -43,7 +43,7 @@ export default function Modal({ abierto, onCerrar, titulo, icono, children, acci
           {titulo}
         </h2>
         <div className="mt-2 space-y-2 text-sm leading-relaxed text-slate-600 dark:text-neutral-300">{children}</div>
-        <div className="mt-5 flex flex-col gap-2">{acciones ?? <BotonModal onClick={onCerrar}>Entendido</BotonModal>}</div>
+        <div className="mt-6 flex flex-col gap-2">{acciones ?? <BotonModal onClick={onCerrar}>Entendido</BotonModal>}</div>
       </div>
     </dialog>
   );
@@ -61,7 +61,7 @@ export function BotonModal({
   return (
     <button
       onClick={onClick}
-      className={`w-full select-none rounded-xl px-4 py-2.5 text-sm font-medium transition-transform active:scale-[0.98] motion-reduce:transition-none ${
+      className={`w-full select-none rounded-xl px-3 py-2 text-base font-medium transition-transform duration-700 ease-fluido active:scale-[0.98] motion-reduce:transition-none ${
         principal
           ? "bg-sky-700 text-white hover:bg-sky-800"
           : "ring-1 ring-slate-200 hover:bg-slate-50 dark:ring-neutral-700 dark:hover:bg-oscuro-3"

@@ -18,7 +18,7 @@ export default function GlobalError({ error, retry }: { error: Error & { digest?
             <button
               type="button"
               onClick={() => retry()}
-              className="rounded-full bg-slate-900 px-5 py-2.5 font-semibold text-white hover:bg-slate-800"
+              className="rounded-full bg-slate-900 px-3 py-2 text-base font-semibold text-white hover:bg-slate-800 active:scale-[0.98]"
             >
               Probar de nuevo
             </button>

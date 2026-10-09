@@ -34,10 +34,10 @@ const TINTA = "text-slate-600 hover:text-slate-900 dark:text-neutral-300 dark:ho
 const BOTON = {
   // Flotante sobre el mapa, como el selector de estilo. En móvil, del alto de la marca.
   flotante: `h-10 w-10 rounded-xl md:h-12 md:w-12 md:rounded-2xl bg-white/95 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-oscuro-1/95 dark:ring-white/10 ${TINTA}`,
-  // Dentro de EncabezadoSitio (móvil).
-  encabezado: `-my-1 h-10 w-10 rounded-xl hover:bg-slate-100 dark:hover:bg-oscuro-3 ${TINTA}`,
-  // Dentro de EncabezadoSitio sobre la foto de la home.
-  foto: "-my-1 h-10 w-10 rounded-xl text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/15",
+  // Dentro de la píldora de EncabezadoSitio (móvil): redondo como ella.
+  encabezado: `h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-oscuro-3 ${TINTA}`,
+  // Dentro de la píldora de EncabezadoSitio sobre la foto de la home.
+  foto: "h-10 w-10 rounded-full text-white hover:bg-white/15",
 };
 
 /** Tres rayas que giran hasta formar una X (nunca desaparecen de golpe): solo translate, rotate y scale. */
@@ -139,7 +139,7 @@ export default function MenuSitio({
           onClick={cerrar}
           aria-label="Cerrar menú"
           style={{ top: lugar.top, left: lugar.left, width: lugar.width, height: lugar.height }}
-          className="fixed grid place-items-center rounded-xl text-slate-900 hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
+          className="fixed grid place-items-center rounded-full text-slate-900 hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
         >
           <Hamburguesa abierto={abierto} />
         </button>

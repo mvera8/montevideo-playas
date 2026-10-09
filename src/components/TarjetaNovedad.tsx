@@ -6,10 +6,10 @@ export default function TarjetaNovedad({ novedad }: { novedad: Novedad }) {
   return (
     <Link
       href={`/novedades/${novedad.slug}`}
-      className="group flex h-full flex-col rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 transition-shadow hover:shadow-md hover:ring-amber-300 sm:p-8"
+      className="group flex h-full flex-col rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 transition-shadow duration-700 ease-fluido hover:shadow-md hover:ring-amber-300 sm:p-8"
     >
       <p className="flex items-center gap-2 text-xs">
-        <span className="rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-900">
+        <span className="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-900">
           {novedad.etiqueta}
         </span>
         <time dateTime={novedad.fecha} className="text-slate-500">
@@ -20,9 +20,9 @@ export default function TarjetaNovedad({ novedad }: { novedad: Novedad }) {
         {novedad.titulo}
       </h3>
       <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-slate-600 sm:line-clamp-none">{novedad.resumen}</p>
-      <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-900">
+      <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-slate-900">
         Leer nota
-        <span aria-hidden className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none">
+        <span aria-hidden className="transition-transform duration-700 ease-fluido group-hover:translate-x-0.5 motion-reduce:transition-none">
           →
         </span>
       </span>

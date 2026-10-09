@@ -20,7 +20,7 @@ export default function PaginaLegal({
           [&_a]:text-sky-700 [&_a]:underline
           [&_h2]:mt-10 [&_h2]:scroll-mt-20 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-slate-900
           [&_h3]:mt-6 [&_h3]:font-semibold [&_h3]:text-slate-900
-          [&_li]:ml-5 [&_li]:list-disc [&_li]:pl-1 [&_ul]:space-y-1.5
+          [&_li]:ml-6 [&_li]:list-disc [&_li]:pl-1 [&_ul]:space-y-2
           [&_strong]:text-slate-900"
       >
         {children}
@@ -35,5 +35,5 @@ export function Destacado({ children, tono = "info" }: { children: React.ReactNo
     tono === "aviso"
       ? "border-orange-200 bg-orange-50"
       : "border-sky-200 bg-white";
-  return <div className={`rounded-2xl border p-5 ${clases}`}>{children}</div>;
+  return <div className={`rounded-2xl border p-6 ${clases}`}>{children}</div>;
 }
