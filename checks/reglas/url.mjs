@@ -1,5 +1,6 @@
 import { gzipSync } from "node:zlib";
 import { PROVEEDORES } from "./analytics.mjs";
+import { variablesEnv } from "../lib/util.mjs";
 
 // Modo --url: revisa el HTML que realmente sirve el sitio (next start, preview o producción).
 // Atrapa lo que el análisis estático no ve: títulos armados con variables, metadata dinámica, links rotos.
@@ -52,6 +53,31 @@ export async function crearContextoUrl(base, rutas) {
 }
 
 const porPagina = (ctx, fn) => ctx.paginas.filter((p) => p.status === 200).flatMap((p) => fn(p).map((h) => ({ archivo: p.ruta, ...h })));
+
+
+// Core Web Vitals con la API de PageSpeed Insights (https://developers.google.com/speed/docs/insights/v5/get-started):
+// GET https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=…&strategy=mobile&category=performance
+// - Sin clave anda, pero la cuota sin clave es compartida entre todos y suele estar agotada (429).
+//   Con clave (gratis): 25.000 consultas por día. Se lee de PSI_API_KEY (entorno o .env.local) o de `psiKey` en la config.
+// - Tarda 15–40 s por página (corre Lighthouse en los servidores de Google): por eso solo mide la home.
+// - `loadingExperience`: datos reales de usuarios de Chrome (CrUX, últimos 28 días, percentil 75). Solo
+//   existe con tráfico suficiente; si no, se usa `originLoadingExperience` (todo el dominio) y si
+//   tampoco, el laboratorio (`lighthouseResult`: celular simulado con red lenta).
+const UMBRALES = {
+  LCP: { bueno: 2500, malo: 4000, fmt: (v) => `${(v / 1000).toFixed(1)} s` },
+  INP: { bueno: 200, malo: 500, fmt: (v) => `${Math.round(v)} ms` },
+  CLS: { bueno: 0.1, malo: 0.25, fmt: (v) => v.toFixed(2) },
+  TBT: { bueno: 200, malo: 600, fmt: (v) => `${Math.round(v)} ms` }, // en laboratorio reemplaza a INP
+};
+const CAMPO = { LCP: "LARGEST_CONTENTFUL_PAINT_MS", INP: "INTERACTION_TO_NEXT_PAINT", CLS: "CUMULATIVE_LAYOUT_SHIFT_SCORE" };
+const LAB = { LCP: "largest-contentful-paint", CLS: "cumulative-layout-shift", TBT: "total-blocking-time" };
+const ARREGLO_VITAL = {
+  LCP: "Lo más grande de la primera pantalla tarda en aparecer: imagen principal con next/image y priority, menos JS antes de pintar, fuentes con next/font.",
+  INP: "La página tarda en responder a toques y clics: partir tareas largas de JS, cargar con dynamic() lo que no se ve al entrar, evitar re-renders grandes.",
+  CLS: "Cosas que se mueven al cargar: width/height en imágenes e iframes, reservar el lugar de lo que llega después (banners, mapas, anuncios).",
+  TBT: "Mucho JS bloqueando el hilo principal al cargar (es lo que después empeora el INP): dynamic() para lo pesado, menos librerías en el cliente.",
+};
+const estadoVital = (m, v) => (v <= UMBRALES[m].bueno ? "bueno" : v <= UMBRALES[m].malo ? "mejorable" : "malo");
 
 const reglas = [
   {
@@ -303,6 +329,77 @@ const reglas = [
           h.push({ msg: `El HTML pesa ${kb} KB comprimido (${crudoKb} KB sin comprimir; ideal < 100 KB).`, nivel: kb > 200 ? "warn" : "info", arreglo: "Suele ser por pasar datos enormes a componentes cliente (mandá solo los campos que usan) o por listas larguísimas sin paginar." });
         return h;
       });
+    },
+  },
+  {
+    id: "url-vitals",
+    categoria: "Sitio en vivo",
+    titulo: "Core Web Vitals (PageSpeed Insights)",
+    nivel: "warn",
+    async run(ctx) {
+      const home = ctx.paginas.find((p) => p.status === 200);
+      if (!home) return [];
+      if (esLocal(ctx.base))
+        return [{ msg: "PageSpeed Insights no llega a localhost: corré los checks contra el sitio publicado (--url https://…).", nivel: "info" }];
+      const clave = ctx.estatico?.config.psiKey ?? (ctx.estatico ? variablesEnv(ctx.estatico.raiz).get("PSI_API_KEY") : process.env.PSI_API_KEY);
+      const url = new URL(home.ruta, ctx.base).href;
+      const api = new URL("https://www.googleapis.com/pagespeedonline/v5/runPagespeed");
+      api.search = new URLSearchParams({ url, strategy: "mobile", category: "performance", ...(clave ? { key: clave } : {}) });
+      let j;
+      try {
+        const r = await fetch(api, { signal: AbortSignal.timeout(90000) });
+        j = await r.json();
+      } catch (e) {
+        return [{ archivo: home.ruta, msg: `No se pudo consultar PageSpeed Insights (${e.cause?.code ?? e.name}).`, nivel: "info", arreglo: `Probalo a mano en https://pagespeed.web.dev/analysis?url=${encodeURIComponent(url)}` }];
+      }
+      if (j.error) {
+        const cuota = j.error.code === 429;
+        return [
+          {
+            archivo: home.ruta,
+            msg: cuota && !clave ? "PageSpeed Insights sin clave: la cuota gratuita compartida está agotada." : `PageSpeed Insights respondió ${j.error.code}: ${j.error.message?.slice(0, 120)}`,
+            nivel: "info",
+            arreglo: cuota && !clave
+              ? "Creá una clave gratis (Google Cloud Console → APIs y servicios → habilitar \"PageSpeed Insights API\" → Credenciales → Crear clave de API) y ponela en .env.local como PSI_API_KEY=…"
+              : `Probalo a mano en https://pagespeed.web.dev/analysis?url=${encodeURIComponent(url)}`,
+          },
+        ];
+      }
+
+      // Datos reales: de la página, o de todo el dominio si la página no tiene tráfico suficiente.
+      const campo = j.loadingExperience?.metrics ? { m: j.loadingExperience.metrics, de: "usuarios reales de esta página" } : j.originLoadingExperience?.metrics ? { m: j.originLoadingExperience.metrics, de: "usuarios reales del dominio" } : null;
+      const valores = campo
+        ? Object.entries(CAMPO)
+            .filter(([, k]) => campo.m[k])
+            .map(([n, k]) => [n, n === "CLS" ? campo.m[k].percentile / 100 : campo.m[k].percentile]) // CLS viene ×100
+        : Object.entries(LAB)
+            .filter(([, k]) => j.lighthouseResult?.audits?.[k]?.numericValue != null)
+            .map(([n, k]) => [n, j.lighthouseResult.audits[k].numericValue]);
+      if (!valores.length) return [{ archivo: home.ruta, msg: "PageSpeed Insights no devolvió métricas.", nivel: "info" }];
+
+      const fuente = campo ? `${campo.de}, últimos 28 días` : "laboratorio: celular simulado con red lenta; todavía no hay datos de usuarios reales";
+      const resumen = valores.map(([n, v]) => `${n} ${UMBRALES[n].fmt(v)}`).join(" · ");
+      const puntaje = j.lighthouseResult?.categories?.performance?.score;
+      const h = [
+        {
+          archivo: home.ruta,
+          msg: `${resumen} (${fuente})${puntaje != null ? ` · puntaje de rendimiento ${Math.round(puntaje * 100)}/100` : ""}.`,
+          nivel: "info",
+          arreglo: `Detalle: https://pagespeed.web.dev/analysis?url=${encodeURIComponent(url)}&form_factor=mobile`,
+        },
+      ];
+      // En laboratorio los números varían entre corridas y son más duros que la realidad: solo avisan si son malos.
+      for (const [n, v] of valores) {
+        const estado = estadoVital(n, v);
+        if (estado === "bueno" || (!campo && estado === "mejorable")) continue;
+        h.push({
+          archivo: home.ruta,
+          msg: `${n} ${estado} (${UMBRALES[n].fmt(v)}; bueno ≤ ${UMBRALES[n].fmt(UMBRALES[n].bueno)})${campo ? "" : " en laboratorio"}.`,
+          nivel: estado === "malo" && campo ? "error" : "warn",
+          arreglo: ARREGLO_VITAL[n],
+        });
+      }
+      return h;
     },
   },
   {

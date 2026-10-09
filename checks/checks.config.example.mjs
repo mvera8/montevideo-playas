@@ -10,6 +10,7 @@ const config = {
   maxKbImagen: 400,
   // url: "http://localhost:3000",
   // paginas: ["/"],
+  // psiKey: "…", // clave de PageSpeed Insights (url-vitals); mejor PSI_API_KEY en .env.local
 };
 
 export default config;

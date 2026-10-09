@@ -1,6 +1,7 @@
 // Analytics: que el sitio mida visitas, y que el paquete instalado esté realmente montado.
 import fs from "node:fs";
 import path from "node:path";
+import { variablesEnv } from "../lib/util.mjs";
 
 // paquete → cómo se ve en el código cuando está montado. `null` en paquete = se carga con un <script>.
 export const PROVEEDORES = [
@@ -15,19 +16,6 @@ export const PROVEEDORES = [
   { nombre: "Cloudflare Web Analytics", paquete: null, uso: /static\.cloudflareinsights\.com/ },
   { nombre: "Simple Analytics", paquete: null, uso: /simpleanalyticscdn\.com/ },
 ];
-
-/** Variables definidas con valor en el entorno o en los .env del proyecto (como las carga Next). */
-function envDefinidas(raiz) {
-  const vars = new Set(Object.keys(process.env).filter((k) => process.env[k]));
-  for (const f of [".env", ".env.local", ".env.production", ".env.production.local"]) {
-    try {
-      for (const m of fs.readFileSync(path.join(raiz, f), "utf8").matchAll(/^\s*(?:export\s+)?(\w+)\s*=\s*["']?([^"'#\s]*)/gm)) if (m[2]) vars.add(m[1]);
-    } catch {
-      // no existe
-    }
-  }
-  return vars;
-}
 
 function dependencias(raiz) {
   try {
@@ -60,7 +48,7 @@ const reglas = [
       }));
       // Montado pero condicionado a una variable (p. ej. {GA_ID && <GoogleAnalytics />}) que no está
       // definida: el código está, pero en este entorno no mide nada.
-      const env = envDefinidas(ctx.raiz);
+      const env = variablesEnv(ctx.raiz);
       for (const p of montados) {
         for (const a of codigo.filter((a) => p.uso.test(a.src))) {
           const faltan = [...new Set([...a.src.matchAll(/process\.env\.(NEXT_PUBLIC_\w+)/g)].map((m) => m[1]))].filter(

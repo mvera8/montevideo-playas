@@ -71,7 +71,7 @@ Sale con código 1 si hay errores, así que sirve en CI o como `"prebuild": "npm
 | `cookies-sesion` (error) | Cookies de sesión sin `httpOnly`/`secure`/`sameSite`, sesión en `document.cookie` o tokens en `localStorage` |
 | `contrasenas` (error) | Columna de contraseña sin librería de hash, o contraseñas comparadas como texto (salvo "repetir contraseña") |
 | `datos-sensibles` (info) | Columnas de tarjeta, CVV, cédula, documento, CBU/IBAN… en el esquema |
-| `headers-seguridad` (warn) | `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy` (next.config, vercel.json o proxy); CSP como info |
+| `headers-seguridad` (warn) | `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy` (next.config, vercel.json o proxy); CSP como info (también si sigue en `Report-Only`) |
 | `https` (warn) | URLs `http://` en el código (contenido mixto), salvo localhost y namespaces XML |
 | `dependencias` (warn) | `npm audit` / `pnpm audit` de producción: críticas como error, altas como aviso, moderadas como info |
 | `console-log` (warn) | `console.log` olvidados |
@@ -106,6 +106,7 @@ Sale con código 1 si hay errores, así que sirve en CI o como `"prebuild": "npm
 | `url-https` | http:// redirige a https:// y no hay recursos por http:// (contenido mixto) |
 | `url-enlaces` | Los links internos de las páginas revisadas responden (máx. 50) |
 | `url-velocidad` | Tiempo de respuesta y peso del HTML comprimido (con `next dev` solo avisa que no es medible) |
+| `url-vitals` | Core Web Vitals de la home con la API de PageSpeed Insights (celular): LCP, INP y CLS de usuarios reales (CrUX, 28 días; de la página o, si no tiene tráfico, del dominio) o, sin datos reales, LCP/CLS/TBT de laboratorio. Malo con datos reales = error; en laboratorio solo aviso. Tarda 15–40 s y necesita una clave (ver abajo); en localhost no corre |
 | `url-analytics` | El analytics del código carga de verdad: Google Analytics con su ID en la página (si falta la variable en el build no mide); Vercel Analytics activado en el proyecto |
 | `url-robots-sitemap` | `/robots.txt` y `/sitemap.xml` responden, robots apunta al sitemap y no bloquea todo |
 
@@ -120,6 +121,14 @@ Sale con código 1 si hay errores, así que sirve en CI o como `"prebuild": "npm
 --estricto          los avisos también hacen fallar
 --lista             listar reglas
 ```
+
+### Clave de PageSpeed Insights (`url-vitals`)
+
+Sin clave, la API usa una cuota compartida entre todo el mundo que casi siempre está agotada. La clave es
+gratis (25.000 consultas por día): Google Cloud Console → APIs y servicios → Biblioteca → habilitar
+**PageSpeed Insights API** → Credenciales → Crear credenciales → Clave de API (conviene restringirla a esa
+API). Va en `.env.local` como `PSI_API_KEY=…` (no es `NEXT_PUBLIC_`, nunca llega al navegador). Para no
+esperar la consulta: `reglas: { "url-vitals": "off" }`.
 
 ## Silenciar un caso puntual
 
@@ -148,6 +157,7 @@ export default {
   permitirPng: ["public/maplibre/**"],
   maxKbImagen: 400,
   url: "http://localhost:3000",  // para no pasar --url cada vez
+  psiKey: "…",                   // clave de PageSpeed Insights para url-vitals (mejor PSI_API_KEY en .env.local)
   paginas: ["/", "/contacto"],
 };
 ```

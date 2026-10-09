@@ -101,3 +101,16 @@ export function atributo(attrs, nombre) {
 export function sinComentarios(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 }
+
+/** Variables con valor en el entorno o en los .env del proyecto (como las carga Next): nombre → valor. */
+export function variablesEnv(raiz) {
+  const vars = new Map(Object.entries(process.env).filter(([, v]) => v));
+  for (const f of [".env", ".env.local", ".env.production", ".env.production.local"]) {
+    try {
+      for (const m of fs.readFileSync(path.join(raiz, f), "utf8").matchAll(/^\s*(?:export\s+)?(\w+)\s*=\s*["']?([^"'#\s]*)/gm)) if (m[2] && !vars.has(m[1])) vars.set(m[1], m[2]);
+    } catch {
+      // no existe
+    }
+  }
+  return vars;
+}
