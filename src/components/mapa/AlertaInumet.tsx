@@ -34,7 +34,7 @@ export default function AlertaInumet({ alertas, className = "" }: { alertas: Ale
 
   if (!alertas || alertas.estado === "sin-datos") {
     return (
-      <p className={`rounded-2xl bg-white px-4 py-2.5 text-xs text-slate-500 ring-1 ring-black/5 dark:bg-oscuro-1 dark:ring-white/10 ${className}`}>
+      <p className={`rounded-2xl bg-white px-4 py-3 text-xs text-slate-500 ring-1 ring-black/5 dark:bg-oscuro-1 dark:ring-white/10 ${className}`}>
         Sin datos recientes de alertas de Inumet.{" "}
         <a href={URL_INUMET} target="_blank" rel="noreferrer" className="underline">
           Consultalas en inumet.gub.uy
@@ -62,7 +62,7 @@ function Advertencia({ adv, pdf, ahora }: { adv: AdvertenciaInumet; pdf: string 
         <Warning weight="fill" className="h-5 w-5 shrink-0" aria-hidden />
         <p className="font-semibold">Advertencia {n.label} de Inumet</p>
       </div>
-      <p className="mt-1.5 text-sm font-medium">{adv.fenomeno}</p>
+      <p className="mt-2 text-sm font-medium">{adv.fenomeno}</p>
       <p className={`mt-1 text-xs ${n.suave}`}>
         {[
           adv.riesgos.join(", "),

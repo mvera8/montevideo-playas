@@ -22,7 +22,7 @@ export function ContadorMeGusta({ slug, inicial }: { slug: string; inicial: Tota
   if (!meGustaDisponible || !t) return null;
   return (
     <span
-      className={`flex items-center gap-0.5 whitespace-nowrap text-[11px] tabular-nums ${color(t.meGusta)}`}
+      className={`flex items-center gap-0.5 whitespace-nowrap text-xs tabular-nums ${color(t.meGusta)}`}
       title={t.meGusta ? "Te gusta esta playa" : `${numero.format(t.temporada)} me gusta esta temporada`}
     >
       <Corazon lleno={t.meGusta} className="h-3 w-3" />
@@ -43,7 +43,7 @@ export function BotonMeGusta({ slug, nombre, inicial }: { slug: string; nombre: 
       aria-pressed={lleno}
       aria-label={lleno ? `Sacar me gusta a ${nombre}` : `Me gusta ${nombre}`}
       title={lleno ? "Te gusta" : "Me gusta"}
-      className={`group/mg flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1.5 text-sm font-medium ring-1 transition-transform active:scale-90 disabled:opacity-60 ${
+      className={`group/mg flex shrink-0 items-center gap-2 rounded-full px-2 py-2 text-sm font-medium ring-1 transition-transform duration-700 ease-fluido active:scale-90 disabled:opacity-60 ${
         lleno
           ? "bg-rose-50 text-rose-600 ring-rose-200 dark:bg-oscuro-2 dark:text-rose-300 dark:ring-rose-900"
           : "text-slate-600 ring-slate-200 hover:bg-slate-50 dark:text-neutral-300 dark:ring-neutral-700 dark:hover:bg-oscuro-3"
@@ -62,7 +62,7 @@ export function TotalesDetalle({ slug, inicial }: { slug: string; inicial: Total
   if (!meGustaDisponible || !estado) return null;
   return (
     <div className="mt-2">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         <p className={`flex items-center gap-1 text-xs ${color(estado.meGusta)}`}>
           <Corazon lleno={estado.meGusta} className="h-3 w-3" />
           <span className="font-semibold tabular-nums">{numero.format(estado.temporada)}</span> me gusta esta temporada

@@ -8,13 +8,14 @@ import { estadoCielo as estado, GRILLA_ICONO, ICONO_CIELO, type EstadoCielo } fr
 
 type Estado = EstadoCielo;
 
+// Fondo plano por estado del cielo (sin degradés, skill landing-page-design B4).
 const FONDO: Record<Estado, { dia: string; noche: string }> = {
-  sol: { dia: "linear-gradient(135deg,#e2574a 0%,#ef7d45 100%)", noche: "linear-gradient(135deg,#1e3a8a,#172554)" },
-  luna: { dia: "linear-gradient(135deg,#1e3a8a,#172554)", noche: "linear-gradient(135deg,#1e3a8a,#172554)" },
-  algoNublado: { dia: "linear-gradient(135deg,#2f7be0,#2563c9)", noche: "linear-gradient(135deg,#1e3a8a,#1e2a5a)" },
-  nublado: { dia: "linear-gradient(135deg,#4a6d9c,#365783)", noche: "linear-gradient(135deg,#2c3e5c,#1f2d44)" },
-  lluvia: { dia: "linear-gradient(135deg,#5457c4,#4338b8)", noche: "linear-gradient(135deg,#34336e,#25244f)" },
-  tormenta: { dia: "linear-gradient(135deg,#3b2f7a,#231c4d)", noche: "linear-gradient(135deg,#2a2356,#16123a)" },
+  sol: { dia: "#e86a47", noche: "#1a2f6f" },
+  luna: { dia: "#1a2f6f", noche: "#1a2f6f" },
+  algoNublado: { dia: "#2a6fd4", noche: "#1e3272" },
+  nublado: { dia: "#40628f", noche: "#253550" },
+  lluvia: { dia: "#4b47be", noche: "#2c2b5e" },
+  tormenta: { dia: "#2f2563", noche: "#201a48" },
 };
 
 /** Ilustración de fondo (esquina derecha). */
@@ -82,12 +83,12 @@ export default function ClimaAhora({ clima, ciudad }: { clima: Weather; ciudad: 
       role="group"
       aria-label={`Clima ahora en ${ciudad}`}
       className="relative overflow-hidden rounded-2xl p-4 text-white shadow-sm"
-      style={{ background: clima.isDay ? FONDO[e].dia : FONDO[e].noche }}
+      style={{ backgroundColor: clima.isDay ? FONDO[e].dia : FONDO[e].noche }}
     >
       <Decoracion e={e} />
       {/* Dos filas alineadas por línea base: estado | agua, y temperatura | viento. */}
       <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1 [text-shadow:0_1px_2px_rgba(0,0,0,0.18)]">
-        <p className="flex min-w-0 items-center gap-1.5 self-center text-sm font-medium">
+        <p className="flex min-w-0 items-center gap-2 self-center text-sm font-medium">
           <svg viewBox={`0 0 ${GRILLA_ICONO} ${GRILLA_ICONO}`} className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden>
             <path d={ICONO_CIELO[e]} />
           </svg>

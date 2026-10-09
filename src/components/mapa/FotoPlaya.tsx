@@ -6,7 +6,7 @@ import Modal, { BotonModal } from "@/components/Modal";
 import { crearFotoConSello, HASHTAG, type Sello } from "@/lib/sello-foto";
 import type { TotalesMeGusta } from "@/lib/me-gusta";
 import { meGustaDisponible, useTotalesMeGusta } from "@/lib/me-gusta-cliente";
-import { Spinner } from "./BotonUbicacion";
+import { Ocupado } from "./BotonUbicacion";
 
 // Botón 📷 al lado del me gusta: abre la cámara, le agrega el sello con los datos de la playa
 // (src/lib/sello-foto.ts) y muestra la foto lista para compartir o descargar. Todo en el dispositivo.
@@ -70,10 +70,10 @@ export default function FotoPlaya({
         disabled={estado === "armando"}
         aria-label={`Sacar una foto con los datos de ${sello.playa}`}
         title="Foto con los datos de la playa"
-        className="hidden shrink-0 touch-manipulation pointer-coarse:flex select-none items-center rounded-full px-2 py-1.5 text-slate-600 ring-1 ring-slate-200 transition-transform hover:bg-slate-50 active:scale-90 disabled:opacity-60 dark:text-neutral-300 dark:ring-neutral-700 dark:hover:bg-oscuro-3"
+        className="hidden shrink-0 touch-manipulation pointer-coarse:flex select-none items-center rounded-full px-2 py-2 text-slate-600 ring-1 ring-slate-200 transition-transform duration-700 ease-fluido hover:bg-slate-50 active:scale-90 disabled:opacity-60 dark:text-neutral-300 dark:ring-neutral-700 dark:hover:bg-oscuro-3"
       >
         {estado === "armando" ? (
-          <Spinner />
+          <Ocupado />
         ) : (
           <Camera className="h-4 w-4" aria-hidden />
         )}
@@ -96,7 +96,7 @@ export default function FotoPlaya({
                 <a
                   href={foto.url}
                   download={foto.archivo.name}
-                  className={`w-full select-none rounded-xl px-4 py-2.5 text-center text-sm font-medium ${
+                  className={`w-full select-none rounded-xl px-4 py-3 text-center text-sm font-medium ${
                     puedeCompartir
                       ? "ring-1 ring-slate-200 hover:bg-slate-50 dark:ring-neutral-700 dark:hover:bg-oscuro-3"
                       : "bg-sky-700 text-white hover:bg-sky-800"

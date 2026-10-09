@@ -772,7 +772,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
 
   const teclado = useTeclado();
   // En móvil la hoja inferior baja al plegar; en escritorio se mueve todo el panel.
-  const hoja = `transition-[translate,visibility] duration-300 ease-out motion-reduce:transition-none ${
+  const hoja = `transition-[translate,visibility] duration-700 ease-fluido motion-reduce:transition-none ${
     abierto ? "" : "max-md:invisible max-md:translate-y-[110%]"
   }`;
 
@@ -805,14 +805,14 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         aria-controls="panel-lateral"
         aria-label={abierto ? "Ocultar panel" : "Mostrar panel"}
         title={abierto ? "Ocultar panel" : "Mostrar panel"}
-        className={`absolute right-3 top-3 z-20 grid h-12 w-12 place-items-center rounded-2xl bg-white/95 text-slate-600 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate,color] duration-300 ease-out hover:text-slate-900 motion-reduce:transition-none md:left-4 md:right-auto md:top-4 dark:bg-oscuro-1/95 dark:text-neutral-300 dark:ring-white/10 dark:hover:text-white ${
+        className={`absolute right-3 top-3 z-20 grid h-12 w-12 place-items-center rounded-2xl bg-white/95 text-slate-600 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate,color] duration-700 ease-fluido hover:text-slate-900 motion-reduce:transition-none md:left-4 md:right-auto md:top-4 dark:bg-oscuro-1/95 dark:text-neutral-300 dark:ring-white/10 dark:hover:text-white ${
           abierto ? "md:translate-x-[356px]" : ""
         }`}
       >
         <span className="relative h-5 w-5" aria-hidden>
-          <X className={`absolute inset-0 h-full w-full transition duration-300 motion-reduce:transition-none ${abierto ? "rotate-0 opacity-100" : "-rotate-90 opacity-0"}`} />
+          <X className={`absolute inset-0 h-full w-full transition duration-700 ease-fluido motion-reduce:transition-none ${abierto ? "rotate-0 opacity-100" : "-rotate-90 opacity-0"}`} />
           {/* Grilla de tablero: "ver la info", sin sugerir de qué lado sale el panel (costado en escritorio, abajo en móvil). */}
-          <SquaresFour className={`absolute inset-0 h-full w-full transition duration-300 motion-reduce:transition-none ${abierto ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`} />
+          <SquaresFour className={`absolute inset-0 h-full w-full transition duration-700 ease-fluido motion-reduce:transition-none ${abierto ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`} />
         </span>
       </button>
 
@@ -821,7 +821,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       <Link
         href="/"
         aria-label={`${SITIO.marca}: ir al inicio`}
-        className={`absolute left-3 ${teclado ? "max-md:hidden" : ""} top-[72px] z-20 flex h-10 items-center gap-1 rounded-2xl bg-white/95 px-3 text-xs font-semibold tracking-tight text-slate-900 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate] duration-300 ease-out motion-reduce:transition-none md:left-[72px] md:top-4 md:h-12 md:px-4 md:text-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 dark:bg-oscuro-1/95 dark:text-white dark:ring-white/10 dark:hover:bg-oscuro-1 ${
+        className={`absolute left-3 ${teclado ? "max-md:hidden" : ""} top-[72px] z-20 flex h-10 items-center gap-1 rounded-2xl bg-white/95 px-3 text-xs font-semibold tracking-tight text-slate-900 shadow-lg ring-1 ring-black/5 backdrop-blur transition-[translate] duration-700 ease-fluido motion-reduce:transition-none md:left-[72px] md:top-4 md:h-12 md:px-4 md:text-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 dark:bg-oscuro-1/95 dark:text-white dark:ring-white/10 dark:hover:bg-oscuro-1 ${
           abierto ? "md:translate-x-[356px]" : ""
         }`}
       >
@@ -837,8 +837,8 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         <MenuSitio>
           {(cerrarMenu) => (
             <section aria-label="Estilo del mapa" className="md:hidden">
-              <p className="px-5 pb-1 text-xs font-medium uppercase tracking-wider text-slate-500">Estilo del mapa</p>
-              <div role="menu" className="px-2.5">
+              <p className="px-6 pb-1 text-xs font-medium uppercase tracking-wider text-slate-500">Estilo del mapa</p>
+              <div role="menu" className="px-3">
                 <OpcionesTema
                   tema={tema}
                   auto={temaManual === null}
@@ -849,7 +849,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
                   }}
                 />
               </div>
-              <div className="mx-5 my-3 h-px bg-slate-100 dark:bg-oscuro-3" />
+              <div className="mx-6 my-3 h-px bg-slate-100 dark:bg-oscuro-3" />
             </section>
           )}
         </MenuSitio>
@@ -857,12 +857,12 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
 
       <aside
         id="panel-lateral"
-        className={`pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-3 p-3 transition-[translate,visibility] duration-300 ease-out motion-reduce:transition-none md:inset-y-0 md:right-auto md:w-[380px] md:p-4 ${
+        className={`pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-3 p-3 transition-[translate,visibility] duration-700 ease-fluido motion-reduce:transition-none md:inset-y-0 md:right-auto md:w-[380px] md:p-4 ${
           abierto ? "" : "md:invisible md:-translate-x-[calc(100%+1rem)]"
         }`}
       >
         {/* Buscador: filtra el listado de playas */}
-        <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/95 px-4 py-3 shadow-lg ring-1 ring-black/5 backdrop-blur max-md:mr-14 dark:bg-oscuro-1/95 dark:ring-white/10">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/95 px-4 py-3 shadow-lg ring-1 ring-black/5 backdrop-blur max-md:mr-16 dark:bg-oscuro-1/95 dark:ring-white/10">
           <MagnifyingGlass className="h-5 w-5 shrink-0 text-slate-400" aria-hidden />
           <input
             value={busqueda}
@@ -915,7 +915,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
 
         {/* Detalle de la playa */}
         {playa && (
-          <section className={`${hoja} pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:shadow-lg dark:bg-oscuro-1 dark:ring-white/10`}>
+          <section className={`${hoja} pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-white p-4 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:shadow-lg dark:bg-oscuro-1 dark:ring-white/10`}>
             <Detalle
               playa={playa}
               temporada={temporada}
@@ -1109,10 +1109,10 @@ function Detalle({
 
 function Dato({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-2.5 py-2 dark:bg-oscuro-3">
-      <p className="text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
+    <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-oscuro-3">
+      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
       <p className="text-lg font-semibold tabular-nums leading-tight">{value}</p>
-      {sub && <p className="truncate text-[11px] text-slate-500">{sub}</p>}
+      {sub && <p className="truncate text-xs text-slate-500">{sub}</p>}
     </div>
   );
 }
@@ -1162,7 +1162,7 @@ function ModalUbicacion({
         (ios ? (
           <>
             <p>El iPhone tiene bloqueada la ubicación para este sitio. Para habilitarla:</p>
-            <ol className="list-decimal space-y-1 pl-5">
+            <ol className="list-decimal space-y-1 pl-6">
               <li>
                 <strong>Ajustes › Privacidad y seguridad › Localización</strong>: que esté activada y que{" "}
                 <strong>Sitios web de Safari</strong> diga «Al usarse».

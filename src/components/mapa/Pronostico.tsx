@@ -169,7 +169,7 @@ function Grafico({ datos }: { datos: Datos }) {
             x={x(i)}
             y={k === 0 ? y1(vals[i]) - 6 : y1(vals[i]) + 12}
             textAnchor="middle"
-            className="fill-slate-700 text-[10px] font-semibold tabular-nums dark:fill-neutral-200"
+            className="fill-slate-700 text-xs font-semibold tabular-nums dark:fill-neutral-200"
           >
             {Math.round(vals[i])}°
           </text>

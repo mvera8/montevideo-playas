@@ -16,7 +16,7 @@ export function IconoBanderaSanitaria({ className = "h-3 w-3" }: { className?: s
 /** Aviso de bandera sanitaria de una casilla (lista de casillas). */
 export function AvisoSanitaria({ sanitaria }: { sanitaria: NonNullable<Guardavidas["banderaSanitaria"]> }) {
   return (
-    <span className="mt-1 flex items-start gap-1.5 text-xs text-red-700 dark:text-red-400">
+    <span className="mt-1 flex items-start gap-2 text-xs text-red-700 dark:text-red-400">
       <IconoBanderaSanitaria className="mt-0.5 h-3 w-3" />
       <span>
         <span className="font-medium">No apta para baños{sanitaria.causa ? ` · ${sanitaria.causa}` : ""}</span>

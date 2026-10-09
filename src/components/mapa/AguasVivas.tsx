@@ -41,7 +41,7 @@ export default function AguasVivas({ datos }: { datos: AguasVivasPlaya | null })
     <SeccionPlegable
       titulo="Aguas vivas"
       ancla={ANCLA_AGUAS_VIVAS}
-      resumen={<span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${CHIP[chip]}`}>{texto}</span>}
+      resumen={<span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${CHIP[chip]}`}>{texto}</span>}
     >
       <div className="space-y-2">
         <ul className="space-y-1">
@@ -49,7 +49,7 @@ export default function AguasVivas({ datos }: { datos: AguasVivasPlaya | null })
             <Reporte key={a.id} a={a} />
           ))}
         </ul>
-        <p className="text-[11px] leading-relaxed text-slate-500">
+        <p className="text-xs leading-relaxed text-slate-500">
           Reportes voluntarios de la comunidad en iNaturalist de los últimos {DIAS_VIGENCIA} días, no un monitoreo
           oficial. Se reportan pocas (unas pocas por temporada), así que <strong>en las playas sin reportes también
           puede haber aguas vivas</strong>: mirá el agua y preguntale al guardavidas. Si te pica, enjuagá con agua de mar
@@ -88,7 +88,7 @@ function Reporte({ a }: { a: AvistamientoPlaya }) {
           <span className="block text-xs text-slate-500">
             {fecha(a.fecha)} ({haceDias(a.dias)}){a.lugar && ` · ${a.lugar}`}
           </span>
-          <span className="block text-[11px] text-slate-400">
+          <span className="block text-xs text-slate-400">
             iNaturalist · {a.confirmada ? "identificación confirmada" : "identificación sin confirmar"}
           </span>
         </span>

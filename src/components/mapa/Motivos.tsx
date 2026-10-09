@@ -10,7 +10,7 @@ const CALIDAD: Record<Calidad, string> = {
 
 export function BadgeCalidad({ calidad, puntaje }: { calidad: Calidad; puntaje?: number }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${CALIDAD[calidad]}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${CALIDAD[calidad]}`}>
       {calidad}
       {puntaje !== undefined && <span className="font-normal tabular-nums opacity-70">{puntaje}</span>}
     </span>
@@ -26,11 +26,11 @@ const TONO = {
 
 export function Motivos({ motivos, max = 4 }: { motivos: Motivo[]; max?: number }) {
   return (
-    <ul className="flex flex-wrap gap-1.5">
+    <ul className="flex flex-wrap gap-2">
       {motivos.slice(0, max).map((m) => (
         <li
           key={m.texto}
-          className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700 dark:bg-oscuro-3 dark:text-neutral-200"
+          className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700 dark:bg-oscuro-3 dark:text-neutral-200"
         >
           <span className={`font-bold ${TONO[m.tono]}`} aria-hidden>
             {ICONO[m.tono]}

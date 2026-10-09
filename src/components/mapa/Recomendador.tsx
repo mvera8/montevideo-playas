@@ -7,7 +7,7 @@ import { recomendar, type Viaje } from "@/lib/recomendacion";
 import type { Punto } from "@/lib/transporte/planificador";
 import { postJson, redondear } from "@/lib/ubicacion";
 import Modal from "@/components/Modal";
-import BotonUbicacion, { Spinner } from "./BotonUbicacion";
+import BotonUbicacion, { Ocupado } from "./BotonUbicacion";
 import { BotonInfo, TarjetaInfo } from "./Info";
 import { BadgeCalidad, Motivos } from "./Motivos";
 
@@ -64,11 +64,11 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
   return (
     <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 dark:bg-oscuro-1 dark:ring-white/10">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
           ¿A qué playa voy?
           <BotonInfo abierto={info} onClick={() => setInfo((v) => !v)} etiqueta="Cómo se calcula el puntaje" />
         </h2>
-        <span className="text-[11px] text-slate-500">Ahora</span>
+        <span className="text-xs text-slate-500">Ahora</span>
       </div>
 
       {info && (
@@ -78,7 +78,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
             frente o queda reparada, según hacia dónde mira la playa), la sensación térmica, la lluvia y las olas. Si
             sumás tu ubicación, también cuenta cuánto tardás en llegar.
           </p>
-          <p className="mt-1.5">
+          <p className="mt-2">
             De noche el máximo es 30. <strong>75+</strong> Ideal · <strong>55+</strong> Buena · <strong>40+</strong>{" "}
             Aceptable · menos, No recomendable.
           </p>
@@ -124,7 +124,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
         )}
       </div>
       {!origen && (
-        <p className="mt-2 text-[11px] text-slate-500">
+        <p className="mt-2 text-xs text-slate-500">
           Tu ubicación se usa solo para calcular el viaje y no se guarda.{" "}
           <Link href="/privacidad#ubicacion" className="underline">
             Privacidad
@@ -132,8 +132,8 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
         </p>
       )}
       {calculando && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-sky-700 dark:text-sky-300">
-          <Spinner className="h-3.5 w-3.5" />
+        <p className="mt-2 flex items-center gap-2 text-xs text-sky-700 dark:text-sky-300">
+          <Ocupado className="h-3.5 w-3.5" />
           Calculando cuánto tardás a cada playa…
         </p>
       )}
@@ -160,7 +160,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
 
       {lista.length > 0 && (
         <div className="mt-3 border-t border-slate-100 pt-3 dark:border-neutral-800">
-          <p className="mb-1 flex justify-between px-1.5 text-[11px] text-slate-500">
+          <p className="mb-1 flex justify-between px-2 text-xs text-slate-500">
             <span>{malMomento ? "Si igual querés ir" : "También"}</span>
             <span>puntaje</span>
           </p>
@@ -171,7 +171,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
                 <li key={r.slug}>
                   <button
                     onClick={() => onElegir(p)}
-                    className="flex w-full items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-left text-sm hover:bg-slate-50 dark:hover:bg-oscuro-3"
+                    className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 dark:hover:bg-oscuro-3"
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="w-4 text-xs text-slate-400 tabular-nums">{malMomento ? i + 1 : i + 2}</span>
