@@ -114,7 +114,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
         {!malMomento && (
           <button
             onClick={() => onElegir(playa)}
-            className="flex-1 rounded-xl bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700"
+            className="flex-1 rounded-xl bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:bg-sky-800"
           >
             Ver playa
           </button>

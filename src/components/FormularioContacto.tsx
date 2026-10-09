@@ -54,7 +54,7 @@ export default function FormularioContacto() {
       <button
         type="submit"
         disabled={enviando}
-        className="rounded-xl bg-sky-600 px-5 py-2.5 font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
+        className="rounded-xl bg-sky-700 px-5 py-2.5 font-semibold text-white hover:bg-sky-800 disabled:opacity-60"
       >
         {enviando ? "Enviando…" : "Enviar mensaje"}
       </button>

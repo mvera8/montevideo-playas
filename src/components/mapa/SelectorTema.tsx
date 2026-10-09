@@ -79,7 +79,7 @@ export default function SelectorTema({ tema, auto, temaAuto, onElegir }: Props) 
           {TEMAS[tema].icono}
         </span>
         <span>{TEMAS[tema].label}</span>
-        {auto && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500 dark:bg-slate-800">Auto</span>}
+        {auto && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">Auto</span>}
       </button>
 
       {abierto && (

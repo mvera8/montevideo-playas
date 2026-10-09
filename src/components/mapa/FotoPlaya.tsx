@@ -99,7 +99,7 @@ export default function FotoPlaya({
                   className={`w-full select-none rounded-xl px-4 py-2.5 text-center text-sm font-medium ${
                     puedeCompartir
                       ? "ring-1 ring-slate-200 hover:bg-slate-50 dark:ring-slate-700 dark:hover:bg-slate-800"
-                      : "bg-sky-600 text-white hover:bg-sky-700"
+                      : "bg-sky-700 text-white hover:bg-sky-800"
                   }`}
                 >
                   Descargar

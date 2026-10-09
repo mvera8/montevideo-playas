@@ -63,7 +63,7 @@ const reglas = [
     run(ctx) {
       if (!ctx.appDir) return [];
       const paginas = recorrer(ctx.appDir, EXT.map((e) => `.${e}`)).filter((f) => /^page\.[jt]sx?$/.test(path.basename(f)));
-      const h = [];
+      const sinCarga = [];
       for (const pagina of paginas) {
         const src = fs.readFileSync(pagina, "utf8");
         // Solo las páginas que esperan datos: async o con await en el componente.
@@ -73,14 +73,28 @@ const reglas = [
         let tiene = false;
         for (let d = path.dirname(pagina); d.startsWith(ctx.appDir) && !tiene; d = path.dirname(d))
           tiene = EXT.some((e) => fs.existsSync(path.join(d, `loading.${e}`)));
-        if (!tiene)
-          h.push({
-            msg: "Página async sin loading.tsx ni <Suspense>: si los datos tardan, al navegar no se ve nada hasta que llegan.",
-            archivo: ctx.rel(pagina),
-            arreglo: "Agregá loading.tsx en esa carpeta (esqueleto o spinner), o envolvé la parte lenta en <Suspense fallback={...}>.",
-          });
+        if (!tiene) sinCarga.push(pagina);
       }
-      return h;
+      // Agrupadas por el layout más cercano: un solo loading.tsx al lado del layout cubre todas sus páginas.
+      const grupos = new Map();
+      for (const pagina of sinCarga) {
+        let d = path.dirname(pagina);
+        while (d !== ctx.appDir && !EXT.some((e) => fs.existsSync(path.join(d, `layout.${e}`)))) d = path.dirname(d);
+        grupos.set(d, [...(grupos.get(d) ?? []), pagina]);
+      }
+      return [...grupos].map(([dir, pags]) =>
+        pags.length === 1
+          ? {
+              msg: "Página async sin loading.tsx ni <Suspense>: si los datos tardan, al navegar no se ve nada hasta que llegan.",
+              archivo: ctx.rel(pags[0]),
+              arreglo: "Agregá loading.tsx en esa carpeta (esqueleto o spinner), o envolvé la parte lenta en <Suspense fallback={...}>.",
+            }
+          : {
+              msg: `${pags.length} páginas async sin loading.tsx ni <Suspense> (${pags.map((p) => ctx.ruta(p)).join(", ")}): si los datos tardan, al navegar no se ve nada hasta que llegan.`,
+              archivo: ctx.rel(dir) || ".",
+              arreglo: `Un solo ${ctx.rel(path.join(dir, "loading.tsx"))} (esqueleto o spinner) las cubre a todas; o envolvé la parte lenta en <Suspense fallback={...}>.`,
+            },
+      );
     },
   },
   {

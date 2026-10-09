@@ -13,7 +13,7 @@ export function BotonInfo({ abierto, onClick, etiqueta }: { abierto: boolean; on
       // El ::after invisible agranda el área de toque a 40 px sin cambiar el tamaño del círculo.
       className={`relative grid h-4 w-4 shrink-0 after:absolute after:-inset-3 after:content-[''] place-items-center rounded-full text-[10px] font-bold leading-none ring-[1.5px] ${
         abierto
-          ? "bg-sky-600 text-white ring-sky-600"
+          ? "bg-sky-700 text-white ring-sky-700"
           : "text-slate-500 ring-slate-400 hover:bg-slate-100 dark:ring-slate-500 dark:hover:bg-slate-800"
       }`}
     >

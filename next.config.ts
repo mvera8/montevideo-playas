@@ -5,7 +5,21 @@ import type { NextConfig } from "next";
 // estar agregados al MISMO proyecto (sin redirección propia de Vercel) para que estas reglas corran.
 const PRINCIPAL = "https://montevideo.playas.uy";
 
+// Headers de seguridad para todas las respuestas. HSTS no va acá: Vercel ya lo agrega en sus dominios.
+// Permissions-Policy: la ubicación la usa el mapa ("Cerca mío"); la cámara no hace falta porque la foto
+// de playa usa <input type="file" capture>, que abre la app de cámara del sistema y no pasa por esta política.
+const HEADERS_SEGURIDAD = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+];
+
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:ruta*", headers: HEADERS_SEGURIDAD }];
+  },
   async redirects() {
     return [
       // playas.uy/montevideo/... (desde cualquier host) → montevideo.playas.uy/...

@@ -47,7 +47,9 @@ export default function Privacidad() {
       <ul>
         <li>
           <strong>“Usar mi ubicación” y “Sumar mi viaje”</strong>: tu navegador te pide permiso. Si aceptás, enviamos tu
-          ubicación a nuestro servidor para calcular los recorridos en ómnibus y el tiempo de viaje a cada playa.
+          ubicación a nuestro servidor para calcular los recorridos en ómnibus y el tiempo de viaje a cada playa. Para
+          evitar abusos, tu dirección IP se usa un rato para limitar cuántos cálculos se piden por minuto, y luego se
+          descarta; no se guarda junto con tu ubicación.
         </li>
         <li>
           <strong>“Elegir en el mapa”</strong>: se usa el punto que tocás, de la misma manera.

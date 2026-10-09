@@ -194,7 +194,8 @@ export default function Terminos() {
       <h3>Cómo llegar en ómnibus</h3>
       <p>
         Los recorridos se calculan con los horarios publicados del STM y las llegadas “en vivo” se estiman a partir de la
-        posición GPS de los ómnibus. No contemplan feriados, desvíos ni cambios de último momento.
+        posición GPS de los ómnibus. No contemplan feriados, desvíos ni cambios de último momento. Para que el servicio
+        siga disponible para todos, hay un límite de cálculos por minuto desde una misma conexión.
       </p>
 
       <h3 id="me-gusta">Me gusta</h3>

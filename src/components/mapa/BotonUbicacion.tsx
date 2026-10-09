@@ -22,7 +22,7 @@ export default function BotonUbicacion({
       aria-busy={ubicando}
       className={`flex flex-1 touch-manipulation select-none items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-transform active:scale-[0.97] disabled:animate-pulse motion-reduce:transition-none motion-reduce:disabled:animate-none ${
         principal
-          ? "bg-sky-600 text-white hover:bg-sky-700"
+          ? "bg-sky-700 text-white hover:bg-sky-800"
           : "ring-1 ring-slate-200 hover:bg-slate-50 disabled:bg-sky-50 disabled:text-sky-800 disabled:ring-sky-300 dark:ring-slate-700 dark:hover:bg-slate-800 dark:disabled:bg-sky-950 dark:disabled:text-sky-200"
       }`}
     >

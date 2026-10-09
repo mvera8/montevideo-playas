@@ -1,3 +1,6 @@
+import { gzipSync } from "node:zlib";
+import { PROVEEDORES } from "./analytics.mjs";
+
 // Modo --url: revisa el HTML que realmente sirve el sitio (next start, preview o producción).
 // Atrapa lo que el análisis estático no ve: títulos armados con variables, metadata dinámica, links rotos.
 
@@ -19,14 +22,18 @@ const link = (html, rel) => {
 const titulo = (html) => /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1].trim() ?? null;
 const decodificar = (s) => s?.replace(/&amp;/g, "&").replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"');
 
-async function pedir(url) {
+async function pedir(url, { redirect = "follow" } = {}) {
+  const t0 = performance.now();
   try {
-    const r = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(15000) });
-    return { status: r.status, tipo: r.headers.get("content-type") ?? "", texto: await r.text() };
+    const r = await fetch(url, { redirect, signal: AbortSignal.timeout(15000) });
+    const ms = Math.round(performance.now() - t0); // hasta el primer byte (headers)
+    return { status: r.status, tipo: r.headers.get("content-type") ?? "", headers: r.headers, ms, texto: await r.text() };
   } catch (e) {
-    return { status: 0, tipo: "", texto: "", error: e.cause?.code ?? e.message };
+    return { status: 0, tipo: "", headers: new Headers(), ms: 0, texto: "", error: e.cause?.code ?? e.message };
   }
 }
+
+const esLocal = (base) => /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(base);
 
 /** Páginas a revisar: las pasadas por --paginas, o las del sitemap, o solo la home. */
 export async function descubrirPaginas(base, { paginas, max = 20 }) {
@@ -41,7 +48,7 @@ export async function descubrirPaginas(base, { paginas, max = 20 }) {
 
 export async function crearContextoUrl(base, rutas) {
   const paginas = await Promise.all(rutas.map(async (ruta) => ({ ruta, ...(await pedir(new URL(ruta, base))) })));
-  return { base, paginas, pedir: (r) => pedir(new URL(r, base)) };
+  return { base, paginas, pedir: (r, opts) => pedir(new URL(r, base), opts) };
 }
 
 const porPagina = (ctx, fn) => ctx.paginas.filter((p) => p.status === 200).flatMap((p) => fn(p).map((h) => ({ archivo: p.ruta, ...h })));
@@ -203,6 +210,127 @@ const reglas = [
           h.push({ msg: "El viewport bloquea el zoom (accesibilidad).", nivel: "warn" });
         return h;
       }).slice(0, 1),
+  },
+  {
+    id: "url-headers",
+    categoria: "Sitio en vivo",
+    titulo: "Headers de seguridad servidos",
+    nivel: "warn",
+    run(ctx) {
+      const home = ctx.paginas.find((p) => p.status === 200);
+      if (!home) return [];
+      const hd = home.headers;
+      const h = [];
+      const faltan = ["x-content-type-options", "referrer-policy", "permissions-policy"].filter((k) => !hd.has(k));
+      if (!hd.has("x-frame-options") && !/frame-ancestors/i.test(hd.get("content-security-policy") ?? "")) faltan.push("x-frame-options (o frame-ancestors)");
+      if (faltan.length) h.push({ msg: `La respuesta no trae: ${faltan.join(", ")}.`, arreglo: "headers() en next.config (ver la regla headers-seguridad)." });
+      if (ctx.base.startsWith("https:") && !hd.has("strict-transport-security"))
+        h.push({ msg: "Sin Strict-Transport-Security (HSTS): la primera visita por http:// se puede interceptar.", arreglo: '{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" } (Vercel ya lo pone en sus dominios).' });
+      if (hd.get("x-powered-by")) h.push({ msg: `Expone X-Powered-By: ${hd.get("x-powered-by")}.`, nivel: "info", arreglo: "poweredByHeader: false en next.config." });
+      return h.map((x) => ({ archivo: home.ruta, ...x }));
+    },
+  },
+  {
+    id: "url-https",
+    categoria: "Sitio en vivo",
+    titulo: "HTTPS forzado y sin contenido mixto",
+    nivel: "error",
+    async run(ctx) {
+      const h = [];
+      if (ctx.base.startsWith("https:")) {
+        const http = await pedir(ctx.base.replace(/^https:/, "http:"), { redirect: "manual" });
+        const destino = http.headers.get("location") ?? "";
+        if (http.status && !(http.status >= 300 && http.status < 400 && destino.startsWith("https:")))
+          h.push({ msg: `http:// responde ${http.status} sin redirigir a https://.`, arreglo: "En Vercel es automático; en otro hosting, redirigí todo http a https (301/308)." });
+      }
+      // Recursos cargados por http:// en una página https: el navegador los bloquea.
+      h.push(
+        ...porPagina(ctx, (p) => {
+          const mixtos = [...p.texto.matchAll(/<(?:img|script|link|iframe|source|video|audio)\b[^>]*\b(?:src|href|srcset)\s*=\s*["'](http:\/\/(?!localhost|127\.0\.0\.1)[^"']+)/gi)].map((m) => m[1]);
+          return mixtos.length ? [{ msg: `${mixtos.length} recurso(s) por http:// (ej: ${mixtos[0].slice(0, 70)}): el navegador los bloquea en https.`, nivel: "warn" }] : [];
+        }),
+      );
+      return h;
+    },
+  },
+  {
+    id: "url-enlaces",
+    categoria: "Sitio en vivo",
+    titulo: "Links internos sin romper",
+    nivel: "error",
+    async run(ctx) {
+      // Links internos que aparecen en las páginas revisadas (máx. 50 distintos).
+      const revisadas = new Set(ctx.paginas.map((p) => p.ruta));
+      const origen = new Map();
+      for (const p of ctx.paginas.filter((p) => p.status === 200))
+        for (const m of p.texto.matchAll(/<a\b[^>]*\bhref\s*=\s*["']([^"'#]+)/gi)) {
+          let u;
+          try {
+            u = new URL(decodificar(m[1]), new URL(p.ruta, ctx.base));
+          } catch {
+            continue;
+          }
+          if (u.origin !== new URL(ctx.base).origin || revisadas.has(u.pathname + u.search)) continue;
+          if (!origen.has(u.pathname + u.search)) origen.set(u.pathname + u.search, p.ruta);
+        }
+      const h = [];
+      const lista = [...origen].slice(0, 50);
+      const res = await Promise.all(lista.map(([ruta]) => ctx.pedir(ruta)));
+      lista.forEach(([ruta, desde], i) => {
+        const r = res[i];
+        if (r.status >= 400 || r.status === 0) h.push({ archivo: desde, msg: `Link a ${ruta} responde ${r.status || r.error}.` });
+      });
+      return h;
+    },
+  },
+  {
+    id: "url-velocidad",
+    categoria: "Sitio en vivo",
+    titulo: "Respuesta rápida y HTML liviano",
+    nivel: "warn",
+    run(ctx) {
+      // En localhost con `next dev` todo es lento (compila al pedir): solo vale con next start o producción.
+      const dev = ctx.paginas.some((p) => /__nextDevClient|next-devtools|webpack-hmr|turbopack-hmr|\/_next\/static\/chunks\/[^"']*hmr/i.test(p.texto));
+      if (dev) return [{ msg: "El sitio corre con next dev: los tiempos no son reales. Para medir: npm run build && npm start.", nivel: "info" }];
+      return porPagina(ctx, (p) => {
+        const h = [];
+        // Lo que viaja es el HTML comprimido (gzip/brotli): medir el texto crudo exagera 10–15 veces.
+        const kb = Math.round(gzipSync(p.texto).length / 1024);
+        const crudoKb = Math.round(Buffer.byteLength(p.texto) / 1024);
+        if (p.ms > (esLocal(ctx.base) ? 800 : 1500))
+          h.push({ msg: `Tardó ${p.ms} ms en responder.`, arreglo: "Revisá consultas lentas o en cadena (Promise.all), cacheá lo que no cambia ('use cache' / revalidate) y mostrá loading.tsx." });
+        if (kb > 100)
+          h.push({ msg: `El HTML pesa ${kb} KB comprimido (${crudoKb} KB sin comprimir; ideal < 100 KB).`, nivel: kb > 200 ? "warn" : "info", arreglo: "Suele ser por pasar datos enormes a componentes cliente (mandá solo los campos que usan) o por listas larguísimas sin paginar." });
+        return h;
+      });
+    },
+  },
+  {
+    id: "url-analytics",
+    categoria: "Sitio en vivo",
+    titulo: "Analytics cargando de verdad",
+    nivel: "error",
+    async run(ctx) {
+      const home = ctx.paginas.find((p) => p.status === 200);
+      if (!home || !ctx.estatico) return [];
+      const montados = PROVEEDORES.filter((p) => ctx.estatico.codigo().some((a) => p.uso.test(a.src))).map((p) => p.nombre);
+      const h = [];
+      if (montados.some((n) => n.startsWith("Google Analytics"))) {
+        // El ID tiene que llegar al HTML (gtag/js?id=G-… o en el payload de React): si la variable
+        // no estaba definida en el build, el componente no se renderiza y no mide nada.
+        const id = /googletagmanager\.com\/gtag\/js\?id=((?:G|GT|AW|UA)-[\w-]+)|"gaId":"((?:G|GT)-[\w-]+)"|\b(G-[A-Z0-9]{6,12})\b/.exec(home.texto);
+        if (!id)
+          h.push({
+            msg: "Google Analytics está en el código pero la página no trae ningún ID (G-…): no mide nada.",
+            arreglo: "Definí NEXT_PUBLIC_GA_ID en el hosting (Production) y volvé a hacer el deploy: las NEXT_PUBLIC_ se fijan en el build.",
+          });
+      }
+      if (montados.includes("Vercel Analytics") && !esLocal(ctx.base)) {
+        const r = await ctx.pedir("/_vercel/insights/script.js");
+        if (r.status !== 200) h.push({ msg: "Vercel Analytics está en el código pero no está activado en el proyecto (/_vercel/insights/script.js da " + (r.status || r.error) + ").", arreglo: "Vercel → proyecto → Analytics → Enable." });
+      }
+      return h.map((x) => ({ archivo: home.ruta, ...x }));
+    },
   },
   {
     id: "url-robots-sitemap",

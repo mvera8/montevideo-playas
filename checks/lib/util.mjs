@@ -84,7 +84,7 @@ export function etiquetasJsx(src, nombres) {
       else if (c === "}") llaves--;
       else if (c === ">" && llaves === 0) break;
     }
-    salida.push({ nombre: m[1], attrs: src.slice(m.index + m[0].length, i), linea: lineaDe(src, m.index) });
+    salida.push({ nombre: m[1], attrs: src.slice(m.index + m[0].length, i), linea: lineaDe(src, m.index), indice: m.index });
   }
   return salida;
 }
@@ -95,4 +95,9 @@ export function atributo(attrs, nombre) {
   if (!m) return undefined;
   if (!m[1]) return true; // atributo booleano
   return m[2] ?? m[3] ?? m[4] ?? null;
+}
+
+// Código sin comentarios de línea ni de bloque, para que "sumar Turnstile" en un comentario no cuente como uso.
+export function sinComentarios(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 }

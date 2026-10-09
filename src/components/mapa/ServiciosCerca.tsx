@@ -52,7 +52,7 @@ export default function ServiciosCerca({
                     <span className="shrink-0 text-xs tabular-nums text-slate-500">{metros(s.metros)}</span>
                   </span>
                   {s.horario && <span className="block text-xs text-slate-500">{s.horario}</span>}
-                  <span className="block text-[11px] text-slate-400">
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400">
                     {s.accesible ? "♿ Accesible · " : ""}
                     {s.fuente === "IM" ? "Intendencia" : "OpenStreetMap"}
                     {s.actualizado && ` · ${textoFecha(s, true)}`}
