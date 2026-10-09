@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Solo la cursiva de los títulos de la home ("...en un *mapa*"); un peso, sin variantes de más.
+// Solo la palabra en cursiva de algunos títulos ("...en un *mapa*"); un peso, sin variantes de más.
+// Excepción pedida a la skill landing-page-design (B1 prohíbe cursivas y una segunda fuente).
 const instrumentSerif = Instrument_Serif({
   variable: "--font-instrument-serif",
   subsets: ["latin"],
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f6f9fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1620" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
 

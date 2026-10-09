@@ -12,7 +12,7 @@ type Props = {
 
 const opcion = (activa: boolean) =>
   `flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm ${
-    activa ? "bg-sky-50 font-medium text-sky-900 dark:bg-slate-800 dark:text-white" : "hover:bg-slate-50 dark:hover:bg-slate-800"
+    activa ? "bg-sky-50 font-medium text-sky-900 dark:bg-oscuro-3 dark:text-white" : "hover:bg-slate-50 dark:hover:bg-oscuro-3"
   }`;
 
 /** Lista de estilos (automático + manuales). La usan el desplegable de escritorio y, en móvil, el menú del sitio. */
@@ -30,7 +30,7 @@ export function OpcionesTema({ tema, auto, temaAuto, onElegir }: Props) {
           </span>
         </span>
       </button>
-      <div className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
+      <div className="my-1 h-px bg-slate-100 dark:bg-oscuro-3" />
       {(Object.keys(TEMAS) as Tema[]).map((t) => (
         <button key={t} role="menuitemradio" aria-checked={!auto && tema === t} onClick={() => onElegir(t)} className={opcion(!auto && tema === t)}>
           <span className="text-lg leading-none" aria-hidden>
@@ -73,19 +73,19 @@ export default function SelectorTema({ tema, auto, temaAuto, onElegir }: Props) 
         aria-expanded={abierto}
         aria-haspopup="menu"
         aria-label={`Estilo del mapa: ${TEMAS[tema].label}${auto ? " (automático)" : ""}`}
-        className="flex h-12 items-center gap-2 rounded-2xl bg-white/95 px-3.5 text-sm font-medium text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur hover:text-slate-900 dark:bg-slate-900/95 dark:text-slate-200 dark:ring-white/10"
+        className="flex h-12 items-center gap-2 rounded-2xl bg-white/95 px-3.5 text-sm font-medium text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur hover:text-slate-900 dark:bg-oscuro-1/95 dark:text-neutral-200 dark:ring-white/10"
       >
         <span className="text-lg leading-none" aria-hidden>
           {TEMAS[tema].icono}
         </span>
         <span>{TEMAS[tema].label}</span>
-        {auto && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">Auto</span>}
+        {auto && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-oscuro-3 dark:text-neutral-300">Auto</span>}
       </button>
 
       {abierto && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-2 w-60 origin-top-right animate-[aparecer_150ms_ease-out] rounded-2xl bg-white/95 p-1.5 shadow-xl ring-1 ring-black/5 backdrop-blur motion-reduce:animate-none dark:bg-slate-900/95 dark:ring-white/10"
+          className="absolute right-0 top-full mt-2 w-60 origin-top-right animate-[aparecer_150ms_ease-out] rounded-2xl bg-white/95 p-1.5 shadow-xl ring-1 ring-black/5 backdrop-blur motion-reduce:animate-none dark:bg-oscuro-1/95 dark:ring-white/10"
         >
           <OpcionesTema tema={tema} auto={auto} temaAuto={temaAuto} onElegir={elegir} />
         </div>

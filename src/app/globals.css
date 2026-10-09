@@ -11,6 +11,15 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-instrument-serif), Georgia, serif;
+  /* Fondos del modo oscuro: solo estos cinco grises (skill landing-page-design, B4). De más hundido a más
+     elevado: fondo de la página, paneles, chips de estado, tarjetas y hover. */
+  --color-oscuro-0: #000000;
+  --color-oscuro-1: #181818;
+  --color-oscuro-2: #1f1f1f;
+  --color-oscuro-3: #272727;
+  --color-oscuro-4: #313131;
+  /* Curva de todas las transiciones (masa y resorte, skill landing-page-design B7): `ease-fluido`. */
+  --ease-fluido: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Modo oscuro (según el sistema) solo en el mapa: la página del mapa lleva `.tema-sistema`. El resto
@@ -26,8 +35,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:has(.tema-sistema) {
-    --background: #0b1620;
-    --foreground: #e6eef4;
+    --background: #000000;
+    --foreground: #ededed;
   }
 }
 
@@ -39,6 +48,12 @@
   select {
     font-size: 16px;
   }
+
+  /* Foco visible en todo lo que se puede tocar con el teclado (solo con teclado, no al hacer clic). */
+  :focus-visible {
+    outline: 2px solid #f59e0b;
+    outline-offset: 2px;
+  }
 }
 
 body {
@@ -49,7 +64,31 @@ body {
 
 /* Páginas con hero oscuro (home): Safari 26 pinta su barra con el fondo del body. */
 body:has(.fondo-oscuro) {
-  background: #0f172a;
+  background: #000000;
+}
+
+/* Aparición al hacer scroll (componente `Revelar`): `data-revelar` sube y se enfoca al entrar en
+   pantalla; `data-palabra` (frase destacada) pasa de apagada a plena palabra por palabra. Solo con JS y
+   sin "reducir movimiento": si no, todo se ve de entrada. Se animan solo opacity, transform y filter. */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  [data-revelar] {
+    transition:
+      opacity 900ms var(--ease-fluido),
+      transform 900ms var(--ease-fluido),
+      filter 900ms var(--ease-fluido);
+  }
+  [data-revelar]:not([data-visible]) {
+    opacity: 0;
+    transform: translateY(4rem);
+    filter: blur(12px);
+  }
+  [data-palabra] {
+    opacity: 0.3;
+    transition: opacity 700ms var(--ease-fluido);
+  }
+  [data-palabra][data-activa] {
+    opacity: 1;
+  }
 }
 
 @keyframes aparecer {

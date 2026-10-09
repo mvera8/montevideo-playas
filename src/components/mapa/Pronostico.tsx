@@ -40,7 +40,7 @@ export default function Pronostico({ slug }: { slug: string }) {
 
   return (
     <SeccionPlegable titulo="Mejor horario" resumen={resumenFranja(d)} resumenSoloCerrada>
-      {d === undefined && <div className="h-40 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />}
+      {d === undefined && <div className="h-40 animate-pulse rounded-xl bg-slate-100 dark:bg-oscuro-3" />}
       {d === null && <p className="text-sm text-slate-500">No pudimos cargar el pronóstico.</p>}
       {d && (
         <>
@@ -139,7 +139,7 @@ function Grafico({ datos }: { datos: Datos }) {
       >
         {/* Noche y mejor franja, detrás de todo y en ambos gráficos */}
         {corridas(deNoche).map(([a, b]) => (
-          <rect key={`n${a}`} x={L + a * paso} y={T1} width={(b - a + 1) * paso} height={Y2 + H2 - T1} className="fill-slate-500/[0.07] dark:fill-slate-400/[0.08]" />
+          <rect key={`n${a}`} x={L + a * paso} y={T1} width={(b - a + 1) * paso} height={Y2 + H2 - T1} className="fill-slate-500/[0.07] dark:fill-neutral-400/[0.08]" />
         ))}
         {corridas(enMejor).map(([a, b]) => (
           <g key={`m${a}`}>
@@ -156,7 +156,7 @@ function Grafico({ datos }: { datos: Datos }) {
         </text>
         {marcas.map((m) => (
           <g key={m}>
-            <line x1={L} x2={W - R} y1={y1(m)} y2={y1(m)} className="stroke-slate-200 dark:stroke-slate-700" strokeWidth={0.5} />
+            <line x1={L} x2={W - R} y1={y1(m)} y2={y1(m)} className="stroke-slate-200 dark:stroke-neutral-700" strokeWidth={0.5} />
             <text x={L - 4} y={y1(m) + 3} textAnchor="end" className="fill-slate-400 text-[10px] tabular-nums">
               {m}
             </text>
@@ -169,7 +169,7 @@ function Grafico({ datos }: { datos: Datos }) {
             x={x(i)}
             y={k === 0 ? y1(vals[i]) - 6 : y1(vals[i]) + 12}
             textAnchor="middle"
-            className="fill-slate-700 text-[10px] font-semibold tabular-nums dark:fill-slate-200"
+            className="fill-slate-700 text-[10px] font-semibold tabular-nums dark:fill-neutral-200"
           >
             {Math.round(vals[i])}°
           </text>
@@ -179,7 +179,7 @@ function Grafico({ datos }: { datos: Datos }) {
         <text x={0} y={Y2 - 8} className="fill-slate-500 text-[10px]">
           Lluvia (mm)
         </text>
-        <line x1={L} x2={W - R} y1={Y2 + H2} y2={Y2 + H2} className="stroke-slate-200 dark:stroke-slate-700" strokeWidth={0.5} />
+        <line x1={L} x2={W - R} y1={Y2 + H2} y2={Y2 + H2} className="stroke-slate-200 dark:stroke-neutral-700" strokeWidth={0.5} />
         <text x={L - 4} y={Y2 + 4} textAnchor="end" className="fill-slate-400 text-[10px]">
           {topeLluvia}
         </text>
@@ -210,14 +210,14 @@ function Grafico({ datos }: { datos: Datos }) {
         {activo != null && (
           <g pointerEvents="none">
             <line x1={x(activo)} x2={x(activo)} y1={T1} y2={Y2 + H2} className="stroke-slate-400" strokeWidth={0.75} />
-            <circle cx={x(activo)} cy={y1(vals[activo])} r={4} strokeWidth={2} className="fill-sky-700 stroke-white dark:fill-sky-300 dark:stroke-slate-900" />
+            <circle cx={x(activo)} cy={y1(vals[activo])} r={4} strokeWidth={2} className="fill-sky-700 stroke-white dark:fill-sky-300 dark:stroke-neutral-900" />
           </g>
         )}
       </svg>
 
       {h && activo != null && (
         <div
-          className="pointer-events-none absolute top-6 z-10 w-40 rounded-xl bg-slate-900/95 px-3 py-2 text-xs text-white shadow-lg dark:bg-white/95 dark:text-slate-900"
+          className="pointer-events-none absolute top-6 z-10 w-40 rounded-xl bg-slate-900/95 px-3 py-2 text-xs text-white shadow-lg dark:bg-white/95 dark:text-neutral-900"
           // Del lado opuesto a la línea, para no tapar el punto que se está mirando.
           style={
             x(activo) > W / 2

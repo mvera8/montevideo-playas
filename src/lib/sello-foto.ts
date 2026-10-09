@@ -15,7 +15,7 @@
 // - El desenfoque usa `ctx.filter` (Safari 18+, Chrome); si no está, se achica y se vuelve a agrandar
 //   la foto, que da un borroso parecido.
 
-import { ICONO_CIELO, ICONO_VIENTO, type EstadoCielo } from "./iconos-clima";
+import { GRILLA_ICONO, ICONO_CIELO, ICONO_CORAZON, ICONO_VIENTO, type EstadoCielo } from "./iconos-clima";
 
 export type Sello = {
   playa: string;
@@ -30,8 +30,8 @@ export const HASHTAG = "#MontevideoPlayas";
 const ANCHO = 1080;
 const ALTO_MAX = 1920;
 const numero = new Intl.NumberFormat("es-UY");
-// Mismo corazón que MeGusta.tsx; bandera: mástil y paño (el paño se rellena con el color).
-const CORAZON = "M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z";
+// Bandera propia (grilla 24×24, con trazos): mástil y paño, el paño se rellena con el color vigente.
+// El resto de los íconos son de Phosphor (iconos-clima.ts).
 const MASTIL = "M5.5 21.5V3";
 const PANO = "M5.5 4h12l-2.6 4.25L17.5 12.5h-12Z";
 
@@ -103,7 +103,17 @@ function vidrio(ctx: CanvasRenderingContext2D, borroso: HTMLCanvasElement, x: nu
   ctx.stroke();
 }
 
-// Ícono de trazos (grilla 24×24) centrado verticalmente en `y`.
+// Ícono de Phosphor (relleno, grilla 256×256) centrado verticalmente en `y`.
+function iconoPhosphor(ctx: CanvasRenderingContext2D, d: string, color: string, x: number, y: number, tam: number) {
+  ctx.save();
+  ctx.translate(x, y - tam / 2);
+  ctx.scale(tam / GRILLA_ICONO, tam / GRILLA_ICONO);
+  ctx.fillStyle = color;
+  ctx.fill(new Path2D(d));
+  ctx.restore();
+}
+
+// Ícono de trazos (grilla 24×24) centrado verticalmente en `y`: solo la bandera.
 function icono(ctx: CanvasRenderingContext2D, trazos: string[], color: string, x: number, y: number, tam: number) {
   ctx.save();
   ctx.translate(x, y - tam / 2);
@@ -201,9 +211,9 @@ export async function crearFotoConSello(archivo: File, sello: Sello): Promise<Bl
     };
     const datos: Dato[] = [
       ...(sello.aire != null
-        ? [{ texto: `${sello.aire}°`, dibujar: (x: number, y: number) => sello.cielo && icono(ctx, ICONO_CIELO[sello.cielo], "#fff", x, y, tamIcono) }]
+        ? [{ texto: `${sello.aire}°`, dibujar: (x: number, y: number) => sello.cielo && iconoPhosphor(ctx, ICONO_CIELO[sello.cielo], "#fff", x, y, tamIcono) }]
         : []),
-      ...(sello.viento ? [{ texto: sello.viento, dibujar: (x: number, y: number) => icono(ctx, ICONO_VIENTO, "#fff", x, y, tamIcono) }] : []),
+      ...(sello.viento ? [{ texto: sello.viento, dibujar: (x: number, y: number) => iconoPhosphor(ctx, ICONO_VIENTO, "#fff", x, y, tamIcono) }] : []),
       {
         texto: "",
         dibujar: (x: number, y: number) => {
@@ -211,7 +221,7 @@ export async function crearFotoConSello(archivo: File, sello: Sello): Promise<Bl
           icono(ctx, [PANO, MASTIL], "#fff", x, y, tamIcono);
         },
       },
-      ...(sello.meGusta != null ? [{ texto: numero.format(sello.meGusta), dibujar: relleno(CORAZON, "#fff") }] : []),
+      ...(sello.meGusta != null ? [{ texto: numero.format(sello.meGusta), dibujar: (x: number, y: number) => iconoPhosphor(ctx, ICONO_CORAZON, "#fff", x, y, tamIcono) }] : []),
     ];
     // Por fila: fuente que entre en el ancho y el espacio sobrante repartido entre los datos.
     const anchoDe = (d: Dato) => tamIcono + (d.texto ? 14 + ctx.measureText(d.texto).width : 0);

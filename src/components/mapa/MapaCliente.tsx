@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 const MapaCliente = dynamic(() => import("./Mapa"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-dvh items-center justify-center bg-sky-50 text-sky-800 dark:bg-slate-950 dark:text-sky-200">
+    <div className="flex h-dvh items-center justify-center bg-sky-50 text-sky-800 dark:bg-oscuro-0 dark:text-sky-200">
       Cargando mapa…
     </div>
   ),

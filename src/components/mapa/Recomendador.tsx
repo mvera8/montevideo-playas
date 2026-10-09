@@ -62,7 +62,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
   const lista = malMomento ? ranking.slice(0, 3) : resto.slice(0, 3);
 
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 dark:bg-slate-900 dark:ring-white/10">
+    <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 dark:bg-oscuro-1 dark:ring-white/10">
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold">
           ¿A qué playa voy?
@@ -159,7 +159,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
       </Modal>
 
       {lista.length > 0 && (
-        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-neutral-800">
           <p className="mb-1 flex justify-between px-1.5 text-[11px] text-slate-500">
             <span>{malMomento ? "Si igual querés ir" : "También"}</span>
             <span>puntaje</span>
@@ -171,7 +171,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
                 <li key={r.slug}>
                   <button
                     onClick={() => onElegir(p)}
-                    className="flex w-full items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="flex w-full items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-left text-sm hover:bg-slate-50 dark:hover:bg-oscuro-3"
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="w-4 text-xs text-slate-400 tabular-nums">{malMomento ? i + 1 : i + 2}</span>
@@ -180,7 +180,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
                     <span className="flex shrink-0 items-center gap-2 text-xs text-slate-500">
                       {r.viaje && <span className="tabular-nums">{r.viaje.minutos} min</span>}
                       <span className="tabular-nums">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">{r.puntaje}</span>/100
+                        <span className="font-semibold text-slate-700 dark:text-neutral-200">{r.puntaje}</span>/100
                       </span>
                     </span>
                   </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { IconHeartFilled } from "@tabler/icons-react";
+import { Heart } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { useTotalesAlDia } from "@/lib/me-gusta-cliente";
 import type { TotalesMeGusta } from "@/lib/me-gusta-temporada";
@@ -52,7 +52,7 @@ export default function PodioFavoritas({ inicial, errorServidor }: { inicial: Fa
               {p.nombre}
             </span>
             <span className="flex items-center gap-1.5 text-sm font-semibold tabular-nums text-rose-300">
-              <IconHeartFilled className="h-4 w-4" aria-hidden />
+              <Heart weight="fill" className="h-4 w-4" aria-hidden />
               {numero.format(p.temporada)}
               <span className="sr-only"> me gusta</span>
             </span>

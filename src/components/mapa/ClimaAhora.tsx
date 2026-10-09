@@ -1,7 +1,7 @@
 "use client";
 
 import type { Weather } from "@/lib/weather";
-import { estadoCielo as estado, ICONO_CIELO, type EstadoCielo } from "@/lib/iconos-clima";
+import { estadoCielo as estado, GRILLA_ICONO, ICONO_CIELO, type EstadoCielo } from "@/lib/iconos-clima";
 
 // Widget "Montevideo ahora": fondo e ilustración según el estado del tiempo.
 // Decoraciones en SVG estático (sin animación) para no sumar trabajo de render.
@@ -88,10 +88,8 @@ export default function ClimaAhora({ clima, ciudad }: { clima: Weather; ciudad: 
       {/* Dos filas alineadas por línea base: estado | agua, y temperatura | viento. */}
       <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1 [text-shadow:0_1px_2px_rgba(0,0,0,0.18)]">
         <p className="flex min-w-0 items-center gap-1.5 self-center text-sm font-medium">
-          <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            {ICONO_CIELO[e].map((d) => (
-              <path key={d} d={d} />
-            ))}
+          <svg viewBox={`0 0 ${GRILLA_ICONO} ${GRILLA_ICONO}`} className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden>
+            <path d={ICONO_CIELO[e]} />
           </svg>
           <span className="truncate">{clima.description}</span>
         </p>

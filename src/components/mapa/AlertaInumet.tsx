@@ -1,6 +1,6 @@
 "use client";
 
-import { IconAlertTriangleFilled } from "@tabler/icons-react";
+import { Warning } from "@phosphor-icons/react/dist/ssr";
 import { useEffect, useState } from "react";
 import type { AdvertenciaInumet, AlertasInumet, NivelAlerta } from "@/lib/inumet";
 
@@ -34,7 +34,7 @@ export default function AlertaInumet({ alertas, className = "" }: { alertas: Ale
 
   if (!alertas || alertas.estado === "sin-datos") {
     return (
-      <p className={`rounded-2xl bg-white px-4 py-2.5 text-xs text-slate-500 ring-1 ring-black/5 dark:bg-slate-900 dark:ring-white/10 ${className}`}>
+      <p className={`rounded-2xl bg-white px-4 py-2.5 text-xs text-slate-500 ring-1 ring-black/5 dark:bg-oscuro-1 dark:ring-white/10 ${className}`}>
         Sin datos recientes de alertas de Inumet.{" "}
         <a href={URL_INUMET} target="_blank" rel="noreferrer" className="underline">
           Consultalas en inumet.gub.uy
@@ -59,7 +59,7 @@ function Advertencia({ adv, pdf, ahora }: { adv: AdvertenciaInumet; pdf: string 
   return (
     <section className={`rounded-2xl p-4 shadow-sm ${n.clase}`}>
       <div className="flex items-center gap-2">
-        <IconAlertTriangleFilled className="h-5 w-5 shrink-0" aria-hidden />
+        <Warning weight="fill" className="h-5 w-5 shrink-0" aria-hidden />
         <p className="font-semibold">Advertencia {n.label} de Inumet</p>
       </div>
       <p className="mt-1.5 text-sm font-medium">{adv.fenomeno}</p>

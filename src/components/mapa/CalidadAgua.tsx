@@ -17,9 +17,9 @@ const fecha = (s: string) => {
 };
 
 const ESTADO = {
-  apta: { texto: "Dentro de los límites", clase: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" },
-  "no-apta": { texto: "Supera el límite", clase: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300" },
-  "sin-datos": { texto: "Sin muestreo reciente", clase: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" },
+  apta: { texto: "Dentro de los límites", clase: "bg-emerald-100 text-emerald-800 dark:bg-oscuro-2 dark:text-emerald-300" },
+  "no-apta": { texto: "Supera el límite", clase: "bg-orange-100 text-orange-800 dark:bg-oscuro-2 dark:text-orange-300" },
+  "sin-datos": { texto: "Sin muestreo reciente", clase: "bg-slate-100 text-slate-600 dark:bg-oscuro-3 dark:text-neutral-300" },
 } as const;
 
 export default function CalidadAgua({ agua }: { agua: Datos | null }) {
@@ -100,7 +100,7 @@ function Punto({ punto, varios }: { punto: PuntoAgua; varios: boolean }) {
         : `Media de 5 muestras: ${Math.round(punto.media!.valor)} (límite ${LIMITE_MEDIA})`;
 
   return (
-    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-oscuro-3/60">
       {varios && (
         <p className="mb-1 flex items-center justify-between text-sm font-medium">
           {punto.nombre}
@@ -187,7 +187,7 @@ function Grafico({ muestras }: { muestras: Muestra[] }) {
             </g>
           );
         })}
-        <line x1={L} x2={W - R} y1={T + H} y2={T + H} strokeWidth={0.5} className="stroke-slate-300 dark:stroke-slate-600" />
+        <line x1={L} x2={W - R} y1={T + H} y2={T + H} strokeWidth={0.5} className="stroke-slate-300 dark:stroke-neutral-600" />
         <text x={L} y={T + H + XB - 2} className="fill-slate-400 text-[9px]">
           {fecha(muestras[0].fecha)}
         </text>
@@ -197,7 +197,7 @@ function Grafico({ muestras }: { muestras: Muestra[] }) {
       </svg>
       {m && activa != null && (
         <div
-          className="pointer-events-none absolute top-3 z-10 rounded-lg bg-slate-900/95 px-2.5 py-1.5 text-[11px] text-white shadow-lg dark:bg-white/95 dark:text-slate-900"
+          className="pointer-events-none absolute top-3 z-10 rounded-lg bg-slate-900/95 px-2.5 py-1.5 text-[11px] text-white shadow-lg dark:bg-white/95 dark:text-neutral-900"
           style={
             activa > muestras.length / 2
               ? { right: `calc(${100 - ((L + activa * paso) / W) * 100}% + 6px)` }

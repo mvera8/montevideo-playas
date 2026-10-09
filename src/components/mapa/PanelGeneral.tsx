@@ -1,6 +1,6 @@
 "use client";
 
-import { IconAlertTriangleFilled } from "@tabler/icons-react";
+import { Warning } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { SITIO } from "@/lib/sitio";
 import type { AlertasInumet } from "@/lib/inumet";
@@ -89,7 +89,7 @@ export default function PanelGeneral({
         {climaCiudad && <ClimaAhora clima={climaCiudad} ciudad={SITIO.nombre} />}
         {!temporada.activa && <FueraDeTemporada temporada={temporada} />}
         {fuente === "respaldo" && (
-          <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800">
+          <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200 dark:bg-oscuro-2 dark:text-amber-200 dark:ring-amber-800">
             <strong>Sin datos de la Intendencia.</strong> Se muestran playas de respaldo.
             {error && <span className="mt-1 block text-xs opacity-80">{error}</span>}
           </div>
@@ -114,7 +114,7 @@ export default function PanelGeneral({
         {filtro && (
           <button
             onClick={() => onFiltro(null)}
-            className="flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+            className="flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium hover:bg-slate-200 dark:bg-oscuro-3 dark:hover:bg-oscuro-4"
           >
             <span className="h-2 w-2 rounded-full" style={{ background: ESTADOS[filtro].color }} />
             {ESTADOS[filtro].label} ✕
@@ -123,7 +123,7 @@ export default function PanelGeneral({
       </div>
 
       {playas.length === 0 ? (
-        <p className="rounded-2xl bg-white p-4 text-sm text-slate-500 max-md:hidden ring-1 ring-black/5 dark:bg-slate-900 dark:ring-white/10">
+        <p className="rounded-2xl bg-white p-4 text-sm text-slate-500 max-md:hidden ring-1 ring-black/5 dark:bg-oscuro-1 dark:ring-white/10">
           {busqueda ? `Ninguna playa coincide con “${busqueda}”.` : "Ninguna playa con esa bandera."}
         </p>
       ) : (
@@ -169,7 +169,7 @@ function PildorasPlayas({
     // En filas no es sticky: más alta que la hoja, las últimas quedarían fuera de alcance.
     <nav
       aria-label="Playas"
-      className={`${enFilas ? "" : "sticky -top-3 z-10"} -mx-3 -mt-3 bg-slate-50 pb-1 pt-5 md:hidden dark:bg-slate-950`}
+      className={`${enFilas ? "" : "sticky -top-3 z-10"} -mx-3 -mt-3 bg-slate-50 pb-1 pt-5 md:hidden dark:bg-oscuro-0`}
     >
       {playas.length === 0 ? (
         <p className="px-4 py-2 text-sm text-slate-500">
@@ -185,7 +185,7 @@ function PildorasPlayas({
             <li key={p.slug} className="shrink-0 snap-start scroll-ml-3">
               <button
                 onClick={() => onElegir(p)}
-                className="flex items-center gap-2 whitespace-nowrap rounded-full bg-white px-3.5 py-2 text-sm font-medium shadow-sm ring-1 ring-black/5 active:bg-slate-100 dark:bg-slate-900 dark:ring-white/10 dark:active:bg-slate-800"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full bg-white px-3.5 py-2 text-sm font-medium shadow-sm ring-1 ring-black/5 active:bg-slate-100 dark:bg-oscuro-1 dark:ring-white/10 dark:active:bg-oscuro-3"
               >
                 {temporadaActiva && (
                   <span
@@ -206,10 +206,10 @@ function PildorasPlayas({
 
 function FueraDeTemporada({ temporada }: { temporada: Temporada }) {
   return (
-    <div className="rounded-2xl bg-red-600 p-4 text-white shadow-sm dark:bg-red-900">
+    <div className="rounded-2xl bg-red-600 p-4 text-white shadow-sm dark:bg-oscuro-2">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <IconAlertTriangleFilled className="h-5 w-5 shrink-0" aria-hidden />
+          <Warning weight="fill" className="h-5 w-5 shrink-0" aria-hidden />
           <p className="font-semibold">Fuera de temporada</p>
         </div>
         <p className="text-right leading-none">
@@ -240,7 +240,7 @@ function ResumenBanderas({
   const orden: EstadoBandera[] = ["green", "yellow", "red", "black", "sin-datos"];
 
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 dark:bg-slate-900 dark:ring-white/10">
+    <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 dark:bg-oscuro-1 dark:ring-white/10">
       <div className="flex items-baseline justify-between">
         <h2 className="text-sm font-semibold">Banderas ahora</h2>
         <p className="text-xs text-slate-500 tabular-nums">
@@ -249,7 +249,7 @@ function ResumenBanderas({
       </div>
 
       {/* Barra proporcional */}
-      <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+      <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-oscuro-3">
         {orden.map((e) =>
           conteo[e] ? (
             <span key={e} style={{ width: `${(conteo[e] / playas.length) * 100}%`, background: ESTADOS[e].color }} />
@@ -267,11 +267,11 @@ function ResumenBanderas({
           onClick={() => onFiltro(filtro === "sin-datos" ? null : "sin-datos")}
           className={`mt-2 flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm ring-1 transition ${
             filtro === "sin-datos"
-              ? "bg-slate-100 ring-slate-300 dark:bg-slate-800 dark:ring-slate-600"
-              : "ring-slate-200 hover:bg-slate-50 dark:ring-slate-700 dark:hover:bg-slate-800"
+              ? "bg-slate-100 ring-slate-300 dark:bg-oscuro-3 dark:ring-neutral-600"
+              : "ring-slate-200 hover:bg-slate-50 dark:ring-neutral-700 dark:hover:bg-oscuro-3"
           }`}
         >
-          <span className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+          <span className="flex items-center gap-2 text-slate-600 dark:text-neutral-300">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: ESTADOS["sin-datos"].color }} />
             Sin bandera vigente
           </span>
@@ -291,8 +291,8 @@ function BotonEstado({ estado, n, activo, onClick }: { estado: EstadoBandera; n:
       title={e.texto}
       className={`rounded-xl px-2 py-2 text-left ring-1 transition disabled:opacity-40 ${
         activo
-          ? "bg-slate-100 ring-slate-300 dark:bg-slate-800 dark:ring-slate-600"
-          : "ring-slate-200 enabled:hover:bg-slate-50 dark:ring-slate-700 dark:enabled:hover:bg-slate-800"
+          ? "bg-slate-100 ring-slate-300 dark:bg-oscuro-3 dark:ring-neutral-600"
+          : "ring-slate-200 enabled:hover:bg-slate-50 dark:ring-neutral-700 dark:enabled:hover:bg-oscuro-3"
       }`}
     >
       <span className="block h-2.5 w-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/20" style={{ background: e.color }} />
@@ -316,7 +316,7 @@ function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; tempo
   return (
     <button
       onClick={onClick}
-      className="group flex h-full w-full flex-col rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md dark:bg-slate-900 dark:ring-white/10"
+      className="group flex h-full w-full flex-col rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md dark:bg-oscuro-1 dark:ring-white/10"
     >
       <div className="flex w-full items-start justify-between gap-1">
         <span className="min-w-0">
@@ -340,7 +340,7 @@ function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; tempo
         </span>
         {/* Fuera de temporada no hay banderas: mostramos la calidad del agua. */}
         {temporadaActiva ? (
-          <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-oscuro-3 dark:text-neutral-300">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: ESTADOS[estado].color }} />
             {ESTADOS[estado].label}
             <GotaAgua estado={agua} />
@@ -348,7 +348,7 @@ function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; tempo
         ) : (
           <span
             title={AGUA[agua].titulo}
-            className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-oscuro-3 dark:text-neutral-300"
           >
             <GotaAgua estado={agua} />
             {AGUA[agua].label}

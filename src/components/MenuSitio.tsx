@@ -1,6 +1,6 @@
 "use client";
 
-import { IconBeach, IconFileText, IconHeart, IconHome, IconMail, IconMenu2, IconNews, IconShieldCheck, IconX } from "@tabler/icons-react";
+import { EnvelopeSimple, FileText, Heart, House, List, Newspaper, ShieldCheck, Umbrella, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -17,23 +17,23 @@ import { SITIO } from "@/lib/sitio";
 
 const sinSuscripcion = () => () => {};
 
-const ICONOS: Record<EnlaceSitio["icono"], typeof IconHome> = {
-  inicio: IconHome,
-  playas: IconBeach,
-  favoritas: IconHeart,
-  novedades: IconNews,
-  terminos: IconFileText,
-  privacidad: IconShieldCheck,
-  contacto: IconMail,
+const ICONOS: Record<EnlaceSitio["icono"], typeof House> = {
+  inicio: House,
+  playas: Umbrella,
+  favoritas: Heart,
+  novedades: Newspaper,
+  terminos: FileText,
+  privacidad: ShieldCheck,
+  contacto: EnvelopeSimple,
 };
 
-const TINTA = "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white";
+const TINTA = "text-slate-600 hover:text-slate-900 dark:text-neutral-300 dark:hover:text-white";
 
 const BOTON = {
   // Flotante sobre el mapa, como el selector de estilo. En móvil, del alto de la marca.
-  flotante: `h-10 w-10 rounded-xl md:h-12 md:w-12 md:rounded-2xl bg-white/95 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/95 dark:ring-white/10 ${TINTA}`,
+  flotante: `h-10 w-10 rounded-xl md:h-12 md:w-12 md:rounded-2xl bg-white/95 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-oscuro-1/95 dark:ring-white/10 ${TINTA}`,
   // Dentro de EncabezadoSitio (móvil).
-  encabezado: `-my-1 h-10 w-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 ${TINTA}`,
+  encabezado: `-my-1 h-10 w-10 rounded-xl hover:bg-slate-100 dark:hover:bg-oscuro-3 ${TINTA}`,
   // Dentro de EncabezadoSitio sobre la foto de la home.
   foto: "-my-1 h-10 w-10 rounded-xl text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/15",
 };
@@ -75,11 +75,11 @@ export default function MenuSitio({
           aria-current={actual ? "page" : undefined}
           className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] ${
             actual
-              ? "bg-sky-50 font-medium text-sky-900 dark:bg-slate-800 dark:text-white"
-              : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+              ? "bg-sky-50 font-medium text-sky-900 dark:bg-oscuro-3 dark:text-white"
+              : "text-slate-700 hover:bg-slate-50 dark:text-neutral-200 dark:hover:bg-oscuro-3"
           }`}
         >
-          <Icono className={`h-5 w-5 shrink-0 ${actual ? "text-sky-600 dark:text-sky-300" : "text-slate-400"}`} stroke={1.8} aria-hidden />
+          <Icono className={`h-5 w-5 shrink-0 ${actual ? "text-sky-600 dark:text-sky-300" : "text-slate-400"}`} aria-hidden />
           {label}
         </Link>
       </li>
@@ -102,13 +102,13 @@ export default function MenuSitio({
         ref={cajon}
         aria-label="Menú del sitio"
         inert={!abierto}
-        className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col bg-white shadow-2xl ring-1 ring-black/5 transition-transform duration-300 ease-out motion-reduce:transition-none dark:bg-slate-900 dark:ring-white/10 ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col bg-white shadow-2xl ring-1 ring-black/5 transition-transform duration-300 ease-out motion-reduce:transition-none dark:bg-oscuro-1 dark:ring-white/10 ${
           abierto ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex items-center justify-between px-5 pb-2 pt-4">
           <p className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white">
-            {SITIO.nombre} <span className="font-normal text-slate-500 dark:text-slate-400">· {SITIO.alcance}</span>
+            {SITIO.nombre} <span className="font-normal text-slate-500 dark:text-neutral-400">· {SITIO.alcance}</span>
           </p>
           <button
             onClick={() => {
@@ -116,14 +116,14 @@ export default function MenuSitio({
               boton.current?.focus();
             }}
             aria-label="Cerrar menú"
-            className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+            className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-oscuro-3 dark:hover:text-white"
           >
-            <IconX className="h-5 w-5" aria-hidden />
+            <X className="h-5 w-5" aria-hidden />
           </button>
         </div>
 
         <ul className="space-y-0.5 px-2.5">{ENLACES_PRINCIPALES.map(enlace)}</ul>
-        <div className="mx-5 my-3 h-px bg-slate-100 dark:bg-slate-800" />
+        <div className="mx-5 my-3 h-px bg-slate-100 dark:bg-oscuro-3" />
         {children?.(() => setAbierto(false))}
         <ul className="space-y-0.5 px-2.5">{ENLACES_LEGALES.map(enlace)}</ul>
 
@@ -145,7 +145,7 @@ export default function MenuSitio({
         title="Menú"
         className={`grid shrink-0 place-items-center ${BOTON[variante]}`}
       >
-        <IconMenu2 className="h-5 w-5" aria-hidden />
+        <List className="h-5 w-5" aria-hidden />
       </button>
 
       {enCliente && createPortal(cajonMenu, document.body)}

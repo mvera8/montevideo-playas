@@ -1,6 +1,6 @@
 "use client";
 
-import { IconAlertTriangle, IconRipple } from "@tabler/icons-react";
+import { Warning, Waves } from "@phosphor-icons/react/dist/ssr";
 import type { AguasVivasPlaya, AvistamientoPlaya } from "@/lib/aguas-vivas";
 import SeccionPlegable from "./SeccionPlegable";
 
@@ -18,8 +18,8 @@ const fecha = (s: string) => {
 const km = (n: number) => (n < 1 ? "a menos de 1 km" : `a ${n.toFixed(n < 10 ? 1 : 0)} km`);
 
 const CHIP = {
-  cerca: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
-  lejos: "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  cerca: "bg-orange-100 text-orange-800 dark:bg-oscuro-2 dark:text-orange-300",
+  lejos: "bg-amber-50 text-amber-800 dark:bg-oscuro-2 dark:text-amber-300",
 } as const;
 
 export const ANCLA_AGUAS_VIVAS = "seccion-aguas-vivas";
@@ -67,15 +67,15 @@ function Reporte({ a }: { a: AvistamientoPlaya }) {
         href={a.url}
         target="_blank"
         rel="noreferrer"
-        className="flex items-start gap-3 rounded-xl px-2 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+        className="flex items-start gap-3 rounded-xl px-2 py-2 text-sm hover:bg-slate-50 dark:hover:bg-oscuro-3"
       >
         <span
           className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full ${
-            a.peligrosa ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400" : "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+            a.peligrosa ? "bg-red-100 text-red-700 dark:bg-oscuro-2 dark:text-red-400" : "bg-sky-100 text-sky-700 dark:bg-oscuro-2 dark:text-sky-300"
           }`}
           aria-hidden
         >
-          {a.peligrosa ? <IconAlertTriangle className="h-3.5 w-3.5" stroke={2} /> : <IconRipple className="h-3.5 w-3.5" stroke={2} />}
+          {a.peligrosa ? <Warning className="h-3.5 w-3.5" weight="bold" /> : <Waves className="h-3.5 w-3.5" weight="bold" />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">

@@ -20,7 +20,7 @@ export function AvisoSanitaria({ sanitaria }: { sanitaria: NonNullable<Guardavid
       <IconoBanderaSanitaria className="mt-0.5 h-3 w-3" />
       <span>
         <span className="font-medium">No apta para baños{sanitaria.causa ? ` · ${sanitaria.causa}` : ""}</span>
-        {sanitaria.detalle && <span className="block text-slate-600 dark:text-slate-400">{sanitaria.detalle}</span>}
+        {sanitaria.detalle && <span className="block text-slate-600 dark:text-neutral-400">{sanitaria.detalle}</span>}
       </span>
     </span>
   );

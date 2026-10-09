@@ -1,5 +1,6 @@
-import { IconMessageQuestion, IconPlus } from "@tabler/icons-react";
+import { ChatCircleText, Plus } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
+import { isValidElement, type ReactNode } from "react";
 import BotonMapa from "@/components/BotonMapa";
 import Etiqueta from "@/components/Etiqueta";
 import { DIAS_VIGENCIA } from "@/lib/calidad-agua";
@@ -131,16 +132,37 @@ const PREGUNTAS: { pregunta: string; respuesta: React.ReactNode }[] = [
   },
 ];
 
+/** Texto plano de una respuesta (para los datos estructurados): junta los textos de los elementos. */
+function textoPlano(nodo: ReactNode): string {
+  if (typeof nodo === "string" || typeof nodo === "number") return String(nodo);
+  if (Array.isArray(nodo)) return nodo.map(textoPlano).join("");
+  if (isValidElement<{ children?: ReactNode }>(nodo)) return textoPlano(nodo.props.children);
+  return "";
+}
+
+// Datos estructurados FAQPage (schema.org) con las mismas preguntas, para buscadores y asistentes.
+// `<` escapado como pide la guía de JSON-LD de Next.
+const JSON_LD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: PREGUNTAS.map((p) => ({
+    "@type": "Question",
+    name: p.pregunta,
+    acceptedAnswer: { "@type": "Answer", text: textoPlano(p.respuesta).replace(/\s+/g, " ").trim() },
+  })),
+}).replace(/</g, "\\u003c");
+
 export default function PreguntasFrecuentes() {
   return (
-    <section id="preguntas-frecuentes" className="scroll-mt-8 bg-sky-50 px-4 py-20 sm:px-6 sm:py-28">
+    <section id="preguntas-frecuentes" className="scroll-mt-8 bg-sky-50 px-4 py-20 sm:px-6 sm:py-24">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
           <Etiqueta className="bg-white/60">Preguntas frecuentes</Etiqueta>
-          <h2 className="mt-6 text-4xl font-semibold leading-tight tracking-tight text-balance text-slate-900 sm:text-5xl">
+          <h2 className="mt-6 text-4xl font-semibold tracking-tight text-balance text-slate-900 sm:text-5xl">
             Todo lo que querías <em className="font-serif font-normal italic text-sky-600">saber.</em>
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-slate-500">
+          <p className="mx-auto mt-4 max-w-xl text-pretty text-slate-500">
             Lo primero: no somos un sitio oficial, solo mostramos datos públicos. En la playa mandan los guardavidas y, ante
             una emergencia, llamá al <strong className="font-semibold text-slate-700">911</strong>.
           </p>
@@ -150,11 +172,11 @@ export default function PreguntasFrecuentes() {
           {PREGUNTAS.map((p) => (
             <li key={p.pregunta}>
               <details className="group rounded-2xl bg-white shadow-sm ring-1 ring-sky-100 open:ring-sky-200">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 text-left font-medium text-slate-900 hover:text-sky-700 sm:px-6 [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-4 py-4 text-left font-medium text-slate-900 transition-colors duration-700 ease-fluido hover:text-sky-700 sm:px-6 sm:py-6 [&::-webkit-details-marker]:hidden">
                   {p.pregunta}
-                  <IconPlus className="h-5 w-5 shrink-0 text-sky-700 transition-transform group-open:rotate-45 motion-reduce:transition-none" stroke={1.8} aria-hidden />
+                  <Plus className="h-5 w-5 shrink-0 text-sky-700 transition-transform duration-700 ease-fluido group-open:rotate-45 motion-reduce:transition-none" aria-hidden />
                 </summary>
-                <p className="px-5 pb-6 leading-relaxed text-slate-600 sm:px-6 sm:pr-14 [&_a]:text-sky-700 [&_a]:underline [&_strong]:font-semibold [&_strong]:text-slate-800">
+                <p className="px-4 pb-6 text-pretty text-slate-600 sm:px-6 sm:pr-12 [&_a]:text-sky-700 [&_a]:underline [&_strong]:font-semibold [&_strong]:text-slate-800">
                   {p.respuesta}
                 </p>
               </details>
@@ -163,15 +185,15 @@ export default function PreguntasFrecuentes() {
         </ul>
 
         <div className="mt-16 flex flex-col items-center text-center">
-          <IconMessageQuestion className="h-14 w-14 text-sky-700" stroke={1.4} aria-hidden />
-          <h3 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">¿Te quedó alguna duda?</h3>
-          <p className="mt-3 max-w-md text-slate-500">
+          <ChatCircleText className="h-14 w-14 text-sky-700" aria-hidden />
+          <h3 className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">¿Te quedó alguna duda?</h3>
+          <p className="mt-3 max-w-md text-pretty text-slate-500">
             Escribinos para consultas, errores en los datos o ideas para el sitio.
           </p>
-          <BotonMapa href="/contacto" texto="Escribinos" tamano="chico" className="mt-7" />
+          <BotonMapa href="/contacto" texto="Escribinos" tamano="chico" className="mt-6" />
         </div>
 
-        <p className="mt-14 text-center text-xs text-slate-500">
+        <p className="mt-12 text-center text-xs text-slate-500">
           Estas respuestas son un resumen. Ante cualquier diferencia, mandan los{" "}
           <Link href="/terminos" className="underline">
             términos de uso
