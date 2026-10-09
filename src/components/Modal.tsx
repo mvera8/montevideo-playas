@@ -31,19 +31,19 @@ export default function Modal({ abierto, onCerrar, titulo, icono, children, acci
       onClose={onCerrar}
       onClick={(e) => e.target === e.currentTarget && onCerrar()}
       aria-labelledby="modal-titulo"
-      className="m-auto w-[calc(100%-2rem)] max-w-sm animate-[aparecer_180ms_ease-out] rounded-3xl bg-white p-0 text-slate-900 shadow-2xl ring-1 ring-black/5 backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px] motion-reduce:animate-none dark:bg-slate-900 dark:text-white dark:ring-white/10"
+      className="m-auto w-[calc(100%-2rem)] max-w-sm animate-[aparecer_180ms_ease-out] rounded-3xl bg-white p-0 text-slate-900 shadow-2xl ring-1 ring-black/5 backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px] motion-reduce:animate-none dark:bg-oscuro-1 dark:text-white dark:ring-white/10"
     >
       <div className="p-6">
         {icono && (
-          <div className="mb-4 grid h-11 w-11 place-items-center rounded-full bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+          <div className="mb-4 grid h-11 w-11 place-items-center rounded-full bg-sky-50 text-sky-700 dark:bg-oscuro-2 dark:text-sky-300">
             {icono}
           </div>
         )}
         <h2 id="modal-titulo" className="text-lg font-semibold tracking-tight">
           {titulo}
         </h2>
-        <div className="mt-2 space-y-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{children}</div>
-        <div className="mt-5 flex flex-col gap-2">{acciones ?? <BotonModal onClick={onCerrar}>Entendido</BotonModal>}</div>
+        <div className="mt-2 space-y-2 text-sm leading-relaxed text-slate-600 dark:text-neutral-300">{children}</div>
+        <div className="mt-6 flex flex-col gap-2">{acciones ?? <BotonModal onClick={onCerrar}>Entendido</BotonModal>}</div>
       </div>
     </dialog>
   );
@@ -61,10 +61,10 @@ export function BotonModal({
   return (
     <button
       onClick={onClick}
-      className={`w-full select-none rounded-xl px-4 py-2.5 text-sm font-medium transition-transform active:scale-[0.98] motion-reduce:transition-none ${
+      className={`w-full select-none rounded-xl px-3 py-2 text-base font-medium transition-transform duration-700 ease-fluido active:scale-[0.98] motion-reduce:transition-none ${
         principal
           ? "bg-sky-700 text-white hover:bg-sky-800"
-          : "ring-1 ring-slate-200 hover:bg-slate-50 dark:ring-slate-700 dark:hover:bg-slate-800"
+          : "ring-1 ring-slate-200 hover:bg-slate-50 dark:ring-neutral-700 dark:hover:bg-oscuro-3"
       }`}
     >
       {children}

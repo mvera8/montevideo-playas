@@ -1,5 +1,6 @@
 // Enlaces del sitio, compartidos por el menú del mapa (MenuSitio), el encabezado (EncabezadoSitio) y
-// el pie (PieSitio) de las páginas. Agregar una página acá la suma a los tres.
+// el pie (PieSitio) de las páginas. Agregar una página acá la suma a los tres (el encabezado omite
+// "Playas", que ya tiene su botón "Ver playas").
 
 export type EnlaceSitio = {
   href: string;

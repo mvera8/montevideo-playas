@@ -17,16 +17,16 @@ const fecha = (s: string) => {
 };
 
 const ESTADO = {
-  apta: { texto: "Dentro de los límites", clase: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" },
-  "no-apta": { texto: "Supera el límite", clase: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300" },
-  "sin-datos": { texto: "Sin muestreo reciente", clase: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" },
+  apta: { texto: "Dentro de los límites", clase: "bg-emerald-100 text-emerald-800 dark:bg-oscuro-2 dark:text-emerald-300" },
+  "no-apta": { texto: "Supera el límite", clase: "bg-orange-100 text-orange-800 dark:bg-oscuro-2 dark:text-orange-300" },
+  "sin-datos": { texto: "Sin muestreo reciente", clase: "bg-slate-100 text-slate-600 dark:bg-oscuro-3 dark:text-neutral-300" },
 } as const;
 
 export default function CalidadAgua({ agua }: { agua: Datos | null }) {
   const resumen = !agua ? (
     "Sin muestreos"
   ) : (
-    <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${ESTADO[agua.estado].clase}`}>
+    <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${ESTADO[agua.estado].clase}`}>
       {ESTADO[agua.estado].texto}
     </span>
   );
@@ -39,7 +39,7 @@ export default function CalidadAgua({ agua }: { agua: Datos | null }) {
       ) : (
         <div className="space-y-3">
           <div className="flex flex-col items-start gap-1">
-            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${ESTADO[agua.estado].clase}`}>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${ESTADO[agua.estado].clase}`}>
               {ESTADO[agua.estado].texto}
             </span>
             {agua.ultimaFecha && (
@@ -62,7 +62,7 @@ export default function CalidadAgua({ agua }: { agua: Datos | null }) {
             <Punto key={p.codigo} punto={p} varios={agua.puntos.length > 1} />
           ))}
 
-          <p className="text-[11px] leading-relaxed text-slate-500">
+          <p className="text-xs leading-relaxed text-slate-500">
             Criterio del Decreto 226/025: la media de las últimas 5 muestras no debe superar {LIMITE_MEDIA} enterococos/100 ml
             y ninguna muestra puede superar {LIMITE_MUESTRA}. La habilitación oficial la decide la IM (bandera sanitaria en la
             casilla). Fuente: monitoreo de playas de la IM, datos abiertos.
@@ -81,7 +81,7 @@ function Cianobacterias({ ciano }: { ciano: Datos["ciano"] }) {
     espuma: { icono: "!", tono: "text-red-700 dark:text-red-400", texto: "Floración de cianobacterias (espuma): evitá el contacto con el agua" },
   }[ciano];
   return (
-    <p className="flex items-start gap-1.5 text-sm">
+    <p className="flex items-start gap-2 text-sm">
       <span className={`font-bold ${info.tono}`} aria-hidden>
         {info.icono}
       </span>
@@ -100,11 +100,11 @@ function Punto({ punto, varios }: { punto: PuntoAgua; varios: boolean }) {
         : `Media de 5 muestras: ${Math.round(punto.media!.valor)} (límite ${LIMITE_MEDIA})`;
 
   return (
-    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-oscuro-3/60">
       {varios && (
         <p className="mb-1 flex items-center justify-between text-sm font-medium">
           {punto.nombre}
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${ESTADO[punto.estado].clase}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${ESTADO[punto.estado].clase}`}>
             {ESTADO[punto.estado].texto}
           </span>
         </p>
@@ -114,14 +114,14 @@ function Punto({ punto, varios }: { punto: PuntoAgua; varios: boolean }) {
           <dt className="text-slate-500">Media últimas 5</dt>
           <dd className="text-base font-semibold tabular-nums">
             {punto.media ? Math.round(punto.media.valor) : "—"}
-            <span className="ml-1 text-[11px] font-normal text-slate-500">/ {LIMITE_MEDIA}</span>
+            <span className="ml-1 text-xs font-normal text-slate-500">/ {LIMITE_MEDIA}</span>
           </dd>
         </div>
         <div>
           <dt className="text-slate-500">Última muestra</dt>
           <dd className="text-base font-semibold tabular-nums">
             {u?.enterococos ?? "—"}
-            <span className="ml-1 text-[11px] font-normal text-slate-500">/ {LIMITE_MUESTRA}</span>
+            <span className="ml-1 text-xs font-normal text-slate-500">/ {LIMITE_MUESTRA}</span>
           </dd>
         </div>
       </dl>
@@ -146,7 +146,7 @@ function Grafico({ muestras }: { muestras: Muestra[] }) {
 
   return (
     <div className="relative mt-2">
-      <p className="mb-0.5 text-[10px] text-slate-500">Enterococos por muestra (UFC/100 ml)</p>
+      <p className="mb-0.5 text-xs text-slate-500">Enterococos por muestra (UFC/100 ml)</p>
       <svg
         viewBox={`0 0 ${W} ${T + H + XB}`}
         className="w-full"
@@ -187,7 +187,7 @@ function Grafico({ muestras }: { muestras: Muestra[] }) {
             </g>
           );
         })}
-        <line x1={L} x2={W - R} y1={T + H} y2={T + H} strokeWidth={0.5} className="stroke-slate-300 dark:stroke-slate-600" />
+        <line x1={L} x2={W - R} y1={T + H} y2={T + H} strokeWidth={0.5} className="stroke-slate-300 dark:stroke-neutral-600" />
         <text x={L} y={T + H + XB - 2} className="fill-slate-400 text-[9px]">
           {fecha(muestras[0].fecha)}
         </text>
@@ -197,7 +197,7 @@ function Grafico({ muestras }: { muestras: Muestra[] }) {
       </svg>
       {m && activa != null && (
         <div
-          className="pointer-events-none absolute top-3 z-10 rounded-lg bg-slate-900/95 px-2.5 py-1.5 text-[11px] text-white shadow-lg dark:bg-white/95 dark:text-slate-900"
+          className="pointer-events-none absolute top-3 z-10 rounded-lg bg-slate-900/95 px-3 py-2 text-xs text-white shadow-lg dark:bg-white/95 dark:text-neutral-900"
           style={
             activa > muestras.length / 2
               ? { right: `calc(${100 - ((L + activa * paso) / W) * 100}% + 6px)` }

@@ -28,7 +28,7 @@ export default async function FavoritasPage() {
       bajada={`Las playas con más me gusta en la temporada ${temporadaMeGusta()} (cierra el 30 de abril, con la temporada de guardavidas). Tocá una para verla en el mapa.`}
     >
       {!disponible ? (
-        <p className="mt-8 rounded-2xl border border-orange-200 bg-orange-50 p-5 text-sm">
+        <p className="mt-8 rounded-2xl border border-orange-200 bg-orange-50 p-6 text-sm">
           Ahora no pudimos cargar los me gusta. Probá de nuevo en unos minutos.
         </p>
       ) : (

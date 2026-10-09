@@ -1,6 +1,6 @@
 "use client";
 
-import { IconChevronRight } from "@tabler/icons-react";
+import { CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { createContext, useContext, useId, useState, type ReactNode } from "react";
 
 type Grupo = { abierta: string | null; setAbierta: (clave: string | null) => void };
@@ -51,7 +51,7 @@ export default function SeccionPlegable({
   const id = useId();
 
   return (
-    <section id={ancla} className="mt-3 scroll-mt-2 border-t border-slate-100 pt-1 dark:border-slate-800">
+    <section id={ancla} className="mt-3 scroll-mt-2 border-t border-slate-100 pt-1 dark:border-neutral-800">
       <h3>
         <button
           onClick={alternar}
@@ -59,10 +59,10 @@ export default function SeccionPlegable({
           aria-controls={id}
           className="flex w-full items-center gap-2 rounded-lg py-2 text-left"
         >
-          <IconChevronRight className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${abierta ? "rotate-90" : ""}`} stroke={2.5} aria-hidden />
+          <CaretRight className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-700 ease-fluido ${abierta ? "rotate-90" : ""}`} weight="bold" aria-hidden />
           <span className="shrink-0 text-xs font-medium uppercase tracking-wider text-slate-500">{titulo}</span>
           {resumen && !(resumenSoloCerrada && abierta) && (
-            <span className="ml-auto min-w-0 text-right text-xs leading-5 text-slate-600 dark:text-slate-300">{resumen}</span>
+            <span className="ml-auto min-w-0 text-right text-xs leading-5 text-slate-600 dark:text-neutral-300">{resumen}</span>
           )}
         </button>
       </h3>

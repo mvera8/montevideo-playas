@@ -272,7 +272,7 @@ export default function Terminos() {
         ))}
       </div>
       <p className="text-sm text-slate-500">
-        El mapa usa además software libre: MapLibre GL JS (licencia BSD) y three.js (licencia MIT).
+        El sitio usa además software libre: MapLibre GL JS (licencia BSD), three.js (licencia MIT) y los íconos de Phosphor (licencia MIT).
       </p>
 
       <h2 id="propiedad">Propiedad intelectual</h2>

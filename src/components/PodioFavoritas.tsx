@@ -1,6 +1,6 @@
 "use client";
 
-import { IconHeartFilled } from "@tabler/icons-react";
+import { Heart } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { useTotalesAlDia } from "@/lib/me-gusta-cliente";
 import type { TotalesMeGusta } from "@/lib/me-gusta-temporada";
@@ -42,7 +42,7 @@ export default function PodioFavoritas({ inicial, errorServidor }: { inicial: Fa
         <li key={p.slug}>
           <Link
             href={`/playas?playa=${p.slug}`}
-            className="flex items-center gap-4 rounded-2xl bg-white/10 px-5 py-4 ring-1 ring-white/20 backdrop-blur transition-colors hover:bg-white/15"
+            className="flex items-center gap-4 rounded-2xl bg-white/10 px-6 py-4 ring-1 ring-white/20 backdrop-blur transition-colors duration-700 ease-fluido hover:bg-white/15"
           >
             <span className="text-2xl" aria-hidden>
               {MEDALLAS[i]}
@@ -51,8 +51,8 @@ export default function PodioFavoritas({ inicial, errorServidor }: { inicial: Fa
               <span className="sr-only">{i + 1}.º </span>
               {p.nombre}
             </span>
-            <span className="flex items-center gap-1.5 text-sm font-semibold tabular-nums text-rose-300">
-              <IconHeartFilled className="h-4 w-4" aria-hidden />
+            <span className="flex items-center gap-2 text-sm font-semibold tabular-nums text-rose-300">
+              <Heart weight="fill" className="h-4 w-4" aria-hidden />
               {numero.format(p.temporada)}
               <span className="sr-only"> me gusta</span>
             </span>
@@ -63,7 +63,7 @@ export default function PodioFavoritas({ inicial, errorServidor }: { inicial: Fa
       {MEDALLAS.slice(podio.length).map((m) => (
         <li
           key={m}
-          className="flex items-center gap-4 rounded-2xl px-5 py-4 border border-dashed border-white/30 text-white/60"
+          className="flex items-center gap-4 rounded-2xl px-6 py-4 border border-dashed border-white/30 text-white/60"
         >
           <span className="text-2xl opacity-60" aria-hidden>
             {m}

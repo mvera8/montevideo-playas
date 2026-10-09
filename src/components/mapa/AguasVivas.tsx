@@ -1,6 +1,6 @@
 "use client";
 
-import { IconAlertTriangle, IconRipple } from "@tabler/icons-react";
+import { Warning, Waves } from "@phosphor-icons/react/dist/ssr";
 import type { AguasVivasPlaya, AvistamientoPlaya } from "@/lib/aguas-vivas";
 import SeccionPlegable from "./SeccionPlegable";
 
@@ -18,8 +18,8 @@ const fecha = (s: string) => {
 const km = (n: number) => (n < 1 ? "a menos de 1 km" : `a ${n.toFixed(n < 10 ? 1 : 0)} km`);
 
 const CHIP = {
-  cerca: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
-  lejos: "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  cerca: "bg-orange-100 text-orange-800 dark:bg-oscuro-2 dark:text-orange-300",
+  lejos: "bg-amber-50 text-amber-800 dark:bg-oscuro-2 dark:text-amber-300",
 } as const;
 
 export const ANCLA_AGUAS_VIVAS = "seccion-aguas-vivas";
@@ -41,7 +41,7 @@ export default function AguasVivas({ datos }: { datos: AguasVivasPlaya | null })
     <SeccionPlegable
       titulo="Aguas vivas"
       ancla={ANCLA_AGUAS_VIVAS}
-      resumen={<span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${CHIP[chip]}`}>{texto}</span>}
+      resumen={<span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${CHIP[chip]}`}>{texto}</span>}
     >
       <div className="space-y-2">
         <ul className="space-y-1">
@@ -49,7 +49,7 @@ export default function AguasVivas({ datos }: { datos: AguasVivasPlaya | null })
             <Reporte key={a.id} a={a} />
           ))}
         </ul>
-        <p className="text-[11px] leading-relaxed text-slate-500">
+        <p className="text-xs leading-relaxed text-slate-500">
           Reportes voluntarios de la comunidad en iNaturalist de los últimos {DIAS_VIGENCIA} días, no un monitoreo
           oficial. Se reportan pocas (unas pocas por temporada), así que <strong>en las playas sin reportes también
           puede haber aguas vivas</strong>: mirá el agua y preguntale al guardavidas. Si te pica, enjuagá con agua de mar
@@ -67,15 +67,15 @@ function Reporte({ a }: { a: AvistamientoPlaya }) {
         href={a.url}
         target="_blank"
         rel="noreferrer"
-        className="flex items-start gap-3 rounded-xl px-2 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+        className="flex items-start gap-3 rounded-xl px-2 py-2 text-sm hover:bg-slate-50 dark:hover:bg-oscuro-3"
       >
         <span
           className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full ${
-            a.peligrosa ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400" : "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+            a.peligrosa ? "bg-red-100 text-red-700 dark:bg-oscuro-2 dark:text-red-400" : "bg-sky-100 text-sky-700 dark:bg-oscuro-2 dark:text-sky-300"
           }`}
           aria-hidden
         >
-          {a.peligrosa ? <IconAlertTriangle className="h-3.5 w-3.5" stroke={2} /> : <IconRipple className="h-3.5 w-3.5" stroke={2} />}
+          {a.peligrosa ? <Warning className="h-3.5 w-3.5" weight="bold" /> : <Waves className="h-3.5 w-3.5" weight="bold" />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
@@ -88,7 +88,7 @@ function Reporte({ a }: { a: AvistamientoPlaya }) {
           <span className="block text-xs text-slate-500">
             {fecha(a.fecha)} ({haceDias(a.dias)}){a.lugar && ` · ${a.lugar}`}
           </span>
-          <span className="block text-[11px] text-slate-400">
+          <span className="block text-xs text-slate-400">
             iNaturalist · {a.confirmada ? "identificación confirmada" : "identificación sin confirmar"}
           </span>
         </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { IconHeartFilled } from "@tabler/icons-react";
+import { Heart } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { useTotalesAlDia } from "@/lib/me-gusta-cliente";
 import type { TotalesMeGusta } from "@/lib/me-gusta-temporada";
@@ -24,7 +24,7 @@ export default function RankingFavoritas({ inicial }: { inicial: Favorita[] }) {
   return (
     <>
       {conVotos.length === 0 && (
-        <p className="mt-8 rounded-2xl border border-sky-200 bg-white p-5 text-sm">
+        <p className="mt-8 rounded-2xl border border-sky-200 bg-white p-6 text-sm">
           Todavía nadie le dio me gusta a una playa esta temporada. ¡Elegí tu favorita en el{" "}
           <Link href="/playas" className="text-sky-700 underline">
             mapa
@@ -38,7 +38,7 @@ export default function RankingFavoritas({ inicial }: { inicial: Favorita[] }) {
           <li key={p.slug}>
             <Link
               href={`/playas?playa=${p.slug}`}
-              className="group relative flex items-center gap-4 overflow-hidden rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-1 ring-black/5 hover:ring-sky-300"
+              className="group relative flex items-center gap-4 overflow-hidden rounded-2xl bg-white px-4 py-4 shadow-sm ring-1 ring-black/5 hover:ring-sky-300"
             >
               {/* Barra proporcional a los me gusta */}
               <span
@@ -58,7 +58,7 @@ export default function RankingFavoritas({ inicial }: { inicial: Favorita[] }) {
                 )}
               </span>
               <span className="relative flex items-center gap-1 text-sm font-semibold tabular-nums text-rose-600">
-                <IconHeartFilled className="h-4 w-4" aria-hidden />
+                <Heart weight="fill" className="h-4 w-4" aria-hidden />
                 {numero.format(p.temporada)}
                 <span className="sr-only"> me gusta</span>
               </span>
@@ -75,7 +75,7 @@ export default function RankingFavoritas({ inicial }: { inicial: Favorita[] }) {
               <li key={p.slug}>
                 <Link
                   href={`/playas?playa=${p.slug}`}
-                  className="block rounded-full bg-white px-3 py-1.5 text-sm text-slate-600 ring-1 ring-black/5 hover:text-sky-700 hover:ring-sky-300"
+                  className="block rounded-full bg-white px-3 py-2 text-sm text-slate-600 ring-1 ring-black/5 hover:text-sky-700 hover:ring-sky-300"
                 >
                   {p.nombre}
                 </Link>

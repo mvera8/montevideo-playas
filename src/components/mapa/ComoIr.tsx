@@ -125,8 +125,8 @@ export default function ComoIr({
               onClick={onElegirEnMapa}
               className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium ring-1 ${
                 eligiendoEnMapa
-                  ? "bg-sky-50 text-sky-800 ring-sky-300 dark:bg-sky-950 dark:text-sky-200"
-                  : "ring-slate-200 hover:bg-slate-50 dark:ring-slate-700 dark:hover:bg-slate-800"
+                  ? "bg-sky-50 text-sky-800 ring-sky-300 dark:bg-oscuro-2 dark:text-sky-200"
+                  : "ring-slate-200 hover:bg-slate-50 dark:ring-neutral-700 dark:hover:bg-oscuro-3"
               }`}
             >
               Elegir en el mapa
@@ -134,7 +134,7 @@ export default function ComoIr({
           </div>
           {eligiendoEnMapa && <p className="text-xs text-sky-700 dark:text-sky-300">Tocá el mapa donde estás.</p>}
           {errorUbicacion && <p className="text-xs text-red-600">{errorUbicacion}</p>}
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Tu ubicación se usa solo para calcular el viaje y no se guarda.{" "}
             <Link href="/privacidad#ubicacion" className="underline">
               Privacidad
@@ -150,7 +150,13 @@ export default function ComoIr({
           </button>
 
           {estado.tipo === "cargando" && (
-            <p className="text-sm text-slate-500">Buscando recorridos… (la primera vez carga los horarios del STM)</p>
+            <div role="status" className="space-y-2">
+              {/* Tarjetas fantasma con la forma de las opciones de viaje. */}
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-100 motion-reduce:animate-none dark:bg-oscuro-3" />
+              ))}
+              <p className="text-sm text-slate-500">Buscando recorridos… (la primera vez carga los horarios del STM)</p>
+            </div>
           )}
           {estado.tipo === "error" && <p className="text-sm text-red-600">{estado.mensaje}</p>}
           {estado.tipo === "ok" && opciones.length === 0 && (
@@ -164,17 +170,17 @@ export default function ComoIr({
               <li key={i}>
                 <button
                   onClick={() => setElegida(i)}
-                  className={`w-full rounded-xl px-3 py-2.5 text-left ring-1 ${
+                  className={`w-full rounded-xl px-3 py-3 text-left ring-1 ${
                     i === elegida
-                      ? "bg-sky-50 ring-sky-300 dark:bg-slate-800 dark:ring-sky-700"
-                      : "ring-slate-200 hover:bg-slate-50 dark:ring-slate-700 dark:hover:bg-slate-800"
+                      ? "bg-sky-50 ring-sky-300 dark:bg-oscuro-3 dark:ring-sky-700"
+                      : "ring-slate-200 hover:bg-slate-50 dark:ring-neutral-700 dark:hover:bg-oscuro-3"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <Resumen tramos={o.tramos} />
                     <span className="shrink-0 text-right">
                       <span className="block text-lg font-semibold tabular-nums leading-tight">{o.minutos} min</span>
-                      <span className="block text-[11px] text-slate-500">llegás {o.llega}</span>
+                      <span className="block text-xs text-slate-500">llegás {o.llega}</span>
                     </span>
                   </div>
                 </button>
@@ -183,7 +189,7 @@ export default function ComoIr({
             ))}
           </ul>
           {estado.tipo === "ok" && opciones.length > 0 && (
-            <p className="mt-2 text-[11px] text-slate-500">
+            <p className="mt-2 text-xs text-slate-500">
               Horarios del STM (GTFS de la IM). &quot;En vivo&quot; estima la llegada según la posición GPS de cada ómnibus.
             </p>
           )}
@@ -195,7 +201,7 @@ export default function ComoIr({
 
 function Linea({ n }: { n: string }) {
   return (
-    <span className="inline-flex min-w-9 justify-center rounded-md bg-sky-700 px-1.5 py-0.5 text-xs font-bold text-white">
+    <span className="inline-flex min-w-9 justify-center rounded-md bg-sky-700 px-2 py-0.5 text-xs font-bold text-white">
       {n}
     </span>
   );
@@ -203,7 +209,7 @@ function Linea({ n }: { n: string }) {
 
 function Resumen({ tramos }: { tramos: Tramo[] }) {
   return (
-    <span className="flex flex-wrap items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
+    <span className="flex flex-wrap items-center gap-1 text-xs text-slate-600 dark:text-neutral-300">
       {tramos.map((t, i) => (
         <span key={i} className="flex items-center gap-1">
           {i > 0 && <span className="text-slate-400">›</span>}
@@ -230,17 +236,17 @@ function Pasos({ tramos, llegadas }: { tramos: Tramo[]; llegadas: LlegadasPorTra
         return (
           <li key={i} className="space-y-1">
             <p className="flex items-center gap-2">
-              <Linea n={t.linea} /> <span className="text-slate-600 dark:text-slate-300">hacia {t.destino}</span>
+              <Linea n={t.linea} /> <span className="text-slate-600 dark:text-neutral-300">hacia {t.destino}</span>
             </p>
             <p>
               Subí en <strong>{t.subida.nombre}</strong> (parada {t.subida.id}).
             </p>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-slate-600 dark:text-neutral-400">
               Pasa {t.sale}
               {t.siguientes.length > 0 && <> · después {t.siguientes.join(", ")}</>}
             </p>
             {vivo === undefined ? null : vivo.length > 0 ? (
-              <p className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+              <p className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
                 En vivo: {vivo.map((l) => (l.minutos === 0 ? "llegando" : `${l.minutos} min`)).join(" · ")}
                 {vivo[0].accesible && <span title="Piso bajo">♿</span>}
@@ -249,7 +255,7 @@ function Pasos({ tramos, llegadas }: { tramos: Tramo[]; llegadas: LlegadasPorTra
             ) : (
               <p className="text-xs text-slate-500">Sin ómnibus en vivo antes de tu parada.</p>
             )}
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-slate-600 dark:text-neutral-400">
               {t.paradas} paradas · {t.minutos} min. Bajate en <strong>{t.bajada.nombre}</strong>.
             </p>
           </li>

@@ -37,16 +37,16 @@ export default async function NovedadPage({ params }: PageProps<"/novedades/[slu
         </>
       }
     >
-      <article className="mt-8 space-y-4 text-[17px] leading-relaxed text-slate-700">
+      <article className="mt-8 space-y-4 text-base text-pretty text-slate-700">
         {novedad.cuerpo.map((b, i) =>
           b.tipo === "subtitulo" ? (
             <h2 key={i} className="pt-4 text-xl font-semibold text-slate-900">
               {b.texto}
             </h2>
           ) : b.tipo === "lista" ? (
-            <ul key={i} className="space-y-1.5">
+            <ul key={i} className="space-y-2">
               {b.items.map((item) => (
-                <li key={item} className="ml-5 list-disc pl-1">
+                <li key={item} className="ml-6 list-disc pl-1">
                   {item}
                 </li>
               ))}

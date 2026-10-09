@@ -14,15 +14,15 @@ export default function FormularioContacto() {
 
   if (estado?.ok) {
     return (
-      <p role="status" className="mt-8 rounded-2xl border border-sky-200 bg-white p-5">
+      <p role="status" className="mt-8 rounded-2xl border border-sky-200 bg-white p-6">
         {estado.mensaje}
       </p>
     );
   }
 
   return (
-    <form action={accion} className="mt-8 space-y-5">
-      <div className="grid gap-5 sm:grid-cols-2">
+    <form action={accion} className="mt-8 space-y-6">
+      <div className="grid gap-6 sm:grid-cols-2">
         <label className="block text-sm font-medium">
           Nombre
           <input name="nombre" required maxLength={100} autoComplete="name" className={CAMPO} />
@@ -54,7 +54,7 @@ export default function FormularioContacto() {
       <button
         type="submit"
         disabled={enviando}
-        className="rounded-xl bg-sky-700 px-5 py-2.5 font-semibold text-white hover:bg-sky-800 disabled:opacity-60"
+        className="rounded-xl bg-sky-700 px-3 py-2 text-base font-semibold text-white transition duration-700 ease-fluido hover:bg-sky-800 active:scale-[0.98] disabled:opacity-60"
       >
         {enviando ? "Enviando…" : "Enviar mensaje"}
       </button>

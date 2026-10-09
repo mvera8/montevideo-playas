@@ -37,7 +37,7 @@ export default function ServiciosCerca({
             <li key={s.id}>
               <button
                 onClick={() => onVer(s)}
-                className="flex w-full items-start gap-3 rounded-xl px-2 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="flex w-full items-start gap-3 rounded-xl px-2 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-oscuro-3"
               >
                 <span
                   className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs"
@@ -52,12 +52,12 @@ export default function ServiciosCerca({
                     <span className="shrink-0 text-xs tabular-nums text-slate-500">{metros(s.metros)}</span>
                   </span>
                   {s.horario && <span className="block text-xs text-slate-500">{s.horario}</span>}
-                  <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                  <span className="block text-xs text-slate-500 dark:text-neutral-400">
                     {s.accesible ? "♿ Accesible · " : ""}
                     {s.fuente === "IM" ? "Intendencia" : "OpenStreetMap"}
                     {s.actualizado && ` · ${textoFecha(s, true)}`}
                   </span>
-                  {s.viejo && <span className="block text-[11px] font-medium text-orange-700 dark:text-orange-400">{AVISO_VIEJO}</span>}
+                  {s.viejo && <span className="block text-xs font-medium text-orange-700 dark:text-orange-400">{AVISO_VIEJO}</span>}
                 </span>
               </button>
             </li>

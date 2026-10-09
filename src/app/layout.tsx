@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Solo la cursiva de los títulos de la home ("...en un *mapa*"); un peso, sin variantes de más.
+// Solo la palabra en cursiva de algunos títulos ("...en un *mapa*"); un peso, sin variantes de más.
+// Excepción pedida a la skill landing-page-design (B1 prohíbe cursivas y una segunda fuente).
 const instrumentSerif = Instrument_Serif({
   variable: "--font-instrument-serif",
   subsets: ["latin"],
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f6f9fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1620" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
 
@@ -49,7 +50,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="es-UY"
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* Para teclado: primer elemento enfocable, salta el encabezado. Cada página pone id="contenido" en su <main>. */}
+        <a
+          href="#contenido"
+          className="sr-only z-50 rounded-full bg-slate-900 px-3 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        >
+          Saltar al contenido
+        </a>
+        {children}
+      </body>
       {/* Google Analytics 4 (ver README, "Analytics"). Sin ID no se carga: en local y previews no mide. */}
       {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
     </html>

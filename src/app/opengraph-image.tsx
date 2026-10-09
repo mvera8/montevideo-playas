@@ -22,7 +22,7 @@ export default function Image() {
           alignItems: "center",
           gap: 56,
           padding: "0 88px",
-          background: "linear-gradient(135deg, #1e1e20 0%, #0f0f10 100%)",
+          background: "#181818",
           color: "#f6f9fb",
         }}
       >
