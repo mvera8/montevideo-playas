@@ -18,5 +18,5 @@ export const SITIO = {
   contacto: "tinchobolso8@gmail.com",
   // Proveedor donde se aloja el sitio (aparece en la política de privacidad).
   hosting: "Vercel Inc.",
-  actualizado: "8 de octubre de 2026",
+  actualizado: "10 de octubre de 2026",
 };

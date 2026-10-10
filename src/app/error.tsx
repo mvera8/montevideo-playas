@@ -4,12 +4,16 @@ import { useEffect } from "react";
 import Link from "next/link";
 import PaginaSitio from "@/components/PaginaSitio";
 import BotonMapa from "@/components/BotonMapa";
+import { reportarErrorCliente } from "@/lib/errores";
 
 // Si algo falla al armar una página (servidor o cliente), se ve esto en vez de la pantalla genérica
 // de Next, con el encabezado y el pie del sitio. `retry` vuelve a pedir y renderizar el segmento.
+// Los errores del navegador se registran en Supabase (src/lib/errores.ts); los del servidor ya los
+// registró `onRequestError`.
 export default function Error({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   useEffect(() => {
     console.error(error);
+    reportarErrorCliente(error, "error.tsx");
   }, [error]);
 
   return (

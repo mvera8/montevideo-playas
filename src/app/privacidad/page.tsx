@@ -168,6 +168,13 @@ export default function Privacidad() {
         por seguridad y funcionamiento según su propia política, y cuyos servidores pueden estar fuera de Uruguay. No
         usamos esos datos para identificarte ni para seguir tu actividad.
       </p>
+      <p>
+        <strong>Registro de errores:</strong> si una página falla, guardamos un registro técnico para poder arreglarlo:
+        el mensaje del error, la página donde ocurrió (sin los parámetros de la dirección), en qué parte del sitio pasó y
+        el tipo de navegador y sistema operativo. <strong>No guardamos tu dirección IP</strong> ni nada que te identifique o
+        que se asocie a tu cuenta anónima. Se guarda en Supabase (ver <Link href="#me-gusta">Me gusta</Link>), solo
+        podemos verlo nosotros y se borra a los 30 días. La base es nuestro interés legítimo en que el sitio funcione.
+      </p>
 
       <h2 id="terceros">Servicios de terceros</h2>
       <p>
@@ -180,7 +187,7 @@ export default function Privacidad() {
       </p>
       <p>
         Las estadísticas de visitas las procesa Google, como se explica en{" "}
-        <Link href="#analitica">Estadísticas de uso</Link>. Los me gusta se guardan en Supabase, como se explica en <Link href="#me-gusta">Me gusta</Link>. Los mensajes de
+        <Link href="#analitica">Estadísticas de uso</Link>. Los me gusta y el registro de errores se guardan en Supabase, como se explica en <Link href="#me-gusta">Me gusta</Link> y <Link href="#tecnicos">Datos técnicos</Link>. Los mensajes de
         contacto se envían con Mailgun, como se explica en <Link href="#contacto">Formulario de contacto</Link>.
       </p>
       <p>
@@ -194,8 +201,8 @@ export default function Privacidad() {
 
       <h2 id="finalidad">Para qué usamos los datos</h2>
       <p>
-        Solo para mostrarte la información que pediste, contar los me gusta, responder tus mensajes y medir en forma
-        agregada cómo se usa el sitio. No vendemos datos personales, no mostramos publicidad y no hacemos perfiles. La base para usar tu ubicación es tu consentimiento,
+        Solo para mostrarte la información que pediste, contar los me gusta, responder tus mensajes, medir en forma
+        agregada cómo se usa el sitio y arreglar los errores. No vendemos datos personales, no mostramos publicidad y no hacemos perfiles. La base para usar tu ubicación es tu consentimiento,
         que das al aceptar el permiso del navegador y podés retirar en cualquier momento; la de los me gusta, también tu
         consentimiento, que das al tocar el botón.
       </p>

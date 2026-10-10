@@ -410,6 +410,43 @@ plan gratis: 100/día, un dominio). Código: `src/lib/contacto.ts` (envío y top
 - Estructura común de las páginas de texto: `EncabezadoSitio` arriba, título + contenido
   (`PaginaSitio`) y `PieSitio`. La home usa el mismo encabezado en modo `sobreFoto`.
 
+## Errores
+
+Registro propio en Supabase en vez de Sentry (decisión 10/2026: sin dependencias nuevas ni script
+extra en el cliente). Mismo proyecto que los me gusta. Esquema en
+`supabase/migrations/20261010120000_errores.sql`; código en `src/lib/errores.ts`.
+
+- **Por qué no alcanza Vercel:** en el plan Hobby los Runtime Logs duran muy poco y no avisan; los
+  Log Drains son solo del plan Pro. Los errores del navegador Vercel no los ve.
+- **Servidor:** `onRequestError` en `src/instrumentation.ts` (lo llama Next ante cualquier error de
+  render, rutas de API, server actions o proxy). Guarda `contexto = "<routeType> <routePath>"` y el
+  `digest`, que es el mismo "Código del error" que ve la persona en la pantalla de error.
+- **Navegador:** `error.tsx` y `global-error.tsx` llaman a `reportarErrorCliente`. Si el error trae
+  `digest` ya lo registró el servidor y no se repite. Máximo 5 errores distintos por carga.
+- **Fuera de React:** `src/instrumentation-client.ts` escucha `error` y `unhandledrejection` en
+  `window` (handlers de eventos, el mapa, promesas sin catch); Next lo corre antes de la hidratación.
+  Solo scripts del propio origen. Se descarta el ruido (`RUIDO` en `src/lib/errores.ts`): sin
+  conexión ("Failed to fetch" / "Load failed"), `AbortError`/`TimeoutError`, "Script error.",
+  "ResizeObserver loop" y stacks de extensiones. Si algo molesto se repite en la tabla, sumarlo ahí.
+- **Escritura:** `POST {URL}/rest/v1/rpc/registrar_error` con header `apikey: <clave publicable>`,
+  directo desde el navegador (no pasa por una ruta de API, para no gastar CPU de Vercel). La función
+  agrupa por huella (`md5(origen|mensaje|ruta)`) y día sumando `veces`, recorta los textos, pone un
+  tope de **200 errores distintos por día** (los repetidos siguen sumando) y borra lo de más de
+  **30 días**. Solo en producción (`NODE_ENV=production`, incluye las previews de Vercel).
+- **Qué se guarda:** mensaje, ruta sin query string, contexto, digest, stack (minificado en el
+  navegador) y user-agent. Nunca IP ni la cuenta anónima.
+- **Leer en la terminal:** `npm run errors` (últimos 50, por día; `-detalle` suma stack, digest y
+  navegador; `-limite=200` trae más). **Borrar todo:** `npm run errors -delete` (pide confirmación;
+  `-si` para no preguntar). Necesita `SUPABASE_SECRET_KEY=sb_secret_…` en `.env.local` (Supabase →
+  Project Settings → API Keys → Secret keys): saltea RLS, así que solo local, nunca `NEXT_PUBLIC_` ni
+  en Vercel. Script: `scripts/errores.mjs`.
+- **Leer en Supabase:** la tabla no se puede leer con la clave publicable (RLS sin políticas).
+  Supabase → Table Editor → `errores`, o en el SQL Editor:
+  `select dia, origen, veces, mensaje, ruta, contexto from errores order by ultima desc limit 50;`
+- **Validar:** `curl -X POST {URL}/rest/v1/rpc/registrar_error -H "apikey: …" -H "Content-Type:
+  application/json" -d '{"p_origen":"cliente","p_mensaje":"prueba"}'` → `204` y aparece la fila
+  (borrarla después). Un `GET {URL}/rest/v1/errores` con la clave publicable no debe devolver filas.
+
 ## Analytics (Google Analytics 4)
 
 `<GoogleAnalytics>` de `@next/third-parties/google` en `src/app/layout.tsx`. Elegido en vez de Vercel

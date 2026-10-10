@@ -28,7 +28,7 @@ export default function EncabezadoSitio({ sobreFoto = false }: { sobreFoto?: boo
           sobreFoto ? "bg-white/10 ring-1 ring-white/20 shadow-black/20" : "bg-white/80 ring-1 ring-black/5 shadow-black/5"
         }`}
       >
-        <MarcaSitio claro={sobreFoto} />
+        <MarcaSitio claro={sobreFoto} eager />
 
         <nav className={`hidden items-center gap-1 text-sm md:flex ${sobreFoto ? "text-white/85" : "text-slate-600"}`}>
           {ENLACES.map(({ href, label }) => (

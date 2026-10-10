@@ -13,11 +13,7 @@ Prompts
 
 Probar Correo
 
-Errores
-
 Servidor
-
-Analytics
 
 Seguridad de datos
 

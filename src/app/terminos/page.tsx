@@ -283,7 +283,7 @@ export default function Terminos() {
 
       <h2 id="privacidad">Privacidad</h2>
       <p>
-        Cómo usamos tu ubicación, los datos del formulario de contacto, las estadísticas de visitas (Google Analytics) y otros datos está explicado en la <Link href="/privacidad">Política de privacidad</Link>.
+        Cómo usamos tu ubicación, los datos del formulario de contacto, las estadísticas de visitas (Google Analytics), el registro de errores y otros datos está explicado en la <Link href="/privacidad">Política de privacidad</Link>.
       </p>
 
       <h2 id="cambios">Cambios y ley aplicable</h2>
