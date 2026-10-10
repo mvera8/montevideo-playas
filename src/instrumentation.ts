@@ -1,3 +1,6 @@
+import type { Instrumentation } from "next";
+import { registrarError } from "./lib/errores";
+
 // Precarga los horarios del STM al iniciar el servidor, para que la primera
 // consulta de "cómo ir" no espere la descarga y el procesamiento del GTFS (~3 s).
 // Solo en un servidor propio (dev, `next start`): en Vercel cada instancia nueva corre esto, aunque
@@ -13,3 +16,20 @@ export async function register() {
   // Sin await: no bloquea el arranque del servidor.
   getIndice().catch((e) => console.error("[gtfs] no se pudo precargar:", e));
 }
+
+// Cualquier error del servidor (render, rutas de API, server actions, proxy) va a la tabla `errores` de
+// Supabase (src/lib/errores.ts): en el plan Hobby, Vercel guarda los logs solo un rato y no avisa.
+export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
+  const e = err instanceof Error ? err : null;
+  const digest = typeof err === "object" && err !== null && "digest" in err ? String(err.digest) : undefined;
+  const ua = request.headers["user-agent"];
+  await registrarError({
+    origen: "servidor",
+    mensaje: e?.message ?? String(err),
+    ruta: request.path,
+    contexto: `${context.routeType} ${context.routePath}`,
+    digest,
+    stack: e?.stack,
+    navegador: Array.isArray(ua) ? ua[0] : ua,
+  });
+};

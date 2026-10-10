@@ -1,11 +1,17 @@
 "use client";
 
 import "./globals.css";
+import { useEffect } from "react";
 import { SITIO } from "@/lib/sitio";
+import { reportarErrorCliente } from "@/lib/errores";
 
 // Solo aparece si falla el layout raíz: reemplaza todo el documento, así que lleva su propio <html> y
 // <body> y no usa componentes del sitio (podrían ser lo que falló). Sin metadata: el título va con <title>.
 export default function GlobalError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  useEffect(() => {
+    reportarErrorCliente(error, "global-error.tsx");
+  }, [error]);
+
   return (
     <html lang="es-UY">
       <body className="grid min-h-dvh place-items-center bg-slate-50 px-4 font-sans text-slate-900 antialiased">
