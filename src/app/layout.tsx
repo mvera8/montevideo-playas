@@ -32,6 +32,9 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
   // Nombre sugerido en iOS al "Agregar a inicio" (sin esto usa el <title> o el short_name del manifest).
   appleWebApp: { title: `${SITIO.nombre} ${SITIO.alcance}` },
+  // Google Search Console, propiedad "Prefijo de URL" de montevideo.playas.uy (método etiqueta HTML).
+  // No borrar: si la etiqueta desaparece, Google pierde la verificación.
+  verification: { google: "k2TntdGD9Z_zS3Hg8e99tyPO7N8mgbBGYJmSLbH9ZWI" },
 };
 
 // Color de la barra del navegador en el celular: el mismo fondo del sitio en claro y oscuro (globals.css).
