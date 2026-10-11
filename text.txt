@@ -17,8 +17,6 @@ Servidor
 
 Seguridad de datos
 
-Anti demandas
-
 Instagram
 
 

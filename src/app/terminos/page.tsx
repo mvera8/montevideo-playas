@@ -179,7 +179,8 @@ export default function Terminos() {
       <p>
         “¿A qué playa voy?” y “Mejor horario” son un puntaje propio que combina bandera, calidad del agua, viento según
         hacia dónde mira cada playa (calculado con la línea de costa de OpenStreetMap), temperatura, lluvia y tiempo de viaje. Es una sugerencia, no una
-        garantía de que la playa esté en buenas condiciones.
+        garantía de que la playa esté en buenas condiciones. Las playas con bandera roja, negra o sanitaria vigente, o
+        con espuma de cianobacterias, siempre se marcan como “No recomendable”.
       </p>
 
       <h3>Baños, bebederos y duchas</h3>

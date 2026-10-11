@@ -88,8 +88,9 @@ export function recomendar(
         s += 10;
         motivos.push({ texto: "Bandera verde", tono: "bien" });
       }
+      // La Intendencia la declara "no apta para baños": igual que la roja, nunca puede salir recomendada.
       if (p.guardavidas.some((g) => g.banderaSanitaria?.activa)) {
-        s -= 40;
+        tope = Math.min(tope, 15);
         motivos.push({ texto: "Bandera sanitaria", tono: "mal" });
       }
 
