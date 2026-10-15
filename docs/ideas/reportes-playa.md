@@ -111,6 +111,11 @@ tipo.
 
 ## Para avanzar necesito que decidas
 
+> **Propuesta (15/10/2026):** la fauna (lobos marinos, aguas vivas, animales varados) se reporta en
+> iNaturalist con un proyecto propio y no acá; esta base queda para el estado de la playa (agua verde,
+> basura, algas). Ver [proyecto-inaturalist.md](proyecto-inaturalist.md). Si se acepta, cambian los
+> tipos del punto 1 y el 3D del lobo marino mostraría observaciones de iNaturalist.
+
 1. **¿Qué tipos entran en el MVP?** (Recomendado: lobo marino, aguavivas, cianobacterias, fauna
    varada.)
 2. **¿Un reporte con una sola persona se muestra** (tenue, "sin confirmar") **o queda oculto** hasta

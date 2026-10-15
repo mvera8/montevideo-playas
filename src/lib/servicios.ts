@@ -7,6 +7,7 @@ import { unzipSync } from "fflate";
 //   El servidor GIS genera un shapefile (UTM 21S) en /sit/tmp/<tabla>.zip al pedir generar_zip2.php.
 // - OpenStreetMap vía Overpass (comunitario): cubre la rambla y los baños químicos de temporada.
 // Si un punto de OSM está a menos de 40 m de uno de la IM, se considera el mismo y gana la IM.
+// Caché de 24 h por fuente; si una falla se usa lo último bueno de ella y se reintenta a los 5 min.
 
 const GIS = "https://intgis.montevideo.gub.uy/sit";
 const CACHE_MS = 24 * 60 * 60 * 1000; // cambian muy poco
@@ -161,6 +162,8 @@ async function cargarIm(): Promise<Servicio[]> {
 const OVERPASS = "https://overpass-api.de/api/interpreter";
 // Franja costera de Montevideo (sur, oeste, norte, este).
 const BBOX = "-34.95,-56.45,-34.83,-56.02";
+// La consulta pide `timeout:25` al servidor; unos segundos más para la respuesta.
+const TIMEOUT_OVERPASS = 30_000;
 
 type ElementoOsm = {
   type: string;
@@ -183,6 +186,7 @@ async function consultarOverpass(q: string, intentos = 2): Promise<ElementoOsm[]
         "User-Agent": "PlayasUY/1.0 (mapa de playas de Montevideo)",
       },
       body: new URLSearchParams({ data: q }),
+      signal: AbortSignal.timeout(TIMEOUT_OVERPASS),
     });
     if (res.ok) return ((await res.json()) as { elements: ElementoOsm[] }).elements;
     if (i >= intentos || !(res.status === 429 || res.status >= 500)) throw new Error(`Overpass: ${res.status}`);
@@ -247,34 +251,48 @@ async function cargarOsm(): Promise<Servicio[]> {
   return out;
 }
 
+// Si una fuente falla, se sigue con lo último que respondió de ella (o nada) y se reintenta a los
+// PAUSA_FALLA en vez de esperar las 24 h de caché: Overpass se satura seguido (502/504) y no queremos
+// quedarnos un día entero sin los baños de la rambla.
+const PAUSA_FALLA = 5 * 60_000;
+
+type Estado = {
+  im?: Servicio[];
+  osm?: Servicio[];
+  datos?: Servicio[];
+  vence: number;
+  promesa?: Promise<Servicio[]>;
+};
+const g = globalThis as unknown as { __servicios?: Estado };
+g.__servicios ??= { vence: 0 };
+const estado = g.__servicios;
+
+// Falla esperable (servidor saturado o caído) y ya manejada: aviso de una línea, no un error.
+const falla = (fuente: string) => (e: unknown) => {
+  console.warn(`Servicios: ${fuente} no respondió (${e instanceof Error ? e.message : e}); se reintenta en 5 min.`);
+  return null;
+};
+
 async function cargar(): Promise<Servicio[]> {
-  // Cada fuente falla por separado: si una no responde, seguimos con la otra.
-  const [im, osm] = await Promise.all([
-    cargarIm().catch((e) => (console.error(e), null)),
-    cargarOsm().catch((e) => (console.error(e), null)),
-  ]);
-  if (!im && !osm) throw new Error("Servicios: no respondió ninguna fuente");
-  const oficiales = im ?? [];
-  const extra = (osm ?? []).filter(
+  const [im, osm] = await Promise.all([cargarIm().catch(falla("IM")), cargarOsm().catch(falla("Overpass"))]);
+  if (im) estado.im = im;
+  if (osm) estado.osm = osm;
+  if (!estado.im && !estado.osm) throw new Error("Servicios: no respondió ninguna fuente");
+  estado.vence = Date.now() + (im && osm ? CACHE_MS : PAUSA_FALLA);
+  const oficiales = estado.im ?? [];
+  const extra = (estado.osm ?? []).filter(
     (o) => !oficiales.some((s) => s.tipo === o.tipo && Math.hypot((s.lat - o.lat) * M_LAT, (s.lon - o.lon) * M_LON) < 40),
   );
   return [...oficiales, ...extra];
 }
 
-const g = globalThis as unknown as { __servicios?: { datos?: Servicio[]; hora: number; promesa?: Promise<Servicio[]> } };
-g.__servicios ??= { hora: 0 };
-const estado = g.__servicios;
-
 export async function getServicios(): Promise<Servicio[]> {
-  if (estado.datos && Date.now() - estado.hora < CACHE_MS) return estado.datos;
+  if (estado.datos && Date.now() < estado.vence) return estado.datos;
   estado.promesa ??= cargar()
-    .then((d) => {
-      estado.datos = d;
-      estado.hora = Date.now();
-      return d;
-    })
+    .then((d) => (estado.datos = d))
     .catch((e) => {
       console.error(e);
+      estado.vence = Date.now() + PAUSA_FALLA;
       return estado.datos ?? [];
     })
     .finally(() => {

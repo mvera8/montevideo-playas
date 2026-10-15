@@ -91,6 +91,12 @@ const PASOS = [
 
 // Frase destacada (skill landing-page-design B11): cada palabra se enciende al hacer scroll (`Revelar`).
 const FRASE = "Antes de cargar la sombrilla, sabé qué bandera hay, cómo está el agua y qué ómnibus te deja en la arena.";
+// Palabras de la frase que llevan su ícono al lado, en una píldora del color de su tarjeta de "Qué es".
+const ICONOS_FRASE: Record<string, { icono: Icono; tono: string }> = {
+  bandera: { icono: "bandera", tono: "bg-amber-100 text-amber-700" },
+  agua: { icono: "agua", tono: "bg-sky-100 text-sky-700" },
+  ómnibus: { icono: "omnibus", tono: "bg-emerald-100 text-emerald-700" },
+};
 
 // Las dos fotos son CC BY-SA 4.0: la atribución es obligatoria (también en /terminos#fuentes).
 const CREDITOS_FOTOS = [
@@ -332,11 +338,21 @@ export default async function Home() {
         {/* Frase destacada: cada palabra se enciende al pasar la línea del 60% de la pantalla. */}
         <section className="px-4 py-24 sm:px-6">
           <p className="mx-auto max-w-[680px] text-4xl font-semibold tracking-tight text-balance text-slate-900 sm:text-5xl">
-            {FRASE.split(" ").map((palabra, i) => (
-              <span key={i} data-palabra>
-                {palabra}{" "}
-              </span>
-            ))}
+            {FRASE.split(" ").map((palabra, i) => {
+              const icono = ICONOS_FRASE[palabra];
+              return (
+                <span key={i} data-palabra className={icono && "whitespace-nowrap"}>
+                  {palabra}
+                  {icono && (
+                    <span
+                      className={`ml-2 inline-flex h-8 w-12 items-center justify-center rounded-full align-middle sm:h-10 sm:w-16 ${icono.tono}`}
+                    >
+                      <Ico nombre={icono.icono} className="h-5 w-5 sm:h-6 sm:w-6" />
+                    </span>
+                  )}{" "}
+                </span>
+              );
+            })}
           </p>
         </section>
 
