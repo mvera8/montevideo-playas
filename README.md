@@ -225,10 +225,13 @@ iNaturalist** en la costa de Montevideo, y `AguasVivas.tsx` los muestra en el de
   si no hay, la última edición ("editado"); con más de 2 años (`DIAS_VIGENCIA_OSM`) se avisa "dato viejo"
   y el ícono se ve tenue. Cerca de las playas ninguno tiene `check_date` (medido 10/2026): varios baños
   fijos no se editan desde 2017-2023. La IM no trae fecha por punto (regenera el registro a diario).
-- **Overpass** a veces responde 504/429 (saturado): un reintento a los 2 s; si falla, quedan los datos
-  anteriores. Los espejos públicos probados (kumi.systems, private.coffee) no respondieron.
+- **Overpass** a veces responde 502/504/429 (saturado): un reintento a los 2 s, con timeout de 30 s.
+  Los espejos públicos probados (kumi.systems, private.coffee) tampoco respondieron (10/2026; el
+  15/10/2026 los tres daban 500/502 al mismo tiempo).
 
-Cache en memoria de 24 h; si una fuente falla se sigue con la otra. En el mapa: íconos desde zoom 13,5
+Cache en memoria de 24 h, guardando lo último bueno de cada fuente por separado. Si una falla se sigue
+con lo último que respondió de ella (o sin ella, si nunca respondió) y se reintenta a los 5 min
+(`PAUSA_FALLA`), no a las 24 h. La falla se registra con `console.warn` (es esperable y está manejada). En el mapa: íconos desde zoom 13,5
 con popup (armado con DOM/textContent, los datos de OSM son texto libre).
 
 ## ¿A qué playa voy? y mejor horario

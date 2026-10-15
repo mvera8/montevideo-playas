@@ -85,62 +85,62 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
         </TarjetaInfo>
       )}
 
-      {malMomento ? (
-        <div className="mt-2">
-          <p className="text-xl font-semibold tracking-tight">Ahora no es momento de playa</p>
-          {generales.length > 0 && (
-            <div className="mt-2">
-              <Motivos motivos={generales} />
-            </div>
-          )}
-        </div>
+      {calculando ? (
+        <EsqueletoRecomendador />
       ) : (
         <>
-          <button onClick={() => onElegir(playa)} className="group mt-2 block w-full text-left">
-            <span className="flex items-center justify-between gap-2">
-              <span className="text-2xl font-semibold tracking-tight group-hover:text-sky-700 dark:group-hover:text-sky-300">
-                {playa.nombre}
-              </span>
-              <BadgeCalidad calidad={primera.calidad} puntaje={primera.puntaje} />
-            </span>
-          </button>
-          <div className="mt-2">
-            <Motivos motivos={primera.motivos} />
-          </div>
-        </>
-      )}
+          {malMomento ? (
+            <div className="mt-2">
+              <p className="text-xl font-semibold tracking-tight">Ahora no es momento de playa</p>
+              {generales.length > 0 && (
+                <div className="mt-2">
+                  <Motivos motivos={generales} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <button onClick={() => onElegir(playa)} className="group mt-2 block w-full text-left">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-2xl font-semibold tracking-tight group-hover:text-sky-700 dark:group-hover:text-sky-300">
+                    {playa.nombre}
+                  </span>
+                  <BadgeCalidad calidad={primera.calidad} puntaje={primera.puntaje} />
+                </span>
+              </button>
+              <div className="mt-2">
+                <Motivos motivos={primera.motivos} />
+              </div>
+            </>
+          )}
 
-      <div className="mt-3 flex gap-2">
-        {!malMomento && (
-          <button
-            onClick={() => onElegir(playa)}
-            className="flex-1 rounded-xl bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:bg-sky-800"
-          >
-            Ver playa
-          </button>
-        )}
-        {!origen && (
-          <BotonUbicacion texto="Sumar mi viaje" ubicando={ubicando} onClick={onUsarUbicacion} />
-        )}
-      </div>
-      {!origen && (
-        <p className="mt-2 text-xs text-slate-500">
-          Tu ubicación se usa solo para calcular el viaje y no se guarda.{" "}
-          <Link href="/privacidad#ubicacion" className="underline">
-            Privacidad
-          </Link>
-        </p>
-      )}
-      {calculando && (
-        <p className="mt-2 flex items-center gap-2 text-xs text-sky-700 dark:text-sky-300">
-          <Ocupado className="h-3.5 w-3.5" />
-          Calculando cuánto tardás a cada playa…
-        </p>
-      )}
-      {fallaActual && (
-        <p className="mt-2 text-xs text-slate-500">
-          {fallaActual === "fuera" ? "Estás fuera de Montevideo: el ranking no suma el viaje." : "No pudimos sumar el viaje."}
-        </p>
+          <div className="mt-3 flex gap-2">
+            {!malMomento && (
+              <button
+                onClick={() => onElegir(playa)}
+                className="flex-1 rounded-xl bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:bg-sky-800"
+              >
+                Ver playa
+              </button>
+            )}
+            {!origen && (
+              <BotonUbicacion texto="Sumar mi viaje" ubicando={ubicando} onClick={onUsarUbicacion} />
+            )}
+          </div>
+          {!origen && (
+            <p className="mt-2 text-xs text-slate-500">
+              Tu ubicación se usa solo para calcular el viaje y no se guarda.{" "}
+              <Link href="/privacidad#ubicacion" className="underline">
+                Privacidad
+              </Link>
+            </p>
+          )}
+          {fallaActual && (
+            <p className="mt-2 text-xs text-slate-500">
+              {fallaActual === "fuera" ? "Estás fuera de Montevideo: el ranking no suma el viaje." : "No pudimos sumar el viaje."}
+            </p>
+          )}
+        </>
       )}
 
       <Modal
@@ -158,7 +158,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
         )}
       </Modal>
 
-      {lista.length > 0 && (
+      {!calculando && lista.length > 0 && (
         <div className="mt-3 border-t border-slate-100 pt-3 dark:border-neutral-800">
           <p className="mb-1 flex justify-between px-2 text-xs text-slate-500">
             <span>{malMomento ? "Si igual querés ir" : "También"}</span>
@@ -191,5 +191,34 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
         </div>
       )}
     </section>
+  );
+}
+
+// Mientras se calcula el viaje a cada playa el ranking puede cambiar entero: en vez de mostrar una
+// playa que quizás deja de ser la primera, un esqueleto con la forma de la tarjeta.
+function EsqueletoRecomendador() {
+  const tono = "animate-pulse bg-slate-100 motion-reduce:animate-none dark:bg-oscuro-3";
+  return (
+    <div role="status" className="mt-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className={`h-8 w-40 rounded-lg ${tono}`} />
+        <div className={`h-6 w-24 rounded-full ${tono}`} />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {["w-36", "w-28", "w-24"].map((w) => (
+          <div key={w} className={`h-6 rounded-full ${w} ${tono}`} />
+        ))}
+      </div>
+      <div className={`mt-3 h-9 rounded-xl ${tono}`} />
+      <p className="mt-2 flex items-center gap-2 text-xs text-sky-700 dark:text-sky-300">
+        <Ocupado className="h-3.5 w-3.5" />
+        Calculando playa…
+      </p>
+      <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 dark:border-neutral-800">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className={`h-6 rounded-lg ${tono}`} />
+        ))}
+      </div>
+    </div>
   );
 }
