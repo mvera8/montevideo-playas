@@ -289,6 +289,14 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
 - **Tablas:** `me_gusta` (playa, temporada, user_id; PK única = uno por persona por playa por
   temporada; RLS: cada uno ve/da/saca solo los suyos, solo en la temporada actual; un trigger pone
   un tope de 60 por temporada por cuenta — no hacerlo en la política: recursa sobre la tabla) y `me_gusta_totales` (contador precalculado por un trigger; lo único público).
+- **Playas válidas:** tabla `playas` (slug, nombre), sin acceso desde la API. `me_gusta`,
+  `me_gusta_totales` y `reportes` tienen foreign key a `playas.slug`, así nadie suma me gusta a una
+  playa inventada. Es la misma lista que `NOMBRES_PLAYA` en `src/lib/playas.ts`: **si se agrega una
+  playa allá, insertarla también en `playas`** (`insert into public.playas values ('<slug>', '<nombre>')`),
+  si no, sus me gusta fallan.
+- **Permisos por defecto:** desde `20261016120000_playas_validas_y_permisos.sql`, las tablas,
+  secuencias y funciones nuevas de `public` no tienen permisos para `anon`/`authenticated` (ni
+  EXECUTE para PUBLIC). Cada migración nueva da los que necesite con `grant` explícito y activa RLS.
 - **Temporada:** sigue a la de guardavidas y cierra el 30 de abril; desde el 1 de mayo se vota para
   la siguiente (`'2026-27'` = 1/5/2026 al 30/4/2027). Calculada en la base (`temporada_actual()`) y en
   `temporadaMeGusta()` de `src/lib/me-gusta-temporada.ts` (cambiar las dos juntas). "En total" = suma de todas las temporadas.
@@ -305,7 +313,12 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
   `estado_me_gusta(p_playa)` al abrir una playa. supabase-js se importa de forma diferida: quien nunca dio me gusta
   no lo descarga. Actualización optimista.
 - **Validar:** `curl -X POST {URL}/rest/v1/rpc/temporada_actual -H "apikey: …"` → `"2026-27"`; el
-  conector (`get_advisors`) no debe mostrar avisos de seguridad.
+  conector (`get_advisors`) solo debe mostrar los avisos esperados: "RLS sin políticas" en
+  `errores`, `playas`, `reportes` y `reporte_votos` (se usan solo por funciones), las funciones
+  `security definer` que se llaman por RPC (`avistamientos_activos`, `registrar_error`, `reportar`,
+  `votar_reporte`, `reportes_cerca`), el acceso de cuentas anónimas a `me_gusta`, la protección de
+  contraseñas filtradas (no se usan contraseñas) y la FK `reportes_playa_fkey` sin índice (`playas`
+  casi nunca cambia). Cualquier otro aviso es nuevo y hay que revisarlo.
 - **Vigencia:** es un contador en vivo, no hay dato vencido; el navegador lo trae al día al cargar.
 - **Abuso:** Supabase limita la creación de cuentas anónimas por IP (30/h por defecto). Si se
   infla, activar CAPTCHA (Turnstile) en Auth. Limpiar cuentas anónimas sin uso de más de un año.

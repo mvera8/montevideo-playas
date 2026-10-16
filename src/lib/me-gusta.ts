@@ -11,6 +11,7 @@ import { sumarTotales, type TotalesMeGusta } from "./me-gusta-temporada";
 //   y solo permite leer; quién dio cada me gusta (tabla `me_gusta`) no es público.
 // - Formato: JSON `[{ playa: "pocitos", temporada: "2026-27", total: 12 }, …]`, una fila por
 //   playa y temporada (~20 filas por temporada). El total lo mantiene un trigger en la base.
+//   `playa` solo acepta slugs de la tabla `playas` (misma lista que NOMBRES_PLAYA en playas.ts).
 // - Frecuencia: cambia en cualquier momento. Se cachea 5 min, igual que el ISR de la página (no
 //   acorta la revalidación). Ojo: ISR sirve la versión vieja al primer visitante después de un rato
 //   sin visitas (pueden ser horas), así que el navegador siempre vuelve a pedir los totales al cargar
