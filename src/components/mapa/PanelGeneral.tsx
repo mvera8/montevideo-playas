@@ -322,7 +322,9 @@ function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; tempo
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold">{playa.nombre}</span>
           <span className="flex items-center gap-2 text-xs text-slate-500">
-            {n} {n === 1 ? "casilla" : "casillas"}
+            <span className="whitespace-nowrap">
+              {n} {n === 1 ? "casilla" : "casillas"}
+            </span>
             <ContadorMeGusta slug={playa.slug} inicial={playa.meGusta} />
           </span>
         </span>
@@ -333,11 +335,8 @@ function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; tempo
 
       <IconoCasilla color={ESTADOS[estado].color} sanitaria={playa.guardavidas.some((g) => g.banderaSanitaria?.activa)} />
 
-      <div className="mt-auto flex w-full items-end justify-between">
-        <span>
-          <span className="block text-lg font-semibold leading-none tabular-nums">{grados(c?.airTemp)}</span>
-          <span className="block text-xs text-slate-500">agua {grados(playa.agua?.temperatura?.valor ?? c?.waterTemp)}</span>
-        </span>
+      <div className="mt-auto flex w-full items-center justify-between">
+        <span className="text-lg font-semibold leading-none tabular-nums">{grados(c?.airTemp)}</span>
         {/* Fuera de temporada no hay banderas: mostramos la calidad del agua. */}
         {temporadaActiva ? (
           <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-oscuro-3 dark:text-neutral-300">

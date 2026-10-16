@@ -92,6 +92,7 @@ function vigente(expiration: string | null | undefined, temporadaActiva: boolean
 }
 
 // La IM identifica la playa de cada casilla con un código (`beach`).
+// Al agregar una playa, sumarla también a la tabla `playas` de Supabase (README → "Me gusta").
 const NOMBRES_PLAYA: Record<string, string> = {
   puntaespinillo: "Punta Espinillo",
   lacolorada: "La Colorada",

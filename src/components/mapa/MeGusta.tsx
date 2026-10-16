@@ -16,7 +16,7 @@ function Corazon({ lleno, className = "h-4 w-4" }: { lleno: boolean; className?:
   return <Heart weight={lleno ? "fill" : "regular"} className={className} aria-hidden />;
 }
 
-/** Contador de la tarjeta: ♥ N me gusta, en rojo si me gusta y en gris si no. */
+/** Contador de la tarjeta: ♥ N, en rojo si me gusta y en gris si no. */
 export function ContadorMeGusta({ slug, inicial }: { slug: string; inicial: TotalesMeGusta | null }) {
   const t = useTotalesMeGusta(slug, inicial);
   if (!meGustaDisponible || !t) return null;
@@ -26,7 +26,8 @@ export function ContadorMeGusta({ slug, inicial }: { slug: string; inicial: Tota
       title={t.meGusta ? "Te gusta esta playa" : `${numero.format(t.temporada)} me gusta esta temporada`}
     >
       <Corazon lleno={t.meGusta} className="h-3 w-3" />
-      {numero.format(t.temporada)} me gusta
+      {numero.format(t.temporada)}
+      <span className="sr-only"> me gusta</span>
     </span>
   );
 }

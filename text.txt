@@ -13,6 +13,8 @@ Prompts
 
 Probar Correo
 
+RLS (supabase)
+
 Servidor
 
 Seguridad de datos
