@@ -16,6 +16,8 @@ export const SITIO = {
   // Correo público de contacto y destino del formulario de /contacto (ver src/lib/contacto.ts): mientras
   // no se use un dominio propio en Mailgun, tiene que estar en sus "Authorized Recipients".
   contacto: "tinchobolso8@gmail.com",
+  // Cuenta de Instagram del sitio (encabezado y pie, ver EnlaceInstagram).
+  instagram: "https://www.instagram.com/montevideo.playas.uy/",
   // Proveedor donde se aloja el sitio (aparece en la política de privacidad).
   hosting: "Vercel Inc.",
   actualizado: "11 de octubre de 2026",

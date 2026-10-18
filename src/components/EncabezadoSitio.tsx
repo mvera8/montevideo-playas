@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import BotonMapa from "@/components/BotonMapa";
+import EnlaceInstagram from "@/components/EnlaceInstagram";
 import MarcaSitio from "@/components/MarcaSitio";
 import MenuSitio from "@/components/MenuSitio";
 import { ENLACES_PRINCIPALES } from "@/lib/navegacion";
@@ -48,6 +49,7 @@ export default function EncabezadoSitio({ sobreFoto = false }: { sobreFoto?: boo
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <EnlaceInstagram claro={sobreFoto} className="hidden md:inline-flex" />
           <BotonMapa tamano="chico" tono={sobreFoto ? "claro" : "oscuro"} texto="Ver playas" className="hidden sm:inline-flex" />
           <div className="md:hidden">
             <MenuSitio variante={sobreFoto ? "foto" : "encabezado"} />

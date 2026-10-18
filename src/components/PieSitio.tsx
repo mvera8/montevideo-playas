@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EnlaceInstagram from "@/components/EnlaceInstagram";
 import FirmaMartinVera from "@/components/FirmaMartinVera";
 import MarcaSitio from "@/components/MarcaSitio";
 import { SITIO } from "@/lib/sitio";
@@ -37,6 +38,7 @@ export default function PieSitio({ children }: { children?: React.ReactNode }) {
             agua, clima y cómo llegar.{" "}
             <strong className="font-semibold text-white">Gratis y sin registro.</strong>
           </p>
+          <EnlaceInstagram variante="texto" className="mt-4" />
         </div>
         <Columna titulo="El sitio" enlaces={ENLACES_PRINCIPALES} />
         <Columna titulo="Legales" enlaces={ENLACES_LEGALES} />
