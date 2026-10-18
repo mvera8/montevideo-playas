@@ -19,6 +19,8 @@ import type { Hora } from "./recomendacion";
 //   amanecer/atardecer. El mar sale de NOAA (ver `mar.ts`); amanecer y atardecer se calculan en `sol.ts`.
 // - El estado del cielo viene como `symbol_code` ("partlycloudy_day"); lo traducimos a códigos WMO
 //   para que el resto de la app no dependa del proveedor.
+// - El viento de cada playa (`windSpeed`, `windDirection`) también alimenta las flechas del modo
+//   "Viento" del mapa (`src/components/mapa/Viento.tsx`), sin pedidos extra.
 
 const TZ = "America/Montevideo";
 const USER_AGENT = "PlayasUY/0.1 (+https://github.com/mvera8/montevideo-playas)";

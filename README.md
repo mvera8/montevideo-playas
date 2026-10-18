@@ -135,6 +135,13 @@ día se suma publicidad, hay que pasar a Pro.
     calcula localmente (`src/lib/sol.ts`). Mín/máx de "hoy" es de las horas que quedan del día.
   - "Es de día" (tema noche del mapa, widget, "De noche" del ranking) se recalcula en el navegador
     con su hora (`useEsDeDia` en `Mapa.tsx`): el HTML puede ser de una regeneración ISR de anoche.
+  - **Modo viento del mapa** (botón "Viento", `src/components/mapa/Viento.tsx`): una flecha por playa
+    con el viento del paso horario actual (a 10 m), hacia donde sopla, color por velocidad (escala
+    tipo Beaufort en km/h). Reusa el clima que ya trae cada playa: **no hace pedidos nuevos**. Las
+    flechas se corren ~380 m hacia el agua según la orientación de la playa (si no, las tapan las
+    casillas 3D). Vigencia: si el paso tiene más de `HORAS_VIGENCIA_VIENTO` (3 h) no se dibujan y la
+    leyenda dice "Sin datos recientes de viento". Como el modelo es de ~9 km, playas vecinas suelen
+    mostrar el mismo valor. Para algo tipo Windy (partículas) habría que sumar una grilla (NOAA GFS).
   - Al volver a la pestaña del mapa después de 10 min (o si Safari la restaura de su caché), se piden
     los datos de nuevo con `router.refresh()` (`useRefrescarAlVolver` en `Mapa.tsx`): en el celular la
     pestaña queda dormida con el clima de cuando se abrió (p. ej. sin la lluvia que empezó después).

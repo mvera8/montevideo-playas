@@ -41,6 +41,7 @@ import SelectorTema, { OpcionesTema } from "./SelectorTema";
 import MenuSitio from "@/components/MenuSitio";
 import Modal, { BotonModal } from "@/components/Modal";
 import Lluvia from "./Lluvia";
+import { BotonViento, LeyendaViento, agregarCapaViento, datosViento, vientoVigente } from "./Viento";
 import { AvisoSanitaria } from "./BanderaSanitaria";
 import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
 
@@ -230,6 +231,14 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       return null;
     }
   });
+  // Modo viento (flechas por playa); se recuerda por navegador.
+  const [viento, setViento] = useState(() => {
+    try {
+      return localStorage.getItem("viento") === "1";
+    } catch {
+      return false;
+    }
+  });
   const temaAuto = temaPorClima(climaCiudad);
   const tema = temaManual ?? temaAuto;
   const temaRef = useRef(tema);
@@ -369,6 +378,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
           "circle-translate-anchor": "viewport",
         },
       });
+      agregarCapaViento(map, capa.id); // debajo de las casillas 3D: las flechas quedan en el suelo
       map.addSource("playas", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
         id: "playas-nombres",
@@ -584,6 +594,23 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       else localStorage.removeItem("tema");
     } catch {}
   }
+
+  function cambiarViento(v: boolean) {
+    setViento(v);
+    try {
+      localStorage.setItem("viento", v ? "1" : "0");
+    } catch {}
+  }
+
+  // Viento → mapa. Si el pronóstico quedó viejo (pestaña dormida), no se dibujan flechas.
+  const vientoHora = playas.find((p) => p.clima)?.clima?.time ?? null;
+  const vientoAlDia = vientoVigente(vientoHora ?? undefined);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!listo || !map) return;
+    (map.getSource("viento") as GeoJSONSource).setData(datosViento(playas));
+    map.setLayoutProperty("viento", "visibility", viento ? "visible" : "none");
+  }, [listo, playas, viento]);
 
   // Servicios → mapa.
   useEffect(() => {
@@ -834,6 +861,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         <div className="max-md:hidden">
           <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
         </div>
+        <BotonViento activo={viento} onCambiar={cambiarViento} />
         <MenuSitio>
           {(cerrarMenu) => (
             <section aria-label="Estilo del mapa" className="md:hidden">
@@ -854,6 +882,12 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
           )}
         </MenuSitio>
       </div>
+
+      {viento && (
+        <div className={`pointer-events-none absolute right-3 top-[128px] z-20 md:right-4 md:top-20 ${teclado ? "max-md:hidden" : ""}`}>
+          <LeyendaViento time={vientoHora} vigente={vientoAlDia} />
+        </div>
+      )}
 
       <aside
         id="panel-lateral"
