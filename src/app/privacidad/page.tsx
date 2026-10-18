@@ -198,6 +198,11 @@ export default function Privacidad() {
         quien la cargó; si abrís el enlace a una observación, pasás al sitio de iNaturalist y rige su política de
         privacidad.
       </p>
+      <p>
+        El ícono de Instagram del encabezado y del pie es un enlace común a nuestra cuenta: no cargamos ningún botón ni
+        script de Instagram (Meta) en el sitio, así que no recibe datos tuyos mientras navegás. Si lo abrís, pasás a
+        Instagram y rige su política de privacidad.
+      </p>
 
       <h2 id="finalidad">Para qué usamos los datos</h2>
       <p>
