@@ -306,7 +306,7 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
   playa inventada. Es la misma lista que `NOMBRES_PLAYA` en `src/lib/playas.ts`: **si se agrega una
   playa allá, insertarla también en `playas`** (`insert into public.playas values ('<slug>', '<nombre>')`),
   si no, sus me gusta fallan.
-- **Permisos por defecto:** desde `20261016120000_playas_validas_y_permisos.sql`, las tablas,
+- **Permisos por defecto:** desde `20261016194007_playas_validas_y_permisos.sql`, las tablas,
   secuencias y funciones nuevas de `public` no tienen permisos para `anon`/`authenticated` (ni
   EXECUTE para PUBLIC). Cada migración nueva da los que necesite con `grant` explícito y activa RLS.
 - **Temporada:** sigue a la de guardavidas y cierra el 30 de abril; desde el 1 de mayo se vota para
@@ -442,7 +442,7 @@ plan gratis: 100/día, un dominio). Código: `src/lib/contacto.ts` (envío y top
 
 Registro propio en Supabase en vez de Sentry (decisión 10/2026: sin dependencias nuevas ni script
 extra en el cliente). Mismo proyecto que los me gusta. Esquema en
-`supabase/migrations/20261010120000_errores.sql`; código en `src/lib/errores.ts`.
+`supabase/migrations/20261010225023_errores.sql`; código en `src/lib/errores.ts`.
 
 - **Por qué no alcanza Vercel:** en el plan Hobby los Runtime Logs duran muy poco y no avisan; los
   Log Drains son solo del plan Pro. Los errores del navegador Vercel no los ve.
