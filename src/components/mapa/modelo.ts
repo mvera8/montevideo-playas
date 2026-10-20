@@ -4,8 +4,10 @@ import {
   BufferGeometry,
   Color,
   CylinderGeometry,
+  ExtrudeGeometry,
   Matrix4,
   PlaneGeometry,
+  Shape,
   SphereGeometry,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -210,4 +212,37 @@ export function crearGeometriaAguaViva(): BufferGeometry {
   partes.forEach((g) => g.dispose());
   merged.computeBoundingSphere();
   return merged;
+}
+
+// Flecha de viento: chata y gruesa (extruida con bisel), acostada sobre el plano XZ y apuntando a +X,
+// centrada en el origen. La capa la gira hacia donde sopla y la hace avanzar en el vertex shader.
+export const FLECHA = { largo: 6, ancho: 3.6, grosor: 0.7 };
+
+export function crearGeometriaFlecha(): BufferGeometry {
+  const { largo, ancho } = FLECHA;
+  const cola = -largo / 2;
+  const cuello = largo / 2 - 2.6;
+  const punta = largo / 2;
+  const asta = ancho * 0.18;
+  const forma = new Shape()
+    .moveTo(cola, -asta)
+    .lineTo(cuello, -asta)
+    .lineTo(cuello, -ancho / 2)
+    .lineTo(punta, 0)
+    .lineTo(cuello, ancho / 2)
+    .lineTo(cuello, asta)
+    .lineTo(cola, asta)
+    .closePath();
+  const geo = new ExtrudeGeometry(forma, {
+    depth: FLECHA.grosor,
+    bevelEnabled: true,
+    bevelThickness: 0.18,
+    bevelSize: 0.18,
+    bevelSegments: 2,
+  });
+  geo.translate(0, 0, -FLECHA.grosor / 2);
+  geo.rotateX(-Math.PI / 2); // de XY a XZ: el grosor queda en Y
+  geo.deleteAttribute("uv");
+  geo.computeVertexNormals();
+  return geo;
 }

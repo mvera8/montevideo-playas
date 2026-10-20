@@ -37,7 +37,7 @@ const FUENTES = [
   {
     nombre: "MET Norway (Instituto Meteorológico de Noruega)",
     url: "https://api.met.no",
-    usa: "Clima actual y pronóstico por hora (temperatura, sensación térmica, viento, lluvia, UV).",
+    usa: "Clima actual y pronóstico por hora (temperatura, sensación térmica, viento, lluvia, UV) y flechas del modo Viento del mapa.",
     licencia: "Datos bajo licencia CC BY 4.0, con uso comercial permitido.",
     licenciaUrl: "https://creativecommons.org/licenses/by/4.0/deed.es",
   },
@@ -151,7 +151,10 @@ export default function Terminos() {
         temperatura del agua es estimada por un modelo satelital diario, salvo cuando indicamos “medida IM”, y si
         tiene más de 4 días no la mostramos. Las olas salen de un modelo global de baja resolución y son orientativas
         en el Río de la Plata. El índice UV es el que habría con cielo despejado (el máximo posible). La lluvia es la
-        cantidad prevista por hora, no una probabilidad. El amanecer y el atardecer los calculamos nosotros.
+        cantidad prevista por hora, no una probabilidad. El amanecer y el atardecer los calculamos nosotros. Las flechas del modo “Viento” del mapa muestran
+        ese mismo pronóstico de MET Norway para la hora actual (no son mediciones ni datos oficiales de Inumet; el
+        modelo tiene una resolución de unos 9 km, así que playas vecinas pueden mostrar el mismo valor) y se ubican
+        sobre el agua solo como referencia visual. Si el pronóstico tiene más de 3 horas, no las mostramos.
       </p>
 
       <h3 id="alertas">Alertas meteorológicas</h3>

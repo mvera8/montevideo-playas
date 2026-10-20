@@ -19,10 +19,12 @@ import {
   AGUA_VIVA,
   ALTURA_MODELO,
   BANDERA,
+  FLECHA,
   MASTIL_POS,
   crearGeometriaAguaViva,
   crearGeometriaBandera,
   crearGeometriaCasilla,
+  crearGeometriaFlecha,
 } from "./modelo";
 import { SANITARIA } from "./BanderaSanitaria";
 
@@ -45,6 +47,22 @@ export type AguaVivaMapa = {
   orientacion: number; // rumbo hacia el agua: el agua viva se dibuja hacia ese lado de la playa
   peligrosa: boolean; // fragata portuguesa u Olindias: en rojo
 };
+
+// Viento de una playa para el modo "Viento" (ver Viento.tsx): flechas 3D sobre el agua frente a la playa.
+export type VientoMapa = {
+  lng: number;
+  lat: number;
+  orientacion: number; // rumbo hacia el agua
+  desde: number; // de dónde sopla (0 = norte)
+  kmh: number;
+  color: string;
+};
+
+// Flechas por playa: avanzan en fila hacia donde sopla, cada una aparece, recorre y se desvanece.
+const FLECHAS_POR_PLAYA = 3;
+const SEPARACION_VIENTO = 15; // más lejos que el agua viva, para no taparla
+const RECORRIDO_VIENTO = 24; // metros del modelo que avanza cada flecha en su ciclo
+const ALTURA_VIENTO = 3; // flotando sobre el agua
 
 const COLOR_AGUA_VIVA = { normal: "#8f6bff", peligrosa: "#f0364f" };
 // Distancia al agua desde el centro de la playa, en "metros del modelo" (escala con el zoom igual que la
@@ -93,6 +111,12 @@ export class CapaCasillas implements CustomLayerInterface {
   private aguasVivasMesh?: InstancedMesh;
   private aguaVivaMat?: ShaderMaterial;
   private aguasVivas: AguaVivaMapa[] = [];
+  private vientoMesh?: InstancedMesh;
+  private vientoMat?: ShaderMaterial;
+  private vientos: VientoMapa[] = [];
+  private vientoVisible = false;
+  /** Se llama cuando las flechas cambian de lugar (zoom): Mapa.tsx mueve las etiquetas de km/h. */
+  onVientoMovido?: (puntos: { lngLat: [number, number]; kmh: number }[]) => void;
   // Dónde quedó cada agua viva en el último cuadro (se corre con el zoom) y su alto en pantalla, para
   // saber si un toque cayó sobre ella (ver aguaVivaEn).
   private aguasVivasEnMapa: { slug: string; lngLat: [number, number] }[] = [];
@@ -235,6 +259,42 @@ export class CapaCasillas implements CustomLayerInterface {
         }`,
     });
 
+    // Flechas de viento: avanzan hacia +X de su instancia (ya girada hacia donde sopla), con fundido de
+    // entrada y salida y un leve sube y baja. Más rápido cuanto más sopla. Todo en el vertex shader.
+    this.vientoMat = new ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: /* glsl */ `
+        uniform float uTime;
+        attribute vec3 aColor;
+        attribute float aFase;
+        attribute float aVel;
+        varying vec3 vColor;
+        varying float vLuz;
+        varying float vAlfa;
+        void main() {
+          vec3 p = position;
+          float f = fract(uTime * aVel + aFase);
+          float ve = sin(f * 3.14159);
+          p *= 0.6 + 0.4 * ve; // nace chica, crece y se achica al irse
+          p.x += (f - 0.5) * ${RECORRIDO_VIENTO.toFixed(1)};
+          p.y += 0.4 * sin(uTime * 2.0 + aFase * 6.28);
+          vAlfa = smoothstep(0.0, 0.2, f) * (1.0 - smoothstep(0.75, 1.0, f));
+          vLuz = 0.62 + 0.38 * clamp(normal.y, 0.0, 1.0);
+          vColor = aColor;
+          gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(p, 1.0);
+        }`,
+      fragmentShader: /* glsl */ `
+        varying vec3 vColor;
+        varying float vLuz;
+        varying float vAlfa;
+        void main() {
+          gl_FragColor = vec4(mix(vColor, vec3(1.0), 0.12) * vLuz, vAlfa);
+          #include <colorspace_fragment>
+        }`,
+    });
+
     this.construirMeshes();
     document.addEventListener("visibilitychange", this.alCambiarVisibilidad);
   }
@@ -245,6 +305,7 @@ export class CapaCasillas implements CustomLayerInterface {
     this.liberarMeshes();
     this.banderaMat?.dispose();
     this.aguaVivaMat?.dispose();
+    this.vientoMat?.dispose();
     this.renderer?.dispose();
   }
 
@@ -256,6 +317,17 @@ export class CapaCasillas implements CustomLayerInterface {
   /** Se aplica en el próximo setCasillas (salen de los mismos datos: así se reconstruye una sola vez). */
   setAguasVivas(aguasVivas: AguaVivaMapa[]) {
     this.aguasVivas = aguasVivas;
+  }
+
+  /** Se aplica en el próximo setCasillas, igual que las aguas vivas. */
+  setVientos(vientos: VientoMapa[]) {
+    this.vientos = vientos;
+  }
+
+  setVientoVisible(visible: boolean) {
+    this.vientoVisible = visible;
+    if (this.vientoMesh) this.vientoMesh.visible = visible;
+    this.map?.triggerRepaint();
   }
 
   /** Slug de la playa cuya agua viva está bajo el punto de pantalla (px del canvas), o null. */
@@ -304,11 +376,14 @@ export class CapaCasillas implements CustomLayerInterface {
     const t = this.animar ? performance.now() / 1000 : 0;
     this.banderaMat!.uniforms.uTime.value = t;
     this.aguaVivaMat!.uniforms.uTime.value = t;
+    this.vientoMat!.uniforms.uTime.value = t;
 
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
 
-    if (this.animar && zoom >= ZOOM_ANIMACION && !this.timer && !document.hidden) {
+    // Con el modo viento se anima a cualquier zoom: las flechas se ven también de lejos.
+    const vientoAnimado = this.vientoVisible && this.vientoMesh;
+    if (this.animar && (zoom >= ZOOM_ANIMACION || vientoAnimado) && !this.timer && !document.hidden) {
       this.timer = window.setTimeout(() => {
         this.timer = 0;
         this.map?.triggerRepaint();
@@ -321,14 +396,14 @@ export class CapaCasillas implements CustomLayerInterface {
   };
 
   private liberarMeshes() {
-    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh]) {
+    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh]) {
       if (!m) continue;
       this.scene.remove(m);
       m.geometry.dispose();
       m.dispose();
     }
     (this.casillasMesh?.material as MeshLambertMaterial | undefined)?.dispose();
-    this.casillasMesh = this.banderasMesh = this.aguasVivasMesh = undefined;
+    this.casillasMesh = this.banderasMesh = this.aguasVivasMesh = this.vientoMesh = undefined;
     this.aguasVivasEnMapa = [];
     this.altoAguaVivaPx = 0;
   }
@@ -375,7 +450,32 @@ export class CapaCasillas implements CustomLayerInterface {
       this.aguasVivasMesh.renderOrder = 1; // transparente: después de casillas y banderas
     }
 
-    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh]) {
+    const nv = this.vientos.length * FLECHAS_POR_PLAYA;
+    if (nv) {
+      const geo = crearGeometriaFlecha();
+      const colores = new Float32Array(nv * 3);
+      const fases = new Float32Array(nv);
+      const vels = new Float32Array(nv);
+      this.vientos.forEach((v, i) => {
+        color.set(v.color);
+        // Una vuelta cada ~3 s en calma y ~1,2 s con viento fuerte.
+        const vel = 0.33 + Math.min(v.kmh, 45) / 75;
+        for (let k = 0; k < FLECHAS_POR_PLAYA; k++) {
+          const j = i * FLECHAS_POR_PLAYA + k;
+          color.toArray(colores, j * 3);
+          fases[j] = (k + 0.5) / FLECHAS_POR_PLAYA;
+          vels[j] = vel;
+        }
+      });
+      geo.setAttribute("aColor", new InstancedBufferAttribute(colores, 3));
+      geo.setAttribute("aFase", new InstancedBufferAttribute(fases, 1));
+      geo.setAttribute("aVel", new InstancedBufferAttribute(vels, 1));
+      this.vientoMesh = new InstancedMesh(geo, this.vientoMat!, nv);
+      this.vientoMesh.renderOrder = 2;
+      this.vientoMesh.visible = this.vientoVisible;
+    }
+
+    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh]) {
       if (!m) continue;
       m.frustumCulled = false; // la cámara es la del mapa; son pocas instancias
       m.matrixAutoUpdate = false;
@@ -445,6 +545,35 @@ export class CapaCasillas implements CustomLayerInterface {
         this.aguasVivasEnMapa.push({ slug: a.slug, lngLat: [ll.lng, ll.lat] });
       });
       this.aguasVivasMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Flechas de viento: frente a la playa (como el agua viva, a distancia constante en pantalla), las
+    // tres en el mismo lugar y desfasadas en el tiempo, giradas hacia donde sopla.
+    if (this.vientoMesh) {
+      const puntos: { lngLat: [number, number]; kmh: number }[] = [];
+      const rot = new Matrix4();
+      this.vientos.forEach((v, i) => {
+        const m = MercatorCoordinate.fromLngLat([v.lng, v.lat], 0);
+        const haciaAgua = (v.orientacion * Math.PI) / 180;
+        const d = SEPARACION_VIENTO * escalaBase * (1 + Math.min(Math.max((zoom - 12) / 3, 0), 1));
+        const e = escalaBase * (1.05 + Math.min(v.kmh, 45) / 60); // más grande cuanto más sopla
+        const x = (m.x - this.origen.x) / this.escalaMerc + Math.sin(haciaAgua) * d;
+        const z = (m.y - this.origen.y) / this.escalaMerc - Math.cos(haciaAgua) * d;
+        const rumbo = ((v.desde + 180) * Math.PI) / 180; // hacia donde va
+        rot.makeRotationY(Math.PI / 2 - rumbo);
+        base.makeScale(e, e, e).premultiply(rot).setPosition(x, ALTURA_VIENTO * e, z);
+        for (let k = 0; k < FLECHAS_POR_PLAYA; k++) this.vientoMesh!.setMatrixAt(i * FLECHAS_POR_PLAYA + k, base);
+        // Etiqueta un poco más hacia el agua que la flecha, para que no la tape.
+        const dz = FLECHA.ancho * e;
+        const ll = new MercatorCoordinate(
+          this.origen.x + (x + Math.sin(haciaAgua) * dz) * this.escalaMerc,
+          this.origen.y + (z - Math.cos(haciaAgua) * dz) * this.escalaMerc,
+          0,
+        ).toLngLat();
+        puntos.push({ lngLat: [ll.lng, ll.lat], kmh: v.kmh });
+      });
+      this.vientoMesh.instanceMatrix.needsUpdate = true;
+      this.onVientoMovido?.(puntos);
     }
   }
 }
