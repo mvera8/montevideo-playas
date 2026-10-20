@@ -151,6 +151,20 @@ día se suma publicidad, hay que pasar a Pro.
     los datos de nuevo con `router.refresh()` (`useRefrescarAlVolver` en `Mapa.tsx`): en el celular la
     pestaña queda dormida con el clima de cuando se abrió (p. ej. sin la lluvia que empezó después).
   - El cielo viene como `symbol_code` y se traduce a códigos WMO (`SIMBOLO`).
+- **UV medido — sitio móvil de la IM** (`getImUv` en `src/lib/im.ts`): `https://m.montevideo.gub.uy/playas/api/clima`,
+  el mismo JSON que usa `m.montevideo.gub.uy/playas` (lo pide su `main.*.js`). Público, sin auth ni ETag,
+  369 B, ~0,05 s, `cache-control: no-cache` (verificado 20/10/2026). Trae `ValorIndiceUV { value, dateIssued }`
+  (un valor para toda la ciudad), y también `TemepraturaActual` (con esa errata), `IconoClima` y
+  `TemperaturaMaxMin` del día, que no se usan. No está documentado: si falla o cambia, la tarjeta muestra solo el
+  máximo de MET. Frecuencia medida: un `dateIssued` nuevo cada 5 min (20/10/2026, 18:29:38 → 18:34:38 UTC).
+  Cache 5 min (`unstable_cache`, como el ISR de `/playas`); si `dateIssued` tiene más de `HORAS_VIGENCIA_UV` (1 h)
+  no se muestra.
+  - La tarjeta del clima (`ClimaAhora.tsx`) muestra "UV 4 moderado · máx. hoy 8": el medido de la IM y el máximo
+    de `ultraviolet_index_clear_sky` (MET) en lo que queda del día (`uvMax`). Niveles y colores de la OMS en
+    `src/lib/uv.ts`. De noche (máx. < 1 y sin dato de la IM) no se muestra.
+  - El aviso "UV muy alto" (≥ 8) del ranking "¿A qué playa voy?" usa este UV medido; sin dato vigente, el de MET
+    con cielo despejado. No resta puntos: es el mismo en todas las playas. El "mejor horario" sigue con MET (la IM
+    no tiene pronóstico por hora).
 - **Temperatura del agua — NOAA OISST v2.1 NRT** (`src/lib/mar.ts`), por ERDDAP:
   `https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21NrtAgg_LonPM180.csv?sst[(last)][(0.0)][(-35.5):(-34.5)][(-56.5):(-55.5)]`
   (corchetes codificados). Diaria, 0,25°, ~1 día de demora (medido 04/10/2026). Si tiene más de 4

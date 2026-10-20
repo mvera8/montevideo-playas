@@ -37,6 +37,7 @@ import { cargarIconos, contenidoPopup } from "./servicios-mapa";
 import type { Servicio } from "@/lib/servicios";
 import { SITIO } from "@/lib/sitio";
 import { luzAhora } from "@/lib/sol";
+import { nivelUv } from "@/lib/uv";
 import SelectorTema, { OpcionesTema } from "./SelectorTema";
 import MenuSitio from "@/components/MenuSitio";
 import Modal, { BotonModal } from "@/components/Modal";
@@ -307,13 +308,16 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
 
   const resultados = useMemo(() => {
     const q = normalizar(busqueda.trim());
-    return playas.filter(
-      (p) =>
-        (!filtro || estadoPlaya(p) === filtro) &&
-        (!q ||
-          normalizar(p.nombre).includes(q) ||
-          p.guardavidas.some((g) => normalizar(g.nombre).includes(q))),
-    );
+    // Listado en orden alfabético (las playas llegan de oeste a este).
+    return playas
+      .filter(
+        (p) =>
+          (!filtro || estadoPlaya(p) === filtro) &&
+          (!q ||
+            normalizar(p.nombre).includes(q) ||
+            p.guardavidas.some((g) => normalizar(g.nombre).includes(q))),
+      )
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [busqueda, filtro, playas]);
 
   // Inicializa el mapa una sola vez.
@@ -1080,7 +1084,7 @@ function Detalle({
           />
           <Dato label="Viento" value={`${Math.round(c.windSpeed)}`} sub={`km/h ${c.windDirectionLabel}`} />
           <Dato label="Hoy" value={`${grados(c.min)}/${grados(c.max)}`} sub={c.description} />
-          <Dato label="UV" value={c.uvIndex.toFixed(0)} sub={c.uvIndex >= 6 ? "Alto" : c.uvIndex >= 3 ? "Moderado" : "Bajo"} />
+          <Dato label="UV" value={c.uvIndex.toFixed(0)} sub={nivelUv(c.uvIndex).texto} />
           <Dato label="Humedad" value={`${c.humidity}%`} />
         </div>
       )}

@@ -6,15 +6,13 @@ https://m.montevideo.gub.uy/playas/
 
 Prompts
 
-...
+si la persona no se encuentra en montevideo y toca como llegar, que hace?
 
 ---
 
 Servidor
 
 Seguridad de datos
-
-Instagram
 
 Medico o contenedor de asse como en rambla punta carretas?
 
@@ -29,13 +27,8 @@ widget de si algo pasa en la esquina derecha en /playas
 
 - Rey de la playa? - pagina aparte con actuales reyes o reinas, si ya sos rey o reina de una playa no podes ser de otra
 
-- Subscribción email playa por dia?
+- Subscribción email playa por dia? Resend
 
 ------
 
 
-Producto
-
-8. App instalable (PWA): se instala en el celular como app y guarda la última info para cuando hay poca señal en la rambla.
-
-9. Reportes de la gente, con moderación: aguas vivas, si la playa está llena, estado de la arena. Es lo único que ninguna API oficial va a darte, pero necesita moderación y un mínimo de usuarios para servir.

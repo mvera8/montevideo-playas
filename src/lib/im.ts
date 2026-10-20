@@ -152,3 +152,36 @@ export async function getImVencimientos(): Promise<Record<string, VencimientoIm>
     return null;
   }
 }
+
+// UV medido. Lo usa el sitio móvil de la IM (https://m.montevideo.gub.uy/playas/api/clima): JSON público,
+// sin auth ni ETag, 369 B, ~0,05 s, `cache-control: no-cache` (verificado 20/10/2026). Trae
+// `ValorIndiceUV { value, dateIssued }` (un solo valor para la ciudad) y también temperatura actual y
+// mín/máx del día, que no usamos (el clima sale de MET Norway). No está documentado: si falla o cambia de
+// forma, se muestra solo el máximo estimado de MET. Es "TemepraturaActual", con la errata, en la respuesta.
+const URL_CLIMA_MOVIL = "https://m.montevideo.gub.uy/playas/api/clima";
+/** Un UV con más horas que esto no se muestra como actual (la IM lo actualiza cada 5 min, medido 20/10/2026). */
+export const HORAS_VIGENCIA_UV = 1;
+
+export type UvIm = { valor: number; fecha: string };
+
+async function getUvSinCache(): Promise<UvIm | null> {
+  const res = await fetch(URL_CLIMA_MOVIL, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(`IM clima (sitio móvil) falló (${res.status})`);
+  const uv = ((await res.json()) as { ValorIndiceUV?: { value?: unknown; dateIssued?: unknown } }).ValorIndiceUV;
+  if (typeof uv?.value !== "number" || typeof uv.dateIssued !== "string" || Number.isNaN(Date.parse(uv.dateIssued))) return null;
+  return { valor: uv.value, fecha: uv.dateIssued };
+}
+
+// Mismo ritmo que la IM (5 min) y que el ISR de /playas.
+const getUvCacheado = unstable_cache(getUvSinCache, ["im-uv-v1"], { revalidate: 300 });
+
+/** UV medido por la IM; null si no responde o si el dato tiene más de `HORAS_VIGENCIA_UV`. */
+export async function getImUv(): Promise<UvIm | null> {
+  try {
+    const uv = await getUvCacheado();
+    return uv && Date.now() - Date.parse(uv.fecha) <= HORAS_VIGENCIA_UV * 3_600_000 ? uv : null;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
