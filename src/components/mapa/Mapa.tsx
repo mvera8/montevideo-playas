@@ -41,7 +41,7 @@ import SelectorTema, { OpcionesTema } from "./SelectorTema";
 import MenuSitio from "@/components/MenuSitio";
 import Modal, { BotonModal } from "@/components/Modal";
 import Lluvia from "./Lluvia";
-import { BotonViento, LeyendaViento, agregarCapaViento, datosViento, vientoVigente } from "./Viento";
+import { BotonViento, LeyendaViento, agregarCapaViento, etiquetasViento, vientoVigente, vientosMapa } from "./Viento";
 import { AvisoSanitaria } from "./BanderaSanitaria";
 import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
 
@@ -378,7 +378,13 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
           "circle-translate-anchor": "viewport",
         },
       });
-      agregarCapaViento(map, capa.id); // debajo de las casillas 3D: las flechas quedan en el suelo
+      agregarCapaViento(map);
+      // La capa 3D avisa dónde quedaron las flechas al cambiar el zoom; las etiquetas se mueven una vez por cuadro.
+      let cuadro = 0;
+      capa.onVientoMovido = (puntos) => {
+        cancelAnimationFrame(cuadro);
+        cuadro = requestAnimationFrame(() => (map.getSource("viento") as GeoJSONSource | undefined)?.setData(etiquetasViento(puntos)));
+      };
       map.addSource("playas", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
         id: "playas-nombres",
@@ -608,9 +614,9 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
   useEffect(() => {
     const map = mapRef.current;
     if (!listo || !map) return;
-    (map.getSource("viento") as GeoJSONSource).setData(datosViento(playas));
+    capaRef.current?.setVientoVisible(viento);
     map.setLayoutProperty("viento", "visibility", viento ? "visible" : "none");
-  }, [listo, playas, viento]);
+  }, [listo, viento]);
 
   // Servicios → mapa.
   useEffect(() => {
@@ -638,6 +644,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     const map = mapRef.current;
     if (!listo || !map) return;
     capaRef.current?.setAguasVivas(aguasVivas);
+    capaRef.current?.setVientos(vientosMapa(playas));
     capaRef.current?.setCasillas(casillas);
     (map.getSource("casillas") as GeoJSONSource).setData({
       type: "FeatureCollection",

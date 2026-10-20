@@ -1,11 +1,13 @@
 import { Wind } from "@phosphor-icons/react/dist/ssr";
-import type { ExpressionSpecification, Map as MapLibreMap } from "maplibre-gl";
+import type { Map as MapLibreMap } from "maplibre-gl";
 import type { Playa } from "@/lib/playas";
+import type { VientoMapa } from "./capa-casillas";
 
-// Modo "Viento" del mapa: una flecha por playa que apunta hacia donde sopla, con color e intensidad
-// según la velocidad. Usa el mismo clima que ya trae cada playa (MET Norway, ver `src/lib/weather.ts`):
-// no hace pedidos nuevos. Es el viento a 10 m del paso horario actual del modelo, no una medición.
-// Las flechas son íconos planos sobre el suelo (`icon-pitch-alignment: map`), así acompañan el 3D.
+// Modo "Viento" del mapa: por cada playa, flechas 3D que flotan sobre el agua y avanzan hacia donde
+// sopla, con color, tamaño y velocidad de la animación según la intensidad (las dibuja `CapaCasillas`,
+// todas en un draw call, animadas en el vertex shader). Encima, una etiqueta de km/h (capa de símbolos
+// de MapLibre). Usa el mismo clima que ya trae cada playa (MET Norway, ver `src/lib/weather.ts`): no
+// hace pedidos nuevos. Es el viento a 10 m del paso horario actual del modelo, no una medición.
 
 /** Si el paso horario del pronóstico tiene más de esto, no se muestran flechas (dato vencido). */
 export const HORAS_VIGENCIA_VIENTO = 3;
@@ -27,91 +29,47 @@ export function vientoVigente(time: string | undefined, ahora = Date.now()) {
   return ahora - Date.parse(`${time}:00-03:00`) < HORAS_VIGENCIA_VIENTO * 3_600_000;
 }
 
-/** Flechas (una por nivel) dibujadas en SVG a 2x, apuntando al norte; la capa las rota. */
-function cargarFlechas(map: MapLibreMap) {
-  NIVELES_VIENTO.forEach((n, i) => {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><path d="M32 5 52 31H39v27H25V31H12Z" fill="${n.color}" stroke="#fff" stroke-width="4" stroke-linejoin="round"/></svg>`;
-    const img = new Image(64, 64);
-    img.onload = () => {
-      if (!map.hasImage(`viento-${i}`)) map.addImage(`viento-${i}`, img, { pixelRatio: 2 });
-    };
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+/** Capa de etiquetas de km/h (oculta hasta que se activa el modo). La ubica la capa 3D: ver `onVientoMovido`. */
+export function agregarCapaViento(map: MapLibreMap) {
+  map.addSource("viento", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({
+    id: "viento",
+    type: "symbol",
+    source: "viento",
+    layout: {
+      visibility: "none",
+      "text-field": ["concat", ["get", "kmh"], " km/h"],
+      "text-font": ["Noto Sans Bold"],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 15, 13],
+    },
+    paint: { "text-color": "#0f3a52", "text-halo-color": "#ffffff", "text-halo-width": 1.6 },
   });
 }
 
-/** Fuente y capa del viento (ocultas hasta que se activa el modo). */
-export function agregarCapaViento(map: MapLibreMap, antesDe?: string) {
-  cargarFlechas(map);
-  map.addSource("viento", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-  // Más grande cuanto más sopla (de 0,75x en calma a 1,35x desde 48 km/h).
-  const escala: ExpressionSpecification = ["+", 0.75, ["/", ["min", ["get", "kmh"], 48], 80]];
-  map.addLayer(
-    {
-      id: "viento",
-      type: "symbol",
-      source: "viento",
-      layout: {
-        visibility: "none",
-        "icon-image": ["concat", "viento-", ["get", "nivel"]],
-        // El viento se informa "desde" dónde viene; la flecha apunta hacia donde va.
-        "icon-rotate": ["+", ["get", "desde"], 180],
-        "icon-rotation-alignment": "map",
-        "icon-pitch-alignment": "map",
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 10, ["*", 1.1, escala], 15, ["*", 2, escala]],
-        "icon-allow-overlap": true,
-        "text-field": ["concat", ["get", "kmh"], " km/h"],
-        "text-font": ["Noto Sans Bold"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 15, 13],
-        // Debajo de la flecha, sobre el agua (arriba chocaba con las casillas).
-        "text-anchor": "top",
-        "text-offset": [0, 1.6],
-        "text-optional": true,
-      },
-      paint: {
-        "icon-translate": ["interpolate", ["linear"], ["zoom"], 10, ["literal", [0, 34]], 13.5, ["literal", [0, 0]]],
-        "icon-translate-anchor": "viewport",
-        "text-translate": ["interpolate", ["linear"], ["zoom"], 10, ["literal", [0, 34]], 13.5, ["literal", [0, 0]]],
-        "text-translate-anchor": "viewport",
-        "text-color": "#0f3a52",
-        "text-halo-color": "#ffffff",
-        "text-halo-width": 1.6,
-      },
-    },
-    antesDe,
-  );
-}
-
-// Las flechas van sobre el agua, corridas desde la playa según su orientación (rumbo hacia el agua):
-// en el punto de la playa quedaban tapadas por las casillas 3D.
-// De lejos las casillas se agrandan y el corrimiento queda chico: ahí la capa además baja las flechas
-// unos píxeles en pantalla (`icon-translate`; la costa mira al sur, o sea hacia abajo).
-const CORRIMIENTO_GRADOS = 0.0035; // ≈ 380 m
-
-function sobreElAgua(p: Playa): [number, number] {
-  if (p.orientacion == null) return [p.lon, p.lat];
-  const r = (p.orientacion * Math.PI) / 180;
-  return [
-    p.lon + (CORRIMIENTO_GRADOS * Math.sin(r)) / Math.cos((p.lat * Math.PI) / 180),
-    p.lat + CORRIMIENTO_GRADOS * Math.cos(r),
-  ];
-}
-
-/** Puntos del viento: solo playas con clima vigente. */
-export function datosViento(playas: Playa[], ahora = Date.now()): GeoJSON.FeatureCollection {
+/** Etiquetas de km/h en los puntos que calculó la capa 3D. */
+export function etiquetasViento(puntos: { lngLat: [number, number]; kmh: number }[]): GeoJSON.FeatureCollection {
   return {
     type: "FeatureCollection",
-    features: playas
-      .filter((p) => p.clima && vientoVigente(p.clima.time, ahora))
-      .map((p) => ({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: sobreElAgua(p) },
-        properties: {
-          desde: p.clima!.windDirection,
-          kmh: Math.round(p.clima!.windSpeed),
-          nivel: nivel(p.clima!.windSpeed),
-        },
-      })),
+    features: puntos.map((p) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: p.lngLat },
+      properties: { kmh: Math.round(p.kmh) },
+    })),
   };
+}
+
+/** Viento de cada playa para la capa 3D: solo playas con clima vigente. */
+export function vientosMapa(playas: Playa[], ahora = Date.now()): VientoMapa[] {
+  return playas
+    .filter((p) => p.clima && vientoVigente(p.clima.time, ahora))
+    .map((p) => ({
+      lng: p.lon,
+      lat: p.lat,
+      orientacion: p.orientacion,
+      desde: p.clima!.windDirection,
+      kmh: p.clima!.windSpeed,
+      color: NIVELES_VIENTO[nivel(p.clima!.windSpeed)].color,
+    }));
 }
 
 /** Botón que prende y apaga el modo viento (arriba a la derecha, junto al menú; en móvil, del mismo tamaño). */
