@@ -81,7 +81,7 @@ export function BotonViento({ activo, onCambiar }: { activo: boolean; onCambiar:
       title={activo ? "Ocultar viento" : "Ver viento"}
       className={`flex h-10 w-10 items-center justify-center gap-2 rounded-xl text-sm font-medium shadow-lg ring-1 backdrop-blur md:h-12 md:w-auto md:rounded-2xl md:px-4 ${
         activo
-          ? "bg-sky-600 text-white ring-sky-700/20"
+          ? "bg-sky-700 text-white ring-sky-800/20"
           : "bg-white/95 text-slate-700 ring-black/5 hover:text-slate-900 dark:bg-oscuro-1/95 dark:text-neutral-200 dark:ring-white/10"
       }`}
     >

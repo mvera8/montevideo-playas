@@ -1,6 +1,7 @@
 "use client";
 
 import type { Weather } from "@/lib/weather";
+import { nivelUv } from "@/lib/uv";
 import { estadoCielo as estado, GRILLA_ICONO, ICONO_CIELO, type EstadoCielo } from "@/lib/iconos-clima";
 
 // Widget "Montevideo ahora": fondo e ilustración según el estado del tiempo.
@@ -74,9 +75,45 @@ function Decoracion({ e }: { e: Estado }) {
 
 const grados = (n: number | null | undefined) => (n == null ? "—" : `${Math.round(n)}°`);
 
+const horaFmt = new Intl.DateTimeFormat("es-UY", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "America/Montevideo" });
+
+/** De noche (sin UV medido y máximo < 1) no hay fila de UV. */
+const hayUv = (clima: Weather) => Math.round(clima.uvMax) >= 1 || Boolean(clima.uvIm);
+
+/** UV: el medido por la IM si está vigente y el máximo de hoy (MET, con cielo despejado). */
+function FilaUv({ clima }: { clima: Weather }) {
+  const max = Math.round(clima.uvMax);
+  const medido = clima.uvIm;
+  const nivel = nivelUv(medido?.valor ?? max);
+  const hora = medido && horaFmt.format(new Date(medido.fecha));
+  return (
+    <p
+      className="flex min-w-0 items-center gap-1.5 tabular-nums"
+      title={`${medido ? `UV medido por la Intendencia de Montevideo a las ${hora}. ` : ""}El máximo es una estimación con cielo despejado (MET Norway): con nubes, el UV real es menor.`}
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full ring-1 ring-white/60" style={{ backgroundColor: nivel.color }} aria-hidden />
+      {medido ? (
+        <span className="truncate">
+          UV {Math.round(medido.valor)} {nivel.texto.toLowerCase()} · máx. hoy {max}
+        </span>
+      ) : (
+        <span className="truncate">
+          UV máx. hoy {max} · {nivel.texto.toLowerCase()}
+        </span>
+      )}
+    </p>
+  );
+}
+
 export default function ClimaAhora({ clima, ciudad }: { clima: Weather; ciudad: string }) {
   // La ciudad va en la etiqueta accesible: visualmente ya la muestra la marca flotante.
   const e = estado(clima);
+  const uv = hayUv(clima);
+  const viento = (
+    <p className="whitespace-nowrap text-xs text-white/90 tabular-nums">
+      Viento {Math.round(clima.windSpeed)} km/h {clima.windDirectionLabel}
+    </p>
+  );
 
   return (
     <div
@@ -86,26 +123,32 @@ export default function ClimaAhora({ clima, ciudad }: { clima: Weather; ciudad: 
       style={{ backgroundColor: clima.isDay ? FONDO[e].dia : FONDO[e].noche }}
     >
       <Decoracion e={e} />
-      {/* Dos filas alineadas por línea base: estado | agua, y temperatura | viento. */}
-      <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1 [text-shadow:0_1px_2px_rgba(0,0,0,0.18)]">
-        <p className="flex min-w-0 items-center gap-2 self-center text-sm font-medium">
+      <div className="relative [text-shadow:0_1px_2px_rgba(0,0,0,0.18)]">
+        <p className="flex min-w-0 items-center gap-2 text-sm font-medium">
           <svg viewBox={`0 0 ${GRILLA_ICONO} ${GRILLA_ICONO}`} className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden>
             <path d={ICONO_CIELO[e]} />
           </svg>
           <span className="truncate">{clima.description}</span>
         </p>
-        <p className="self-center whitespace-nowrap text-right text-xs text-white/90">Agua {grados(clima.waterTemp)}</p>
 
-        <p className="flex items-baseline gap-2">
-          {/* Mismo tamaño que el contador de "Fuera de temporada". */}
-          <span className="text-3xl font-semibold leading-none tabular-nums">{grados(clima.airTemp)}</span>
-          <span className="whitespace-nowrap text-xs text-white/85 tabular-nums">
-            {grados(clima.min)} / {grados(clima.max)}
-          </span>
-        </p>
-        <p className="whitespace-nowrap text-right text-xs text-white/90">
-          Viento {Math.round(clima.windSpeed)} km/h {clima.windDirectionLabel}
-        </p>
+        {/* El viento va a la derecha de la fila de UV; de noche, sin UV, sube a la de la temperatura. */}
+        <div className="mt-1 flex items-baseline justify-between gap-3">
+          <p className="flex items-baseline gap-2">
+            {/* Mismo tamaño que el contador de "Fuera de temporada". */}
+            <span className="text-3xl font-semibold leading-none tabular-nums">{grados(clima.airTemp)}</span>
+            <span className="whitespace-nowrap text-xs text-white/85 tabular-nums">
+              {grados(clima.min)} / {grados(clima.max)}
+            </span>
+          </p>
+          {!uv && viento}
+        </div>
+
+        {uv && (
+          <div className="mt-2 flex items-center justify-between gap-3 text-xs text-white/90">
+            <FilaUv clima={clima} />
+            {viento}
+          </div>
+        )}
       </div>
     </div>
   );

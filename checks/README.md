@@ -65,7 +65,7 @@ Sale con código 1 si hay errores, así que sirve en CI o como `"prebuild": "npm
 | `anti-bots` (info) | Formularios públicos (server actions o `FormData`) sin captcha (Turnstile, reCAPTCHA, hCaptcha), BotID ni honeypot (`<input tabIndex={-1}>` oculto); no cuentan las menciones en comentarios |
 | `validar-inputs` (warn) | Body guardado tal cual (asignación masiva) o datos que llegan y se escriben sin ninguna validación |
 | `inyeccion` (error) | SQL o filtros de PostgREST (`.or()`, `.filter()`) armados con template literals; `$queryRawUnsafe`, `sql.unsafe` |
-| `html-sin-sanitizar` (error) | `dangerouslySetInnerHTML` / `innerHTML` sin DOMPurify (JSON-LD con `JSON.stringify` vale) |
+| `html-sin-sanitizar` (error) | `dangerouslySetInnerHTML` / `innerHTML` sin DOMPurify (JSON-LD con `JSON.stringify` vale, también en una constante del mismo archivo) |
 | `subida-archivos` (warn) | Subidas de archivos sin controlar tipo y tamaño |
 | `datos-de-mas` (info) | `select("*")` en route handlers y componentes cliente (llega al navegador) |
 | `cookies-sesion` (error) | Cookies de sesión sin `httpOnly`/`secure`/`sameSite`, sesión en `document.cookie` o tokens en `localStorage` |

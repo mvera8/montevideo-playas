@@ -97,6 +97,7 @@ export default function PanelGeneral({
         <Recomendador
           playas={todas}
           temporada={temporada}
+          uvMedido={climaCiudad?.uvIm?.valor ?? null}
           origen={origen}
           ubicando={ubicando}
           onUsarUbicacion={onUsarUbicacion}

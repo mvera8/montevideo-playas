@@ -14,6 +14,8 @@ import { BadgeCalidad, Motivos } from "./Motivos";
 type Props = {
   playas: Playa[];
   temporada: Temporada;
+  /** UV medido por la IM (`clima.uvIm`), si está vigente. */
+  uvMedido: number | null;
   origen: Punto | null;
   ubicando: boolean;
   onUsarUbicacion: () => void;
@@ -22,7 +24,7 @@ type Props = {
 
 // "¿A qué playa voy?": ranking con bandera, viento según la orientación de cada playa,
 // confort y, si sabemos dónde estás, cuánto tardás en ómnibus.
-export default function Recomendador({ playas, temporada, origen, ubicando, onUsarUbicacion, onElegir }: Props) {
+export default function Recomendador({ playas, temporada, uvMedido, origen, ubicando, onUsarUbicacion, onElegir }: Props) {
   const [info, setInfo] = useState(false);
   const [viajes, setViajes] = useState<{ para: Punto; datos: Record<string, Viaje> } | null>(null);
   // Si no se pudo calcular: fuera de Montevideo (400) o falla del servidor/red. Se muestra en un modal.
@@ -49,7 +51,7 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
   const datosViaje = viajes && viajes.para === origen ? viajes.datos : null;
   const fallaActual = falla && falla.para === origen ? falla.tipo : null;
   const calculando = Boolean(origen) && !datosViaje && !fallaActual;
-  const ranking = useMemo(() => recomendar(playas, temporada, datosViaje), [playas, temporada, datosViaje]);
+  const ranking = useMemo(() => recomendar(playas, temporada, datosViaje, uvMedido), [playas, temporada, datosViaje, uvMedido]);
   const porSlug = useMemo(() => new Map(playas.map((p) => [p.slug, p])), [playas]);
 
   const [primera, ...resto] = ranking;
@@ -195,22 +197,12 @@ export default function Recomendador({ playas, temporada, origen, ubicando, onUs
 }
 
 // Mientras se calcula el viaje a cada playa el ranking puede cambiar entero: en vez de mostrar una
-// playa que quizás deja de ser la primera, un esqueleto con la forma de la tarjeta.
+// playa que quizás deja de ser la primera, el aviso de carga y un esqueleto de la lista.
 function EsqueletoRecomendador() {
   const tono = "animate-pulse bg-slate-100 motion-reduce:animate-none dark:bg-oscuro-3";
   return (
     <div role="status" className="mt-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className={`h-8 w-40 rounded-lg ${tono}`} />
-        <div className={`h-6 w-24 rounded-full ${tono}`} />
-      </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {["w-36", "w-28", "w-24"].map((w) => (
-          <div key={w} className={`h-6 rounded-full ${w} ${tono}`} />
-        ))}
-      </div>
-      <div className={`mt-3 h-9 rounded-xl ${tono}`} />
-      <p className="mt-2 flex items-center gap-2 text-xs text-sky-700 dark:text-sky-300">
+      <p className="flex items-center gap-2 text-xs text-sky-700 dark:text-sky-300">
         <Ocupado className="h-3.5 w-3.5" />
         Calculando playa…
       </p>

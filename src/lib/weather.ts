@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getOlas, getTemperaturaAgua } from "./mar";
+import { getImUv, type UvIm } from "./im";
 import { MONTEVIDEO, sol } from "./sol";
 import type { Hora } from "./recomendacion";
 
@@ -34,6 +35,10 @@ export type Weather = {
   windDirection: number;
   windDirectionLabel: string;
   uvIndex: number;
+  /** Máximo de `ultraviolet_index_clear_sky` en lo que queda de hoy (con cielo despejado: el techo). */
+  uvMax: number;
+  /** UV medido por la IM ahora (solo Montevideo, `getMontevideoWeather`); null si no hay dato vigente. */
+  uvIm?: UvIm | null;
   weatherCode: number;
   description: string;
   isDay: boolean;
@@ -184,8 +189,9 @@ export async function getWeatherForPoints(points: Point[]): Promise<Weather[]> {
     const d = t.data.instant.details;
     const code = codigoWmo(t.data.next_1_hours?.summary.symbol_code ?? t.data.next_6_hours?.summary.symbol_code);
     // Mín/máx de lo que queda de hoy (MET no trae las horas que ya pasaron).
-    const temps = ts.filter((x) => local(Date.parse(x.time)).startsWith(hoy)).map((x) => x.data.instant.details.air_temperature);
-    temps.push(d.air_temperature);
+    const deHoy = ts.filter((x) => local(Date.parse(x.time)).startsWith(hoy)).map((x) => x.data.instant.details);
+    const temps = [...deHoy.map((x) => x.air_temperature), d.air_temperature];
+    const uvs = [...deHoy.map((x) => x.ultraviolet_index_clear_sky ?? 0), d.ultraviolet_index_clear_sky ?? 0];
     const [sale, pone] = sol(hoy, points[i]);
     return {
       time: local(Date.parse(t.time)),
@@ -196,6 +202,7 @@ export async function getWeatherForPoints(points: Point[]): Promise<Weather[]> {
       windDirection: d.wind_from_direction,
       windDirectionLabel: windLabel(d.wind_from_direction),
       uvIndex: d.ultraviolet_index_clear_sky ?? 0,
+      uvMax: Math.max(...uvs),
       weatherCode: code,
       description: WMO[code] ?? "—",
       isDay: ahora >= sale && ahora < pone,
@@ -207,9 +214,10 @@ export async function getWeatherForPoints(points: Point[]): Promise<Weather[]> {
   });
 }
 
-export async function getMontevideoWeather() {
-  const [w] = await getWeatherForPoints([MONTEVIDEO]);
-  return w;
+export async function getMontevideoWeather(): Promise<Weather> {
+  // El UV medido de la IM es uno solo para la ciudad: va en el clima de Montevideo, no por playa.
+  const [[w], uvIm] = await Promise.all([getWeatherForPoints([MONTEVIDEO]), getImUv()]);
+  return { ...w, uvIm };
 }
 
 // ---------- pronóstico por hora (una playa) ----------

@@ -313,6 +313,8 @@ const reglas = [
           const valor = (m[1] ?? m[2]).trim();
           // JSON-LD con JSON.stringify, strings literales y valores ya sanitizados: ok.
           if (/JSON\.stringify|sanitiz|purify|DOMPurify|xss|^["'`][^$]*["'`]$/i.test(valor)) continue;
+          // Una constante del mismo archivo armada con JSON.stringify (p. ej. `const JSON_LD = JSON.stringify(...)`).
+          if (/^[A-Za-z_$][\w$]*$/.test(valor) && new RegExp(`\\bconst\\s+${valor.replace(/\$/g, "\\$")}\\s*=\\s*JSON\\.stringify\\b`).test(a.src)) continue;
           h.push({
             msg: `HTML insertado sin sanitizar (${valor.slice(0, 40)}): si tiene texto de usuarios o de un CMS, pueden meter <script> (XSS).`,
             archivo: a.rel,

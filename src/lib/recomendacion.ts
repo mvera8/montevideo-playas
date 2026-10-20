@@ -68,6 +68,8 @@ export function recomendar(
   playas: Playa[],
   temporada: Temporada,
   viajes: Record<string, Viaje> | null = null,
+  // UV medido por la IM ahora (uno para la ciudad). Sin él, el de MET con cielo despejado, que con nubes exagera.
+  uvMedido: number | null = null,
 ): Recomendacion[] {
   return playas
     .map((p) => {
@@ -144,7 +146,8 @@ export function recomendar(
           s -= 10;
           motivos.push({ texto: `Olas de ${c.waveHeight.toFixed(1)} m`, tono: "mal" });
         }
-        if (c.uvIndex >= 8) motivos.push({ texto: "UV muy alto", tono: "info" });
+        // Solo un aviso, no resta: es el mismo en todas las playas y no cambiaría el orden.
+        if (Math.round(uvMedido ?? c.uvIndex) >= 8) motivos.push({ texto: "UV muy alto", tono: "info" });
       }
 
       // Cuánto tardás en llegar.
