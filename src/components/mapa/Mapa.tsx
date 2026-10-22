@@ -147,6 +147,9 @@ function aCasillas(playas: Playa[]): (CasillaMapa & { slug: string; nombre: stri
   });
 }
 
+// Precisión (m) a partir de la cual una ubicación aproximada alcanza para "Cómo ir".
+const PRECISION_COMO_IR_M = 100;
+
 // Datos al día al volver: el celular deja la pestaña dormida (o Safari la restaura de su caché) con el
 // HTML de cuando se abrió, y el clima, la lluvia y las banderas quedaban viejos. Si pasaron más de
 // 10 min (el doble de la revalidación de la página), se piden de nuevo los datos del servidor:
@@ -267,6 +270,8 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
 
   // Cómo ir: origen del usuario (GPS o tocando el mapa) y opción elegida.
   const [origen, setOrigen] = useState<Punto | null>(null);
+  // El origen que vino de una ubicación de baja precisión (la del ranking), si es el actual.
+  const [origenAproximado, setOrigenAproximado] = useState<Punto | null>(null);
   const [eligiendo, setEligiendo] = useState(false);
   const [ubicando, setUbicando] = useState(false);
   const [errorUbicacion, setErrorUbicacion] = useState<string | null>(null);
@@ -777,7 +782,12 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     setRuta({ opcion: null, llegadas: {} });
   }
 
-  function usarUbicacion() {
+  // El ranking pide la ubicación con baja precisión (wifi/antenas, casi instantánea): el origen se
+  // redondea a ~110 m y las paradas se buscan en 900 m, así que esperar al GPS no cambia el resultado.
+  // "Cómo ir" sí la pide precisa, para la caminata hasta la parada. Reintentar repite la última.
+  const ubicacionPrecisa = useRef(true);
+  function usarUbicacion(precisa = ubicacionPrecisa.current) {
+    ubicacionPrecisa.current = precisa;
     setFallaUbicacion(null);
     if (!navigator.geolocation) {
       setErrorUbicacion("Tu navegador no permite obtener la ubicación. Elegila en el mapa.");
@@ -786,19 +796,42 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     }
     setUbicando(true);
     setErrorUbicacion(null);
+    // Mientras el GPS busca la posición, el servidor va cargando los horarios de ómnibus.
+    fetch("/api/viajes").catch(() => {});
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUbicando(false);
-        setOrigen({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        const p = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        setOrigen(p);
+        // Con wifi suele venir a menos de 100 m: eso ya sirve para "Cómo ir".
+        setOrigenAproximado(!precisa && pos.coords.accuracy > PRECISION_COMO_IR_M ? p : null);
       },
       (err) => {
         setUbicando(false);
         setErrorUbicacion("No pudimos obtener tu ubicación. Tocá el mapa para elegir el origen.");
         setFallaUbicacion(err.code === err.PERMISSION_DENIED ? "permiso" : err.code === err.TIMEOUT ? "demora" : "sin-senal");
       },
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+      { enableHighAccuracy: precisa, timeout: 10_000, maximumAge: 60_000 },
     );
   }
+
+  // "Cómo ir" con un origen aproximado: pide la ubicación precisa antes de buscar ómnibus (la caminata
+  // hasta la parada depende de ella). Mientras tanto muestra "buscando ubicación"; si falla, sigue con
+  // la aproximada. Si el origen cambió mientras tanto (toque en el mapa, "Cambiar origen"), no lo pisa.
+  // El ranking se recalcula con el nuevo origen al volver al listado.
+  const refinando = destino !== null && origen !== null && origen === origenAproximado;
+  useEffect(() => {
+    if (!refinando || !origen) return;
+    const aproximado = origen;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setOrigen((o) => (o === aproximado ? { lat: pos.coords.latitude, lon: pos.coords.longitude } : o));
+        setOrigenAproximado(null);
+      },
+      () => setOrigenAproximado(null),
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
+    );
+  }, [refinando, origen]);
 
   // Desde el modal: pliega el panel en móvil para dejar el mapa libre y espera el toque.
   function marcarEnMapa() {
@@ -822,7 +855,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       <ModalUbicacion
         falla={fallaUbicacion}
         onCerrar={() => setFallaUbicacion(null)}
-        onReintentar={usarUbicacion}
+        onReintentar={() => usarUbicacion()}
         onMarcarEnMapa={marcarEnMapa}
       />
 
@@ -953,7 +986,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
               onElegir={elegirPlaya}
               origen={origen}
               ubicando={ubicando}
-              onUsarUbicacion={usarUbicacion}
+              onUsarUbicacion={() => usarUbicacion(false)}
             />
           </section>
         )}
@@ -974,11 +1007,11 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
                 destino && (
                   <ComoIr
                     destino={destino}
-                    origen={origen}
+                    origen={refinando ? null : origen}
                     eligiendoEnMapa={eligiendo}
-                    ubicando={ubicando}
+                    ubicando={ubicando || refinando}
                     errorUbicacion={errorUbicacion}
-                    onUsarUbicacion={usarUbicacion}
+                    onUsarUbicacion={() => usarUbicacion(true)}
                     onElegirEnMapa={() => {
                       setErrorUbicacion(null);
                       setEligiendo(true);
@@ -1050,16 +1083,15 @@ function Detalle({
   }, [nSeccion]);
   return (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-semibold tracking-tight md:text-xl">{playa.nombre}</h2>
-            <div className="flex items-center gap-2">
-              <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
-              <FotoPlaya slug={playa.slug} sello={selloDe(playa, temporada)} meGusta={playa.meGusta} />
-            </div>
+      {/* Nombre, me gusta y cerrar quedan fijos arriba al bajar por los datos. Los márgenes negativos
+          cubren el p-4 de la hoja para que el contenido no asome por encima ni a los costados. */}
+      <div className="sticky -top-4 z-10 -mx-4 -mt-4 flex items-center justify-between gap-3 bg-white px-4 pb-2 pt-4 dark:bg-oscuro-1">
+        <div className="flex min-w-0 items-center gap-3">
+          <h2 className="truncate text-2xl font-semibold tracking-tight md:text-xl">{playa.nombre}</h2>
+          <div className="flex shrink-0 items-center gap-2">
+            <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
+            <FotoPlaya slug={playa.slug} sello={selloDe(playa, temporada)} meGusta={playa.meGusta} />
           </div>
-          {playa.descripcion && <p className="mt-2 text-sm text-slate-500">{playa.descripcion}</p>}
         </div>
         <button
           onClick={onCerrar}
@@ -1070,6 +1102,7 @@ function Detalle({
           <X className="h-6 w-6" aria-hidden />
         </button>
       </div>
+      {playa.descripcion && <p className="text-sm text-slate-500">{playa.descripcion}</p>}
       {/* Fuera del encabezado para que la tarjeta de info use todo el ancho */}
       <TotalesDetalle slug={playa.slug} inicial={playa.meGusta} />
       <AlertaInumet alertas={alertas} className="mt-4" />
