@@ -22,26 +22,42 @@ type Props = {
   onElegir: (p: Playa) => void;
 };
 
+type Viajes = { para: Punto; datos: Record<string, Viaje> };
+type Falla = { para: Punto; tipo: "fuera" | "error" };
+
+// El panel se desmonta al abrir una playa: guardamos el último cálculo fuera del componente para no
+// volver a pedir /api/viajes (el pedido más caro) al cerrar la playa con el mismo origen. Los horarios
+// de ómnibus cambian, así que pasado un rato se recalcula.
+const VIGENCIA_VIAJES_MS = 10 * 60_000;
+let ultimo: { viajes: Viajes | null; falla: Falla | null; en: number } | null = null;
+const vigente = () => (ultimo && Date.now() - ultimo.en < VIGENCIA_VIAJES_MS ? ultimo : null);
+
 // "¿A qué playa voy?": ranking con bandera, viento según la orientación de cada playa,
 // confort y, si sabemos dónde estás, cuánto tardás en ómnibus.
 export default function Recomendador({ playas, temporada, uvMedido, origen, ubicando, onUsarUbicacion, onElegir }: Props) {
   const [info, setInfo] = useState(false);
-  const [viajes, setViajes] = useState<{ para: Punto; datos: Record<string, Viaje> } | null>(null);
+  const [viajes, setViajes] = useState<Viajes | null>(() => vigente()?.viajes ?? null);
   // Si no se pudo calcular: fuera de Montevideo (400) o falla del servidor/red. Se muestra en un modal.
-  const [falla, setFalla] = useState<{ para: Punto; tipo: "fuera" | "error" } | null>(null);
+  const [falla, setFalla] = useState<Falla | null>(() => vigente()?.falla ?? null);
   const [verFalla, setVerFalla] = useState(false);
 
   useEffect(() => {
     if (!origen) return;
+    const previo = vigente();
+    if (previo && (previo.viajes?.para === origen || previo.falla?.para === origen)) return;
     const ctrl = new AbortController();
     const fallar = (tipo: "fuera" | "error") => {
-      setFalla({ para: origen, tipo });
+      const f = { para: origen, tipo };
+      ultimo = { viajes: null, falla: f, en: Date.now() };
+      setFalla(f);
       setVerFalla(true);
     };
     postJson("/api/viajes", { desde: redondear(origen) }, ctrl.signal)
       .then(async (r) => {
-        if (r.ok) setViajes({ para: origen, datos: (await r.json()).viajes });
-        else fallar(r.status === 400 ? "fuera" : "error");
+        if (!r.ok) return fallar(r.status === 400 ? "fuera" : "error");
+        const v = { para: origen, datos: (await r.json()).viajes };
+        ultimo = { viajes: v, falla: null, en: Date.now() };
+        setViajes(v);
       })
       .catch((e) => e.name !== "AbortError" && fallar("error"));
     return () => ctrl.abort();

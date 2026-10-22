@@ -3,6 +3,7 @@ import { crearLimite, demasiadosPedidos, ipDe } from "@/lib/limite";
 import { getPlayas } from "@/lib/playas";
 import type { Viaje } from "@/lib/recomendacion";
 import { SIN_CACHE, leerCuerpo, validarPunto } from "@/lib/transporte/coordenadas";
+import { getIndice } from "@/lib/transporte/gtfs";
 import { planificar } from "@/lib/transporte/planificador";
 
 // POST /api/viajes  { desde: {lat, lon} } → mejor forma de llegar ahora a cada playa (para el ranking).
@@ -28,4 +29,13 @@ export async function POST(req: Request) {
     viajes[p.slug] = { minutos: mejor.minutos, resumen: lineas.length ? lineas.join(" › ") : "a pie" };
   }
   return Response.json({ viajes }, { headers: SIN_CACHE });
+}
+
+// GET /api/viajes → solo deja cargado el índice del GTFS (sin ubicación). En una instancia nueva armarlo
+// tarda ~2,5 s (más si hay que bajar el zip); calcular los viajes, ~10-25 ms. La app lo llama al tocar
+// "Sumar mi viaje" / "Usar mi ubicación", así se carga mientras el GPS busca la posición. Con el índice
+// ya cargado no hace nada (y getIndice comparte la carga en curso), por eso no lleva tope.
+export async function GET() {
+  if (hasImCredentials("transporte")) await getIndice().catch(() => {});
+  return new Response(null, { status: 204, headers: SIN_CACHE });
 }

@@ -47,6 +47,7 @@ Sin credenciales la página muestra una lista de playas de respaldo con clima pe
 | `GET /api/clima/[playa]` | Clima en una playa, p. ej. `/api/clima/pocitos` |
 | `GET /api/pronostico/[playa]` | Pronóstico hora a hora (hoy y mañana) y mejor franja para ir |
 | `POST /api/viajes` `{desde:{lat,lon}}` | Minutos y líneas para llegar ahora a cada playa (para el ranking) |
+| `GET /api/viajes` | Solo carga el índice del GTFS en la instancia (204). La app lo llama al pedir la ubicación para que el índice (~2,5 s en frío) se arme mientras el GPS responde; calcular los viajes después tarda ~10-25 ms |
 | `POST /api/como-ir` `{desde, hasta}` | Opciones en ómnibus (directas o con 1 trasbordo) |
 | `GET /api/omnibus/llegadas?tramos=variante:parada,...` | Estimación en vivo de los próximos ómnibus |
 
