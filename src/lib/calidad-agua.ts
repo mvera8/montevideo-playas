@@ -8,7 +8,7 @@ import "server-only";
 // o si una muestra supera 500 UFC/100 ml.
 
 const BASE = "https://ckan-data.montevideo.gub.uy/dataset/b51c24fd-ee40-4eec-a84c-0c4f064859b0/resource";
-const URL_MUESTRAS = `${BASE}/b143b5d2-5721-4efd-8ac5-9edb6e1ae3ac/download/datos_de_calidad_de_agua_en_playas.csv`;
+export const URL_MUESTRAS = `${BASE}/b143b5d2-5721-4efd-8ac5-9edb6e1ae3ac/download/datos_de_calidad_de_agua_en_playas.csv`;
 const URL_MEDIAS = `${BASE}/01e9385e-1b1f-4070-81ed-e288fe71f0d4/download/media_geometrica_de_enterococos_en_playas.csv`;
 const CACHE_MS = 3 * 60 * 60 * 1000; // cada cuánto se verifica si hay datos nuevos (HEAD)
 const DIAS_HISTORIAL = 120;
@@ -110,8 +110,7 @@ async function descargar(url: string) {
 
 /** Cabecera + filas con fecha (1.ª columna) >= `desde`; corta la descarga en cuanto aparecen más viejas. */
 async function descargarReciente(url: string, desde: string) {
-  const ctrl = new AbortController();
-  const res = await fetch(url, { signal: ctrl.signal });
+  const res = await fetch(url);
   if (!res.ok || !res.body) throw new Error(`Calidad de agua IM falló (${res.status})`);
   const lector = res.body.getReader();
   const dec = new TextDecoder();
@@ -129,7 +128,10 @@ async function descargarReciente(url: string, desde: string) {
       if (done) return lineas.join("\n");
     }
   } finally {
-    ctrl.abort(); // no transferir el resto del archivo
+    // No transferir el resto del archivo. `cancel()` y no `abort()`: en el build Next duplica la respuesta
+    // para cachearla y, con abort, su copia nunca termina (la página pasaba los 60 s de prerender).
+    // Cancelar solo nuestra copia deja que la de Next termine; en producción no hay copia y corta igual.
+    await lector.cancel().catch(() => {});
   }
 }
 

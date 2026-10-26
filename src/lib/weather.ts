@@ -151,7 +151,8 @@ const local = (d: Date | number) => fmtLocal.format(d).replace(" ", "T");
 
 const redondear = (v: number) => (Math.round(v * 20) / 20).toFixed(2);
 
-async function met(p: Point) {
+/** Serie de MET Norway para un punto (sin mar ni UV de la IM; la usa también /estado). */
+export async function met(p: Point) {
   const qs = new URLSearchParams({ lat: redondear(p.lat), lon: redondear(p.lon) });
   const res = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/complete?${qs}`, {
     headers: { "User-Agent": USER_AGENT },

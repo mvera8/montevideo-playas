@@ -5,7 +5,7 @@
 export type EnlaceSitio = {
   href: string;
   label: string;
-  icono: "inicio" | "playas" | "favoritas" | "novedades" | "terminos" | "privacidad" | "contacto";
+  icono: "inicio" | "playas" | "favoritas" | "novedades" | "terminos" | "privacidad" | "contacto" | "estado";
 };
 
 export const ENLACES_PRINCIPALES: EnlaceSitio[] = [
@@ -19,4 +19,5 @@ export const ENLACES_LEGALES: EnlaceSitio[] = [
   { href: "/terminos", label: "Términos", icono: "terminos" },
   { href: "/privacidad", label: "Privacidad", icono: "privacidad" },
   { href: "/contacto", label: "Contacto", icono: "contacto" },
+  { href: "/estado", label: "Estado de las fuentes", icono: "estado" },
 ];

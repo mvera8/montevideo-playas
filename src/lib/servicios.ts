@@ -9,7 +9,7 @@ import { unzipSync } from "fflate";
 // Si un punto de OSM está a menos de 40 m de uno de la IM, se considera el mismo y gana la IM.
 // Caché de 24 h por fuente; si una falla se usa lo último bueno de ella y se reintenta a los 5 min.
 
-const GIS = "https://intgis.montevideo.gub.uy/sit";
+export const GIS = "https://intgis.montevideo.gub.uy/sit";
 const CACHE_MS = 24 * 60 * 60 * 1000; // cambian muy poco
 export const RADIO_SERVICIOS = 600; // metros desde la casilla más cercana
 // Un dato de OSM sin verificar ni editar en más de 2 años se marca como posiblemente desactualizado.
@@ -159,7 +159,7 @@ async function cargarIm(): Promise<Servicio[]> {
 
 // ---------- OpenStreetMap (Overpass) ----------
 
-const OVERPASS = "https://overpass-api.de/api/interpreter";
+export const OVERPASS = "https://overpass-api.de/api/interpreter";
 // Franja costera de Montevideo (sur, oeste, norte, este).
 const BBOX = "-34.95,-56.45,-34.83,-56.02";
 // La consulta pide `timeout:25` al servidor; unos segundos más para la respuesta.

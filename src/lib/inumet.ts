@@ -115,15 +115,19 @@ async function descargar(): Promise<string> {
     const lector = res.body.getReader();
     const dec = new TextDecoder();
     let html = "";
-    for (;;) {
-      const { done, value } = await lector.read();
-      html += dec.decode(value, { stream: !done });
-      const cese = html.indexOf("var cese");
-      if (done || (cese >= 0 && html.indexOf("};", cese) >= 0)) return html;
+    try {
+      for (;;) {
+        const { done, value } = await lector.read();
+        html += dec.decode(value, { stream: !done });
+        const cese = html.indexOf("var cese");
+        if (done || (cese >= 0 && html.indexOf("};", cese) >= 0)) return html;
+      }
+    } finally {
+      // No transferir el resto de la página. `cancel()` y no `abort()`: ver descargarReciente en calidad-agua.ts.
+      await lector.cancel().catch(() => {});
     }
   } finally {
     clearTimeout(timer);
-    ctrl.abort(); // no transferir el resto de la página
   }
 }
 

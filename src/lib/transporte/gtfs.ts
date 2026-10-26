@@ -289,9 +289,14 @@ async function descargar(ruta: string, token: string) {
   return res;
 }
 
+/** Versión publicada del GTFS (version.txt, unos bytes): también sirve para chequear token y API de transporte. */
+export async function versionGtfs(): Promise<string> {
+  return (await (await descargar("version.txt", await getToken("transporte"))).text()).trim();
+}
+
 async function cargar(versionActual?: string): Promise<Indice | null> {
   const token = await getToken("transporte");
-  const version = (await (await descargar("version.txt", token)).text()).trim();
+  const version = await versionGtfs();
   if (version === versionActual) return null;
 
   const dir = path.join(tmpdir(), "playasuy-gtfs");

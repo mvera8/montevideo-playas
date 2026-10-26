@@ -247,6 +247,14 @@ export default function Terminos() {
         cuenta regresiva de la página de inicio usa esa misma fecha aproximada (15 de noviembre).
       </p>
 
+      <h3 id="estado">Estado de las fuentes</h3>
+      <p>
+        La página <Link href="/estado">Estado de las fuentes</Link> muestra si cada fuente de datos respondió en el último
+        chequeo (se repite cada pocos minutos) y qué tan reciente es su último dato. Es un control técnico propio: no
+        verifica que los datos sean correctos ni es un parte oficial de ninguna de las fuentes, y una fuente puede fallar
+        entre un chequeo y el siguiente.
+      </p>
+
       <h2 id="responsabilidad">Responsabilidad</h2>
       <p>
         El sitio se ofrece “tal cual está”, sin garantías de exactitud, disponibilidad o continuidad. Las decisiones que
