@@ -1,6 +1,6 @@
 "use client";
 
-import { EnvelopeSimple, FileText, Heart, House, Newspaper, ShieldCheck, Umbrella } from "@phosphor-icons/react/dist/ssr";
+import { EnvelopeSimple, FileText, Heart, House, Newspaper, Pulse, ShieldCheck, Umbrella } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -27,6 +27,7 @@ const ICONOS: Record<EnlaceSitio["icono"], typeof House> = {
   terminos: FileText,
   privacidad: ShieldCheck,
   contacto: EnvelopeSimple,
+  estado: Pulse,
 };
 
 const TINTA = "text-slate-600 hover:text-slate-900 dark:text-neutral-300 dark:hover:text-white";

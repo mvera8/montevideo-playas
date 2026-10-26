@@ -109,7 +109,10 @@ geométrica de 5 muestras que publica la IM. `src/lib/calidad-agua.ts` los cruza
 - **Actualización sin cron**: cada 3 h un `HEAD` (~100 ms) compara el ETag; solo si cambió se
   descarga. El servidor de la IM no soporta Range ni pedidos condicionales, pero el CSV viene del más
   nuevo al más viejo: se lee en streaming y se corta la descarga al llegar a datos de más de 120 días
-  (~48 KB en vez de 2,2 MB).
+  (~48 KB en vez de 2,2 MB). El corte es con `reader.cancel()`, **no** con `AbortController.abort()`:
+  en `next build` Next cachea los fetch sin configuración de caché duplicando la respuesta, y con
+  `abort()` su copia nunca terminaba, así que la página no cerraba el prerender ("took more than 60
+  seconds", 26/10/2026). Vale para cualquier lectura en streaming con corte temprano.
 
 - Criterio del **Decreto 226/025** (la IM lo aplica desde el 27/03/2026): supera el límite si la media
   de 5 muestras (≤ 40 días) pasa 200 enterococos/100 ml o una muestra pasa 500.
@@ -190,7 +193,8 @@ no se muestra nada).
   2020, con alertas de ejemplo).
 - **Fuente usada**: `https://www.inumet.gub.uy/alerta` (HTML, ~59 KB, sin autenticación). La página
   trae `var alerta = {...};` y `var cese = {...};` dentro de un `<script>` (es lo que lee su
-  `alerta.js`). Se lee en streaming y se corta la descarga apenas termina `var cese` (byte ~45.000).
+  `alerta.js`). Se lee en streaming y se corta la descarga apenas termina `var cese` (byte ~45.000),
+  con `reader.cancel()` y no `abort()` (ver "Calidad del agua").
   Formato no documentado: si cambian la web, se muestra "sin datos recientes", nunca "no hay alertas".
 - **Formato**: `advertencias[]` con `riesgoFenomeno` (riesgoViento, riesgoLluvia, riesgoTormenta,
   riesgoVisibilidad, riesgoCalor, riesgoFrio; 1 = sin riesgo, 2 amarilla, 3 naranja, 4 roja),
@@ -532,6 +536,28 @@ extra en el cliente). Mismo proyecto que los me gusta. Esquema en
 - **Validar:** `curl -X POST {URL}/rest/v1/rpc/registrar_error -H "apikey: …" -H "Content-Type:
   application/json" -d '{"p_origen":"cliente","p_mensaje":"prueba"}'` → `204` y aparece la fila
   (borrarla después). Un `GET {URL}/rest/v1/errores` con la clave publicable no debe devolver filas.
+
+## Estado de las fuentes (`/estado`)
+
+Página pública que chequea cada fuente externa y muestra "Funciona", "Datos viejos" o "No responde"
+con la causa real del error (p. ej. `fetch failed — UND_ERR_CONNECT_TIMEOUT: Connect Timeout Error
+(attempted addresses: 190.64.5.9:443…)`). Código en `src/lib/estado.ts`; página en `src/app/estado/`.
+
+- **Cuándo mirarla:** cuando el mapa dice "Sin datos de la Intendencia" o falta un dato. Es más rápido
+  que buscar en los logs de Vercel (que en Hobby duran poco).
+- **Ritmo:** ISR de 5 min (`revalidate = 300`): a lo sumo ~12 chequeos por hora por fuente, en
+  segundo plano. Cada chequeo tiene tope de 8 s; los que no responden se marcan "No responde".
+- **Qué se pide a cada fuente:** lo mínimo. IM Playas y MET Norway pasan por la misma función de la
+  app (con su caché); Transporte baja `version.txt` del GTFS (token + API); los sitios móviles de la
+  IM, el JSON chico de siempre; calidad del agua y GIS, un `HEAD`; NOAA y PacIOOS solo el eje `time`
+  de ERDDAP (`<dataset>.csv?time%5B(last)%5D`, ~50 B); Overpass, `/api/status` (no gasta cupo);
+  Inumet, iNaturalist y Supabase, la función de la app (si falla, el detalle queda en los logs).
+- **"Datos viejos":** se usan los mismos umbrales que la app (`DIAS_VIGENCIA` de calidad del agua,
+  `DIAS_VIGENCIA_SST`, `HORAS_VIGENCIA_UV`); olas, si el pronóstico ya no llega a mañana.
+- **Lo que vimos (26/10/2026):** desde Vercel la IM daba `UND_ERR_CONNECT_TIMEOUT` a 190.64.5.9 y
+  .26 (`prx.montevideo.gub.uy`, el proxy de todos sus hosts) mientras desde Uruguay respondía en
+  70 ms: la IM descarta conexiones de las IP de Vercel, no es un error del sitio.
+- **Fuente nueva:** sumarle un chequeo en `DEFS` de `src/lib/estado.ts`.
 
 ## Analytics (Google Analytics 4)
 
