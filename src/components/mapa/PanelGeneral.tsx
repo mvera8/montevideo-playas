@@ -10,6 +10,7 @@ import type { Weather } from "@/lib/weather";
 import AlertaInumet from "./AlertaInumet";
 import { SANITARIA } from "./BanderaSanitaria";
 import ClimaAhora from "./ClimaAhora";
+import { MarcaFavorita } from "./Favorita";
 import { ContadorMeGusta } from "./MeGusta";
 import Recomendador from "./Recomendador";
 
@@ -196,6 +197,7 @@ function PildorasPlayas({
                   />
                 )}
                 {p.nombre}
+                <MarcaFavorita slug={p.slug} />
               </button>
             </li>
           ))}
@@ -321,7 +323,10 @@ function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; tempo
     >
       <div className="flex w-full items-start justify-between gap-1">
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold">{playa.nombre}</span>
+          <span className="flex items-center gap-1 text-sm font-semibold">
+            <span className="truncate">{playa.nombre}</span>
+            <MarcaFavorita slug={playa.slug} className="h-3.5 w-3.5 shrink-0" />
+          </span>
           <span className="flex items-center gap-2 text-xs text-slate-500">
             <span className="whitespace-nowrap">
               {n} {n === 1 ? "casilla" : "casillas"}

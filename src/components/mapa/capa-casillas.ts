@@ -19,17 +19,20 @@ import {
   AGUA_VIVA,
   ALTURA_MODELO,
   BANDERA,
+  ESTRELLA,
   FLECHA,
   MASTIL_POS,
   crearGeometriaAguaViva,
   crearGeometriaBandera,
   crearGeometriaCasilla,
+  crearGeometriaEstrella,
   crearGeometriaFlecha,
 } from "./modelo";
 import { SANITARIA } from "./BanderaSanitaria";
 
 export type CasillaMapa = {
   id: string;
+  slug: string; // playa
   lng: number;
   lat: number;
   bandera: "green" | "yellow" | "red" | "black" | null;
@@ -89,6 +92,10 @@ function banderasDe(c: CasillaMapa): { color: string; cruz: boolean }[] {
   return c.sanitaria ? [{ color: COLORES[c.bandera], cruz: false }, sanitaria] : [{ color: COLORES[c.bandera], cruz: false }];
 }
 
+// Estrellas de las casillas favoritas (hasta 3): una vuelta cada 6 s (lenta, que se note sin distraer).
+const VUELTA_ESTRELLA_S = 6;
+const MAX_ESTRELLAS = 3; // TOPE_FAVORITAS (favorita-cliente.ts) y trigger casilla_favorita_tope
+
 const FRAME_MS = 1000 / 30; // la bandera se anima a 30 fps para no recargar la GPU
 const ZOOM_ANIMACION = 13; // más lejos la bandera es muy chica: el mapa queda quieto
 
@@ -126,6 +133,11 @@ export class CapaCasillas implements CustomLayerInterface {
   private local: Matrix4;
   private casillas: CasillaMapa[] = [];
   private seleccion: string | null = null;
+  private favoritas: string[] = [];
+  private estrellas?: InstancedMesh;
+  private estrellasBase: Matrix4[] = []; // casillas (posición, giro y escala) sobre las que van las estrellas
+  private estrellaGiro = new Matrix4();
+  private estrellaMatriz = new Matrix4();
   private zoomAplicado = -1;
   private timer = 0;
   private animar = true;
@@ -153,6 +165,17 @@ export class CapaCasillas implements CustomLayerInterface {
     // Luz "de catálogo": ilumina el frente (que mira al río) para que se lea el amarillo.
     this.sol.position.set(0.5, 1, 1.2);
     this.scene.add(this.cielo, this.sol);
+
+    // Estrellas de las favoritas: un InstancedMesh (un draw call) con lugar para el tope de la base.
+    this.estrellas = new InstancedMesh(
+      crearGeometriaEstrella(),
+      new MeshLambertMaterial({ color: "#ffc61a", emissive: "#a86a00", emissiveIntensity: 0.45 }),
+      MAX_ESTRELLAS,
+    );
+    this.estrellas.count = 0;
+    this.estrellas.frustumCulled = false;
+    this.estrellas.matrixAutoUpdate = false;
+    this.scene.add(this.estrellas);
 
     this.banderaMat = new ShaderMaterial({
       side: DoubleSide,
@@ -306,6 +329,9 @@ export class CapaCasillas implements CustomLayerInterface {
     this.banderaMat?.dispose();
     this.aguaVivaMat?.dispose();
     this.vientoMat?.dispose();
+    this.estrellas?.geometry.dispose();
+    (this.estrellas?.material as MeshLambertMaterial | undefined)?.dispose();
+    this.estrellas?.dispose();
     this.renderer?.dispose();
   }
 
@@ -359,6 +385,14 @@ export class CapaCasillas implements CustomLayerInterface {
     this.map?.triggerRepaint();
   }
 
+  /** Casillas favoritas (ids): les pone una estrella 3D girando arriba. */
+  setFavoritas(ids: string[]) {
+    if (ids.join() === this.favoritas.join()) return;
+    this.favoritas = ids;
+    this.zoomAplicado = -1;
+    this.map?.triggerRepaint();
+  }
+
   setSeleccion(id: string | null) {
     if (id === this.seleccion) return;
     this.seleccion = id;
@@ -377,6 +411,11 @@ export class CapaCasillas implements CustomLayerInterface {
     this.banderaMat!.uniforms.uTime.value = t;
     this.aguaVivaMat!.uniforms.uTime.value = t;
     this.vientoMat!.uniforms.uTime.value = t;
+    if (this.estrellas?.count) {
+      this.estrellaGiro.makeRotationY((t * 2 * Math.PI) / VUELTA_ESTRELLA_S).setPosition(0, ESTRELLA.altura, 0);
+      this.estrellasBase.forEach((b, i) => this.estrellas!.setMatrixAt(i, this.estrellaMatriz.copy(b).multiply(this.estrellaGiro)));
+      this.estrellas.instanceMatrix.needsUpdate = true;
+    }
 
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
@@ -526,6 +565,19 @@ export class CapaCasillas implements CustomLayerInterface {
     });
     this.casillasMesh!.instanceMatrix.needsUpdate = true;
     this.banderasMesh!.instanceMatrix.needsUpdate = true;
+
+    // Estrellas sobre las casillas favoritas que están en el mapa (el giro se aplica en render).
+    if (this.estrellas) {
+      this.estrellasBase = this.casillas
+        .flatMap((c, i) => (this.favoritas.includes(c.id) ? [i] : []))
+        .slice(0, MAX_ESTRELLAS)
+        .map((i) => {
+          const m = new Matrix4();
+          this.casillasMesh!.getMatrixAt(i, m);
+          return m;
+        });
+      this.estrellas.count = this.estrellasBase.length;
+    }
 
     // Aguas vivas: corridas hacia el agua desde el centro de la playa, al mismo tamaño en pantalla que la casilla.
     if (this.aguasVivasMesh) {

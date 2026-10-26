@@ -9,18 +9,15 @@
 //   que no le dio me gusta a ninguna playa;
 // - supabase-js se importa recién al tocar ❤️, o al cargar la página si ya hay sesión (para saber qué
 //   playas le gustan y pintarlas en las tarjetas).
-// La cuenta es anónima (Supabase Auth, signInAnonymously): no pide datos y queda en el
-// almacenamiento local del navegador. Toda la lógica (uno por persona, temporada, contador) vive
+// La cuenta es anónima (Supabase Auth, signInAnonymously, ver supabase-navegador.ts): no pide datos
+// y queda en el almacenamiento local del navegador. Toda la lógica (uno por persona, temporada, contador) vive
 // en la base: funciones `alternar_me_gusta` y `estado_me_gusta`, y RLS sobre `me_gusta`.
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { sumarTotales, temporadaMeGusta, type TotalesMeGusta } from "./me-gusta-temporada";
+import { CLAVE_SUPABASE as CLAVE, URL_SUPABASE, haySesion, sesion, supabaseDisponible } from "./supabase-navegador";
 
-const URL_SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const CLAVE = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-export const meGustaDisponible = Boolean(URL_SUPABASE && CLAVE);
+export const meGustaDisponible = supabaseDisponible;
 
 // Estado compartido por todas las tarjetas y el detalle. `version` cambia en cada escritura.
 const totales = new Map<string, TotalesMeGusta>(); // más nuevos que los del servidor
@@ -46,34 +43,6 @@ function suscribir(o: () => void) {
 }
 
 const useVersion = () => useSyncExternalStore(suscribir, () => version, () => 0);
-
-let cliente: Promise<SupabaseClient> | null = null;
-function getCliente() {
-  cliente ??= import("@supabase/supabase-js").then(({ createClient }) =>
-    createClient(URL_SUPABASE!, CLAVE!, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }),
-  );
-  return cliente;
-}
-
-// supabase-js guarda la sesión en localStorage con la clave `sb-<ref>-auth-token`.
-function haySesion() {
-  try {
-    const ref = new URL(URL_SUPABASE!).hostname.split(".")[0];
-    return localStorage.getItem(`sb-${ref}-auth-token`) != null;
-  } catch {
-    return false;
-  }
-}
-
-async function sesion(crearCuenta: boolean) {
-  const c = await getCliente();
-  const { data } = await c.auth.getSession();
-  if (data.session) return c;
-  if (!crearCuenta) return null;
-  const { error } = await c.auth.signInAnonymously();
-  if (error) throw error;
-  return c;
-}
 
 async function rpc(nombre: "estado_me_gusta" | "alternar_me_gusta", slug: string, crearCuenta: boolean) {
   const c = await sesion(crearCuenta);

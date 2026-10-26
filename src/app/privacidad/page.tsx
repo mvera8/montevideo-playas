@@ -18,7 +18,8 @@ export default function Privacidad() {
           <li>No tenés que crear una cuenta ni darnos tu nombre o correo (solo si nos escribís por el formulario de contacto).</li>
           <li>
             Si das <strong>“me gusta”</strong> a una playa, se crea una cuenta anónima en tu navegador y guardamos qué playas
-            te gustan. Nadie más ve quién dio cada me gusta: solo se muestra el total.
+            te gustan. Lo mismo si elegís <strong>casillas favoritas</strong>, que solo ves vos. Nadie más ve quién dio
+            cada me gusta: solo se muestra el total.
           </li>
           <li>
             Usamos <strong>Google Analytics</strong> para contar visitas y ver qué páginas se usan, con cookies de
@@ -77,8 +78,14 @@ export default function Privacidad() {
       </p>
       <ul>
         <li>un identificador aleatorio de esa cuenta y la fecha en que se creó;</li>
-        <li>a qué playas les diste me gusta, en qué temporada y cuándo.</li>
+        <li>a qué playas les diste me gusta, en qué temporada y cuándo;</li>
+        <li>cuáles son tus casillas de guardavidas favoritas (hasta tres, con su playa), si elegiste, y cuándo las marcaste.</li>
       </ul>
+      <p>
+        La cuenta se crea igual si lo primero que tocás es la estrella de <strong>casilla favorita</strong>. Tus favoritas no
+        se publican de ninguna forma (ni siquiera como total): solo las usamos para poner sus playas primero en el
+        listado, marcarlas en el mapa y avisarte si tienen bandera verde. Podés sacar una tocando su estrella de nuevo.
+      </p>
       <p>
         Para qué: contar un solo me gusta por persona y mostrarte cuáles marcaste. <strong>Solo publicamos el total por
         playa</strong>; nunca mostramos quién dio cada me gusta ni lo usamos para hacer perfiles.
@@ -90,7 +97,7 @@ export default function Privacidad() {
         <a href="https://supabase.com/privacy" target="_blank" rel="noreferrer">
           su política
         </a>
-        . La base es tu consentimiento, que das al tocar “Me gusta”.
+        . La base es tu consentimiento, que das al tocar “Me gusta” o la estrella de favorita.
       </p>
       <p>
         Cuánto tiempo: mientras exista la cuenta. Podés sacar un me gusta tocándolo de nuevo. Si borrás los datos del sitio
@@ -126,13 +133,14 @@ export default function Privacidad() {
 
       <h2 id="dispositivo">Lo que queda en tu dispositivo</h2>
       <p>
-        Guardamos dos preferencias en el almacenamiento local de tu navegador (no son cookies y no se envían a ningún
-        lado): si dejaste el panel lateral abierto o cerrado, y el estilo del mapa que elegiste. Podés borrarlas borrando
+        Guardamos algunas preferencias en el almacenamiento local de tu navegador (no son cookies y no se envían a ningún
+        lado): si dejaste el panel lateral abierto o cerrado, el estilo del mapa que elegiste, una copia de tus casillas
+        favoritas (para ordenar el listado sin esperar a Supabase) y el día en que cerraste el aviso de bandera verde. Podés borrarlas borrando
         los datos del sitio en tu navegador.
       </p>
       <p>
         Si diste me gusta, también queda ahí la sesión de tu cuenta anónima (una clave que se envía a Supabase solo para
-        guardar o leer tus me gusta).
+        guardar o leer tus me gusta y tus casillas favoritas).
       </p>
 
       <h2 id="analitica">Estadísticas de uso (Google Analytics)</h2>

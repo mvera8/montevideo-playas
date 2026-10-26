@@ -246,3 +246,28 @@ export function crearGeometriaFlecha(): BufferGeometry {
   geo.computeVertexNormals();
   return geo;
 }
+
+// Estrella de la casilla favorita, flotando sobre ella (Favorita.tsx). Extruida y parada (cara hacia
+// ±Z), centrada en el origen: la capa la gira sobre Y. Unidades = metros.
+export const ESTRELLA = { radio: 1.5, altura: ALTURA_MODELO + 1.9 }; // centro, por encima del mástil
+
+export function crearGeometriaEstrella(): BufferGeometry {
+  const s = new Shape();
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? ESTRELLA.radio : ESTRELLA.radio * 0.45;
+    const a = Math.PI / 2 + (i * Math.PI) / 5; // primera punta hacia arriba
+    if (i === 0) s.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    else s.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  s.closePath();
+  const g = new ExtrudeGeometry(s, {
+    depth: 0.35,
+    bevelEnabled: true,
+    bevelThickness: 0.12,
+    bevelSize: 0.1,
+    bevelSegments: 1,
+  });
+  g.center();
+  g.deleteAttribute("uv");
+  return g;
+}
