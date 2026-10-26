@@ -1,6 +1,7 @@
 import { hasImCredentials } from "@/lib/im";
 import { crearLimite, demasiadosPedidos, ipDe } from "@/lib/limite";
 import { SIN_CACHE, leerCuerpo, validarPunto } from "@/lib/transporte/coordenadas";
+import { getIndice } from "@/lib/transporte/gtfs";
 import { planificar } from "@/lib/transporte/planificador";
 
 // POST /api/como-ir  { desde: {lat, lon}, hasta: {lat, lon} }
@@ -29,7 +30,10 @@ export async function POST(req: Request) {
     );
   }
   try {
-    return Response.json({ opciones: await planificar(desde, hasta) }, { headers: SIN_CACHE });
+    const opciones = await planificar(desde, hasta);
+    // De dónde salieron los horarios: con "copia" (la IM no respondió) no hay ómnibus en vivo.
+    const { origen, version, hasta: vigentesHasta } = await getIndice();
+    return Response.json({ opciones, horarios: { origen, version, hasta: vigentesHasta } }, { headers: SIN_CACHE });
   } catch (e) {
     console.error(e instanceof Error ? e.message : e); // sin coordenadas en los logs
     return Response.json({ error: "No se pudo calcular el recorrido" }, { status: 502, headers: SIN_CACHE });

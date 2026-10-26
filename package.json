@@ -9,6 +9,8 @@
     "lint": "eslint",
     "postinstall": "node scripts/copiar-worker-maplibre.mjs",
     "orientaciones": "node --env-file=.env.local scripts/calcular-orientaciones.mjs",
+    "casillas": "node scripts/casillas.mjs",
+    "gtfs": "node --env-file=.env.local scripts/gtfs.mjs",
     "errors": "node --env-file=.env.local scripts/errores.mjs",
     "checks": "node checks/cli.mjs",
     "checks:url": "node checks/cli.mjs --url http://localhost:3000"

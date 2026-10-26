@@ -20,5 +20,5 @@ export const SITIO = {
   instagram: "https://www.instagram.com/montevideo.playas.uy/",
   // Proveedor donde se aloja el sitio (aparece en la política de privacidad).
   hosting: "Vercel Inc.",
-  actualizado: "11 de octubre de 2026",
+  actualizado: "26 de octubre de 2026",
 };

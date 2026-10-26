@@ -78,6 +78,36 @@ válida en temporada (15/11 – 30/04).
 en el mismo mástil, debajo de la bandera de seguridad. Si no hay bandera de seguridad, ocupa su lugar en
 vez del paño gris. En el panel aparece en cada casilla (no en el título de la sección), con la recomendación de la IM.
 
+### Banderas desde el navegador (cuando el servidor no llega a la IM)
+
+Desde el 26/10/2026 la IM filtra las conexiones desde IP de fuera de Uruguay (nos lo confirmaron: "se
+han incrementado los filtros a accesos desde fuera del país" tras un problema de seguridad de PHP).
+Todos sus hosts (`api`, `mvdapi-auth`, `m`, `ckan-data`, `intgis`) resuelven al mismo proxy,
+`prx.montevideo.gub.uy` (190.64.5.9 / .26), y desde Vercel dan `UND_ERR_CONNECT_TIMEOUT`. Vercel no
+tiene región en Uruguay (`gru1` es Brasil). Mientras dure:
+
+- **Servidor** (`getPlayas` en `src/lib/playas.ts`): si la API falla, arma las playas con el snapshot
+  `src/data/casillas.json` (las 32 casillas: id, nombre, dirección, playa, ubicación; sin banderas) y
+  `fuente: "respaldo"`. El mapa tiene las 19 playas reales con clima, agua y servicios.
+- **Navegador** (`useBanderasNavegador` en `src/lib/banderas-cliente.ts`, usado en `Mapa.tsx`): con
+  `fuente: "respaldo"`, pide `https://m.montevideo.gub.uy/playas/api/casillas` (~3 KB) y completa las
+  banderas por `id` de casilla. Si el clima de la ciudad vino sin UV medido, pide también
+  `/playas/api/clima` (369 B). Los visitantes en Uruguay tienen IP uruguaya, así que les responde.
+- **CORS**: ese host responde `access-control-allow-origin` reflejando el `Origin` (cualquiera;
+  verificado 26/10/2026). La API oficial (`api.montevideo.gub.uy`) también tiene CORS, pero necesita el
+  token OAuth y el secreto no puede ir al navegador: **Transporte no tiene esta salida**.
+- **Misma lógica de vigencia** en los dos lados: `banderasDe` en `src/lib/banderas.ts` (sin
+  `server-only`).
+- **Avisos**: mientras el navegador consulta no se muestra nada; si también falla (p. ej. fuera de
+  Uruguay), el panel dice "Sin datos de la Intendencia. Se muestran las playas sin banderas." con el
+  motivo. `/estado` tiene la sección "Desde tu navegador", que prueba los dos pedidos en vivo.
+- **CSP**: `https://m.montevideo.gub.uy` está en `connect-src` (`next.config.ts`).
+- **Snapshot**: `npm run casillas` (desde una conexión en Uruguay) lo regenera. Correrlo si la IM agrega,
+  saca o mueve casillas, y después `npm run orientaciones` si hay casillas nuevas. Una casilla que no esté
+  en el snapshot no aparece en el mapa mientras el servidor no llegue a la IM.
+- **Volver atrás**: nada que hacer. Cuando la IM levante el filtro, el servidor vuelve a traer todo
+  (`fuente: "im"`) y el navegador deja de pedir.
+
 ## Mapa 3D
 
 - Mapa: [MapLibre GL](https://maplibre.org) con tiles de [OpenFreeMap](https://openfreemap.org) (sin API key).
@@ -306,6 +336,32 @@ un solo servicio): `IM_TRANSPORTE_CLIENT_ID` / `IM_TRANSPORTE_CLIENT_SECRET`.
   consultas por segundo", sin cifra; uso intensivo: pci@imm.gub.uy). Si la copia compartida tiene más
   de 60 s (nadie la pidió en un rato), se pide de nuevo en el momento.
 - No contempla feriados ni horarios especiales.
+
+### Copia del GTFS (cuando el servidor no llega a la IM)
+
+Desde el 26/10/2026 la IM filtra las IP de fuera de Uruguay (ver "Banderas desde el navegador"). La API de
+transporte necesita el token OAuth y ni el token ni `/buses` tienen CORS (verificado 26/10/2026), así que
+**no hay salida por el navegador**: los ómnibus en vivo quedan sin servicio mientras dure. Los horarios sí:
+
+- **Subir (desde Uruguay):** `npm run gtfs` (`scripts/gtfs.mjs`). Baja `version.txt` y
+  `google_transit.zip` (~17 MB, ~2 s) con las credenciales de transporte y los sube a **Supabase Storage**,
+  bucket **público** `gtfs` (lo crea si falta; 1 GB gratis), con la `SUPABASE_SECRET_KEY` local:
+  `google_transit-<versión>.zip` (inmutable, `max-age` 1 año) y `version.json`
+  (`{ version, archivo, hasta, subido }`, `max-age=60`). El nombre versionado evita que el CDN de
+  Supabase sirva un zip viejo con un `version.json` nuevo. Deja las 2 últimas versiones. Si se corta
+  (`UND_ERR_SOCKET`, pasó una vez), reintentar.
+- **Frecuencia:** la IM publica versión nueva seguido (la del 26/10/2026 vale hasta el 26/11:
+  `feed_end_date` de `feed_info.txt`). Correrlo **al menos una vez por mes**; `/estado` ("Copia de los
+  horarios del STM") pasa a "Datos viejos" cuando la copia vence.
+- **Leer (servidor):** `getIndice` (`src/lib/transporte/gtfs.ts`) prueba la IM; si falla, lee
+  `{NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gtfs/version.json` y baja el zip (~2,5 s). Sin
+  secretos en Vercel. Tras una falla no reintenta la IM por 30 min, y con la copia revisa la IM cada
+  30 min **en segundo plano** (devuelve el índice que tiene; nadie espera el timeout de ~10 s).
+- **Interfaz:** `/api/como-ir` devuelve `horarios: { origen, version, hasta }`. Con `origen: "copia"`,
+  "Cómo ir" no consulta llegadas en vivo y lo aclara al pie; si `hasta` ya pasó, avisa que los horarios
+  vencieron. `/api/omnibus/llegadas` responde 503 al instante con la copia.
+- **Volver atrás:** nada. Cuando la IM responda, el índice vuelve a `origen: "im"` (misma versión: no se
+  rearma) y vuelve "en vivo".
 
 ## Me gusta
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { FuenteBanderas } from "@/lib/banderas-cliente";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { SITIO } from "@/lib/sitio";
@@ -44,7 +45,7 @@ type Props = {
   playas: Playa[]; // ya filtradas por búsqueda y bandera
   todas: Playa[];
   temporada: Temporada;
-  fuente: "im" | "respaldo";
+  fuente: FuenteBanderas; // "cargando": el navegador está pidiendo las banderas, no se avisa nada todavía
   error: string | null;
   climaCiudad: Weather | null;
   alertas: AlertasInumet | null;
@@ -91,7 +92,7 @@ export default function PanelGeneral({
         {!temporada.activa && <FueraDeTemporada temporada={temporada} />}
         {fuente === "respaldo" && (
           <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200 dark:bg-oscuro-2 dark:text-amber-200 dark:ring-amber-800">
-            <strong>Sin datos de la Intendencia.</strong> Se muestran playas de respaldo.
+            <strong>Sin datos de la Intendencia.</strong> Se muestran las playas sin banderas.
             {error && <span className="mt-1 block text-xs opacity-80">{error}</span>}
           </div>
         )}

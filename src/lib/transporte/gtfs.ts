@@ -8,9 +8,20 @@ import { getToken } from "../im";
 // Índice en memoria del GTFS estático del STM (lo publica la IM, se actualiza ~mensualmente).
 // Cada "patrón" es una variante de línea: en este feed shape_id === lineVariantId de la API
 // en tiempo real, lo que permite cruzar horarios con las posiciones de los ómnibus.
+//
+// Copia de respaldo: desde 10/2026 la IM filtra las IP de fuera de Uruguay y Vercel no tiene región acá.
+// Si la API falla, se usa la copia que sube `npm run gtfs` (desde Uruguay) a Supabase Storage, bucket
+// público `gtfs`: `version.json` ({ version, archivo, hasta }) y `google_transit-<versión>.zip` (~17 MB,
+// ~2,5 s). Tras una falla de la IM no se la vuelve a probar por PAUSA_IM_MS (cada intento espera el
+// timeout de conexión, ~10 s). Con la copia no hay ómnibus en vivo (la API de buses también está
+// bloqueada); la interfaz lo avisa (`origen`) y si la copia pasó su `feed_end_date` (`hasta`), también.
 
 const GTFS = "https://api.montevideo.gub.uy/api/transportepublico/buses/gtfs/static/latest";
 const REVISAR_VERSION_MS = 6 * 60 * 60 * 1000;
+const PAUSA_IM_MS = 30 * 60_000;
+const COPIA = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gtfs`
+  : null;
 
 export type Parada = { id: string; nombre: string; lat: number; lon: number };
 
@@ -28,6 +39,8 @@ export type Patron = {
 
 export type Indice = {
   version: string;
+  origen: "im" | "copia"; // "copia": Supabase Storage (la IM no respondió), sin ómnibus en vivo
+  hasta: string | null; // feed_end_date (YYYY-MM-DD): hasta cuándo valen los horarios
   paradas: Parada[];
   patrones: Patron[];
   porVariante: Map<number, number>;
@@ -182,10 +195,12 @@ function proyectarParadas(p: Patron, paradas: Parada[]) {
   }
 }
 
-async function construir(zip: Uint8Array, version: string): Promise<Indice> {
+async function construir(zip: Uint8Array, version: string, origen: Indice["origen"]): Promise<Indice> {
   const t0 = Date.now();
   const archivos = unzipSync(zip, { filter: (f) => f.name !== "stop_times.txt" });
   const leer = (n: string) => filas(strFromU8(archivos[n]));
+  const fin = archivos["feed_info.txt"] ? (leer("feed_info.txt")[0]?.feed_end_date ?? "") : "";
+  const hasta = /^\d{8}$/.test(fin) ? `${fin.slice(0, 4)}-${fin.slice(4, 6)}-${fin.slice(6)}` : null;
 
   const paradas: Parada[] = [];
   const idxParada = new Map<string, number>();
@@ -275,7 +290,7 @@ async function construir(zip: Uint8Array, version: string): Promise<Indice> {
   });
 
   console.info(`[gtfs] v${version}: ${paradas.length} paradas, ${patrones.length} variantes en ${Date.now() - t0} ms`);
-  return { version, paradas, patrones, porVariante, porParada, calendario, grilla };
+  return { version, origen, hasta, paradas, patrones, porVariante, porParada, calendario, grilla };
 }
 
 // ---------- carga con caché ----------
@@ -294,22 +309,54 @@ export async function versionGtfs(): Promise<string> {
   return (await (await descargar("version.txt", await getToken("transporte"))).text()).trim();
 }
 
-async function cargar(versionActual?: string): Promise<Indice | null> {
-  const token = await getToken("transporte");
-  const version = await versionGtfs();
-  if (version === versionActual) return null;
-
+/** El zip de esa versión: del disco temporal si ya se bajó en esta instancia, si no de `bajar`. */
+async function zipDe(version: string, bajar: () => Promise<Response>) {
   const dir = path.join(tmpdir(), "playasuy-gtfs");
   const archivo = path.join(dir, `gtfs-${version}.zip`);
-  let zip: Uint8Array;
   try {
-    zip = new Uint8Array(await readFile(archivo));
+    return new Uint8Array(await readFile(archivo));
   } catch {
-    zip = new Uint8Array(await (await descargar("google_transit.zip", token)).arrayBuffer());
+    const zip = new Uint8Array(await (await bajar()).arrayBuffer());
     await mkdir(dir, { recursive: true });
     await writeFile(archivo, zip);
+    return zip;
   }
-  return construir(zip, version);
+}
+
+// Misma versión que la cargada: no se rearma, solo se actualiza de dónde vino (vuelve "en vivo" si la IM volvió).
+async function cargarDeIm(actual?: Indice): Promise<Indice> {
+  const token = await getToken("transporte");
+  const version = await versionGtfs();
+  if (actual && version === actual.version) return { ...actual, origen: "im" };
+  return construir(await zipDe(version, () => descargar("google_transit.zip", token)), version, "im");
+}
+
+async function cargarDeCopia(actual?: Indice): Promise<Indice> {
+  if (!COPIA) throw new Error("La IM no respondió y no hay copia del GTFS (falta NEXT_PUBLIC_SUPABASE_URL)");
+  const res = await fetch(`${COPIA}/version.json`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`Copia del GTFS: version.json ${res.status}`);
+  const { version, archivo } = (await res.json()) as { version: string; archivo: string };
+  if (actual && version === actual.version) return { ...actual, origen: "copia" };
+  const zip = await zipDe(version, async () => {
+    const r = await fetch(`${COPIA}/${archivo}`, { cache: "no-store", signal: AbortSignal.timeout(60_000) });
+    if (!r.ok) throw new Error(`Copia del GTFS: ${archivo} ${r.status}`);
+    return r;
+  });
+  return construir(zip, version, "copia");
+}
+
+let imCaidaHasta = 0;
+
+async function cargar(actual?: Indice): Promise<Indice> {
+  if (imCaidaHasta < Date.now()) {
+    try {
+      return await cargarDeIm(actual);
+    } catch (e) {
+      imCaidaHasta = Date.now() + PAUSA_IM_MS;
+      console.warn(`[gtfs] La IM no respondió (${e instanceof Error ? e.message : e}); se usa la copia de Supabase.`);
+    }
+  }
+  return cargarDeCopia(actual);
 }
 
 // En dev el módulo se recarga con HMR: guardamos el índice en globalThis.
@@ -320,15 +367,25 @@ g.__gtfs ??= { revisado: 0 };
 const estado = g.__gtfs;
 
 export function getIndice(): Promise<Indice> {
-  if (estado.promesa) return estado.promesa;
-  if (estado.indice && Date.now() - estado.revisado < REVISAR_VERSION_MS) {
-    return Promise.resolve(estado.indice);
+  const actual = estado.indice;
+  // Con la copia se reintenta la IM más seguido, para volver a "en vivo" apenas responda.
+  const revisarCada = actual?.origen === "copia" ? PAUSA_IM_MS : REVISAR_VERSION_MS;
+  if (actual && Date.now() - estado.revisado < revisarCada) return Promise.resolve(actual);
+  // Con un índice ya armado, la revisión va en segundo plano: nadie espera el timeout de la IM.
+  if (actual) {
+    getIndiceNuevo().catch(() => {});
+    return Promise.resolve(actual);
   }
-  estado.promesa = cargar(estado.indice?.version)
+  return getIndiceNuevo();
+}
+
+function getIndiceNuevo(): Promise<Indice> {
+  if (estado.promesa) return estado.promesa;
+  estado.promesa = cargar(estado.indice)
     .then((nuevo) => {
-      estado.indice = nuevo ?? estado.indice!;
+      estado.indice = nuevo;
       estado.revisado = Date.now();
-      return estado.indice;
+      return nuevo;
     })
     .catch((e) => {
       // Si falla la revisión pero ya hay un índice, seguimos con el anterior.

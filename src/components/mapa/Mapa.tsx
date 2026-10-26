@@ -28,6 +28,7 @@ import CalidadAgua from "./CalidadAgua";
 import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
 import { BotonFavorita, ModalFavoritas } from "./Favorita";
 import { favoritasPrimero, useFavoritas } from "@/lib/favorita-cliente";
+import { useBanderasNavegador } from "@/lib/banderas-cliente";
 import FotoPlaya from "./FotoPlaya";
 import { useTeclado } from "./useTeclado";
 import type { Sello } from "@/lib/sello-foto";
@@ -205,12 +206,19 @@ function useEsDeDia() {
 export default function Mapa({ playas: playasHtml, temporada, fuente, error, climaCiudad: climaHtml, alertas }: Props) {
   const esDeDia = useEsDeDia();
   useRefrescarAlVolver();
-  const climaCiudad = useMemo(() => climaHtml && { ...climaHtml, isDay: esDeDia }, [climaHtml, esDeDia]);
+  const climaConLuz = useMemo(() => climaHtml && { ...climaHtml, isDay: esDeDia }, [climaHtml, esDeDia]);
   // Todas las playas están en Montevideo: el amanecer y el atardecer cambian menos de un minuto.
-  const playas = useMemo(
+  const playasConLuz = useMemo(
     () => playasHtml.map((p) => (p.clima && p.clima.isDay !== esDeDia ? { ...p, clima: { ...p.clima, isDay: esDeDia } } : p)),
     [playasHtml, esDeDia],
   );
+  // Si el servidor no llegó a la IM, el navegador pide las banderas y el UV (src/lib/banderas-cliente.ts).
+  const { playas, climaCiudad, fuente: fuenteBanderas, errorNavegador } = useBanderasNavegador({
+    playas: playasConLuz,
+    fuente,
+    temporada,
+    climaCiudad: climaConLuz,
+  });
   const contenedor = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const capaRef = useRef<CapaCasillas | null>(null);
@@ -993,8 +1001,8 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
               playas={resultados}
               todas={playas}
               temporada={temporada}
-              fuente={fuente}
-              error={error}
+              fuente={fuenteBanderas}
+              error={errorNavegador ?? error}
               climaCiudad={climaCiudad}
               alertas={alertas}
               busqueda={busqueda}

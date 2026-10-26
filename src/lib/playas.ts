@@ -7,7 +7,9 @@ import {
   type SafetyFlag,
   type VencimientoIm,
 } from "./im";
+import casillasSnapshot from "@/data/casillas.json";
 import orientaciones from "@/data/orientaciones.json";
+import { banderasDe } from "./banderas";
 import { aguasVivasPara, getAguasVivas, type AguasVivasPlaya } from "./aguas-vivas";
 import { getCalidadAgua, type CalidadAgua } from "./calidad-agua";
 import { getMeGusta, type TotalesMeGusta } from "./me-gusta";
@@ -84,13 +86,6 @@ export function slugify(s: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-// Si la IM informa vencimiento, se respeta; si no lo informa, el dato solo
-// se considera válido durante la temporada (fuera de ella no se actualiza).
-function vigente(expiration: string | null | undefined, temporadaActiva: boolean) {
-  if (expiration) return new Date(expiration).getTime() > Date.now();
-  return temporadaActiva;
-}
-
 // La IM identifica la playa de cada casilla con un código (`beach`).
 // Al agregar una playa, sumarla también a la tabla `playas` de Supabase (README → "Me gusta").
 const NOMBRES_PLAYA: Record<string, string> = {
@@ -136,25 +131,12 @@ function coordenadas(s: ImLifeguardStation): [number, number] {
   return [-Math.abs(lon), -Math.abs(lat)];
 }
 
-// `venc`: vencimientos del sitio móvil de la IM (la API no los trae; ver src/lib/im.ts).
-function toGuardavidas(s: ImLifeguardStation, temporadaActiva: boolean, venc: VencimientoIm | undefined): Guardavidas {
+// `venc`: vencimientos del sitio móvil de la IM (la API no los trae; ver src/lib/im.ts). `null`: sin
+// banderas (casillas del snapshot; las completa el navegador, ver banderas-cliente.ts).
+function toGuardavidas(s: ImLifeguardStation, temporadaActiva: boolean, venc: VencimientoIm | undefined | null): Guardavidas {
   const [lon, lat] = coordenadas(s);
-  const bandera =
-    s.safetyFlag &&
-    s.safetyFlag !== "noData" &&
-    vigente(s.safetyFlagExpiration ?? venc?.safetyFlagExpiration, temporadaActiva)
-      ? s.safetyFlag
-      : null;
-  // Llega como texto: "false" sería verdadero si se usara tal cual.
-  const sanitaria = s.healthFlag === true || s.healthFlag === "true";
-  const banderaSanitaria =
-    s.healthFlag != null && vigente(s.healthFlagExpiration ?? venc?.healthFlagExpiration, temporadaActiva)
-      ? {
-          activa: sanitaria,
-          causa: s.healthFlagCauseDesc || null,
-          detalle: sanitaria ? (venc?.healthFlagCauseLongDesc ?? null) : null,
-        }
-      : null;
+  const { bandera, banderaSanitaria } =
+    venc === null ? { bandera: null, banderaSanitaria: null } : banderasDe(s, temporadaActiva, venc);
   return {
     id: s.id,
     nombre: s.name,
@@ -168,22 +150,11 @@ function toGuardavidas(s: ImLifeguardStation, temporadaActiva: boolean, venc: Ve
   };
 }
 
-// Lista de respaldo (coordenadas aproximadas) para cuando no hay credenciales
-// de la IM o la API no responde. Permite seguir mostrando el clima por playa.
-const RESPALDO: { nombre: string; lat: number; lon: number }[] = [
-  { nombre: "Pajas Blancas", lat: -34.8605, lon: -56.3415 },
-  { nombre: "Santa Catalina", lat: -34.8735, lon: -56.2955 },
-  { nombre: "Playa del Cerro", lat: -34.8915, lon: -56.2525 },
-  { nombre: "Ramírez", lat: -34.9145, lon: -56.1715 },
-  { nombre: "Pocitos", lat: -34.9115, lon: -56.1505 },
-  { nombre: "Buceo", lat: -34.9075, lon: -56.1355 },
-  { nombre: "Malvín", lat: -34.8965, lon: -56.1085 },
-  { nombre: "Honda", lat: -34.8935, lon: -56.0985 },
-  { nombre: "Verde", lat: -34.8905, lon: -56.0885 },
-  { nombre: "Los Ingleses", lat: -34.8885, lon: -56.0805 },
-  { nombre: "Carrasco", lat: -34.8875, lon: -56.0555 },
-  { nombre: "Miramar", lat: -34.8775, lon: -56.0355 },
-];
+// Respaldo para cuando no hay credenciales de la IM o la API no responde (desde 10/2026 la IM filtra las
+// IP de fuera de Uruguay y Vercel no tiene región acá): las mismas casillas, de un snapshot del repo
+// (src/data/casillas.json, `npm run casillas` desde Uruguay), sin banderas. Así el mapa tiene las playas
+// reales con su clima, agua y servicios, y el navegador completa las banderas pidiéndoselas a la IM.
+const CASILLAS_SNAPSHOT = casillasSnapshot.casillas as ImLifeguardStation[];
 
 /** Promedio de ángulos (rumbos en grados): el promedio común falla cerca de 0°/360°. */
 function promedioCircular(rumbos: (number | null)[]): number | null {
@@ -219,41 +190,20 @@ async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios" | "o
   }));
 }
 
-function respaldo(): Omit<Playa, "clima" | "agua" | "servicios" | "orientacion" | "meGusta" | "aguasVivas">[] {
-  return RESPALDO.map((b) => ({
-    slug: slugify(b.nombre),
-    nombre: b.nombre,
-    descripcion: null,
-    lat: b.lat,
-    lon: b.lon,
-    guardavidas: [],
-  }));
-}
-
-export async function getPlayas(): Promise<PlayasResult> {
-  const temporada = getTemporada();
-
-  if (!hasImCredentials()) {
-    return {
-      fuente: "respaldo",
-      error: "Faltan IM_CLIENT_ID / IM_CLIENT_SECRET en .env.local",
-      temporada,
-      playas: await withClima(respaldo()),
-    };
+/** Agrupa las casillas por su código de playa (el endpoint de la IM devuelve casillas, no playas). */
+function armarPlayas(
+  stations: ImLifeguardStation[],
+  temporadaActiva: boolean,
+  vencimientos: Record<string, VencimientoIm> | null | "sin-banderas",
+) {
+  const porPlaya = new Map<string, Guardavidas[]>();
+  for (const s of stations) {
+    const codigo = s.beach || "sin-playa";
+    const venc = vencimientos === "sin-banderas" ? null : vencimientos?.[s.id];
+    porPlaya.set(codigo, [...(porPlaya.get(codigo) ?? []), toGuardavidas(s, temporadaActiva, venc)]);
   }
-
-  try {
-    // El endpoint /beaches de la IM devuelve casillas, no playas: las playas se
-    // arman agrupando las casillas por su código de playa.
-    const [stations, vencimientos] = await Promise.all([getImLifeguardStations(), getImVencimientos()]);
-
-    const porPlaya = new Map<string, Guardavidas[]>();
-    for (const s of stations) {
-      const codigo = s.beach || "sin-playa";
-      porPlaya.set(codigo, [...(porPlaya.get(codigo) ?? []), toGuardavidas(s, temporada.activa, vencimientos?.[s.id])]);
-    }
-
-    const playas = [...porPlaya.entries()]
+  return (
+    [...porPlaya.entries()]
       .map(([codigo, guardavidas]) => {
         const nombre = nombrePlaya(codigo);
         guardavidas.sort((a, b) => a.lon - b.lon);
@@ -267,16 +217,36 @@ export async function getPlayas(): Promise<PlayasResult> {
         };
       })
       // Oeste a este, como se recorre la costa.
-      .sort((a, b) => a.lon - b.lon);
+      .sort((a, b) => a.lon - b.lon)
+  );
+}
 
-    return { fuente: "im", error: null, temporada, playas: await withClima(playas) };
+function respaldo(temporadaActiva: boolean) {
+  return armarPlayas(CASILLAS_SNAPSHOT, temporadaActiva, "sin-banderas");
+}
+
+export async function getPlayas(): Promise<PlayasResult> {
+  const temporada = getTemporada();
+
+  if (!hasImCredentials()) {
+    return {
+      fuente: "respaldo",
+      error: "Faltan IM_CLIENT_ID / IM_CLIENT_SECRET en .env.local",
+      temporada,
+      playas: await withClima(respaldo(temporada.activa)),
+    };
+  }
+
+  try {
+    const [stations, vencimientos] = await Promise.all([getImLifeguardStations(), getImVencimientos()]);
+    return { fuente: "im", error: null, temporada, playas: await withClima(armarPlayas(stations, temporada.activa, vencimientos)) };
   } catch (e) {
     console.error(e);
     return {
       fuente: "respaldo",
       error: e instanceof Error ? e.message : String(e),
       temporada,
-      playas: await withClima(respaldo()),
+      playas: await withClima(respaldo(temporada.activa)),
     };
   }
 }

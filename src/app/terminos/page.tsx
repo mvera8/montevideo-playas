@@ -130,6 +130,12 @@ export default function Terminos() {
         15 de noviembre al 30 de abril, aproximadamente) no hay vigilancia ni banderas de seguridad vigentes.
       </p>
       <p>
+        Si nuestro servidor no logra conectarse con la Intendencia, tu navegador pide las banderas directamente al sitio
+        de playas de la Intendencia y las mostramos con las mismas reglas. Desde fuera de Uruguay esa consulta puede no
+        funcionar: en ese caso el mapa muestra las playas sin banderas y lo avisa. Las casillas (ubicación y nombre) salen
+        entonces de una copia guardada en el sitio, que actualizamos cada tanto: una casilla nueva puede tardar en aparecer.
+      </p>
+      <p>
         La <strong>bandera sanitaria</strong> (roja con cruz verde, “no apta para baños”) la informa la Intendencia
         todo el año, por ejemplo durante las 24 horas posteriores a lluvias. La mostramos junto con la bandera de
         seguridad, solo mientras la Intendencia la da por vigente. Si no podemos saber hasta cuándo vale, fuera de
@@ -203,6 +209,11 @@ export default function Terminos() {
         Los recorridos se calculan con los horarios publicados del STM y las llegadas “en vivo” se estiman a partir de la
         posición GPS de los ómnibus. No contemplan feriados, desvíos ni cambios de último momento. Para que el servicio
         siga disponible para todos, hay un límite de cálculos por minuto desde una misma conexión.
+      </p>
+      <p>
+        Si nuestro servidor no logra conectarse con la Intendencia, usamos una copia de los horarios publicados que
+        guardamos y actualizamos cada tanto: puede no tener los últimos cambios, no hay llegadas “en vivo” y, si la copia
+        ya venció, lo avisamos junto a los recorridos.
       </p>
 
       <h3 id="me-gusta">Me gusta</h3>
