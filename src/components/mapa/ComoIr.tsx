@@ -15,11 +15,32 @@ export const claveTramo = (t: TramoBus) => `${t.variante}:${t.subida.id}`;
 
 const ACTUALIZAR_MS = 20_000;
 
+/** De dónde salieron los horarios (ver src/lib/transporte/gtfs.ts). "copia": la IM no respondió, sin "en vivo". */
+type Horarios = { origen: "im" | "copia"; version: string; hasta: string | null };
+
 type Estado =
   | { tipo: "inactivo" }
   | { tipo: "cargando" }
   | { tipo: "error"; mensaje: string }
-  | { tipo: "ok"; opciones: Opcion[] };
+  | { tipo: "ok"; opciones: Opcion[]; horarios: Horarios | null };
+
+const fechaCorta = (iso: string) =>
+  new Intl.DateTimeFormat("es-UY", { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
+// version del GTFS: "20261026" → "2026-10-26"
+const fechaVersion = (v: string) => (/^\d{8}$/.test(v) ? `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6)}` : null);
+const hoyUy = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Montevideo" }).format(new Date());
+
+/** Texto al pie de las opciones: fuente de los horarios, si hay "en vivo" y si vencieron. */
+function notaHorarios(h: Horarios | null) {
+  const vencidos = h?.hasta && h.hasta < hoyUy();
+  if (vencidos)
+    return `Ojo: estos horarios del STM vencieron el ${fechaCorta(h.hasta!)} y pueden no coincidir con los actuales.${h.origen === "copia" ? " Sin ómnibus en vivo por ahora." : ""}`;
+  if (h?.origen === "copia") {
+    const v = fechaVersion(h.version);
+    return `Horarios publicados del STM${v ? ` (versión del ${fechaCorta(v)})` : ""}. Sin ómnibus en vivo por ahora: la Intendencia no responde a nuestro servidor.`;
+  }
+  return 'Horarios del STM (GTFS de la IM). "En vivo" estima la llegada según la posición GPS de cada ómnibus.';
+}
 
 type Props = {
   destino: Punto;
@@ -60,7 +81,7 @@ export default function ComoIr({
       .then(async (r) => {
         const json = await r.json();
         if (!r.ok) throw new Error(json.error ?? "Error");
-        setEstado({ tipo: "ok", opciones: json.opciones });
+        setEstado({ tipo: "ok", opciones: json.opciones, horarios: json.horarios ?? null });
       })
       .catch((e) => {
         if (e.name !== "AbortError") setEstado({ tipo: "error", mensaje: e.message });
@@ -71,7 +92,9 @@ export default function ComoIr({
   const opciones = estado.tipo === "ok" ? estado.opciones : [];
   const opcion = opciones[elegida] ?? null;
   const tramosBus = (opcion?.tramos.filter((t) => t.tipo === "omnibus") ?? []) as TramoBus[];
-  const claves = tramosBus.map(claveTramo).join(",");
+  // Con la copia de los horarios no hay datos en vivo: no se consulta.
+  const hayVivo = estado.tipo === "ok" && estado.horarios?.origen !== "copia";
+  const claves = hayVivo ? tramosBus.map(claveTramo).join(",") : "";
 
   // Tiempo real para los ómnibus de la opción elegida (solo con la pestaña visible).
   useEffect(() => {
@@ -189,9 +212,7 @@ export default function ComoIr({
             ))}
           </ul>
           {estado.tipo === "ok" && opciones.length > 0 && (
-            <p className="mt-2 text-xs text-slate-500">
-              Horarios del STM (GTFS de la IM). &quot;En vivo&quot; estima la llegada según la posición GPS de cada ómnibus.
-            </p>
+            <p className="mt-2 text-xs text-slate-500">{notaHorarios(estado.horarios)}</p>
           )}
         </>
       )}

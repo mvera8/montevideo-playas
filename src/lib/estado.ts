@@ -2,7 +2,8 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { getAguasVivas, DIAS_VIGENCIA as DIAS_VIGENCIA_AGUAS_VIVAS } from "./aguas-vivas";
 import { DIAS_VIGENCIA as DIAS_VIGENCIA_AGUA, getCalidadAgua, URL_MUESTRAS } from "./calidad-agua";
-import { getImLifeguardStations, hasImCredentials, HORAS_VIGENCIA_UV, URL_CASILLAS_MOVIL, URL_CLIMA_MOVIL } from "./im";
+import { HORAS_VIGENCIA_UV, URL_CASILLAS_MOVIL, URL_CLIMA_MOVIL } from "./banderas";
+import { getImLifeguardStations, hasImCredentials } from "./im";
 import { getAlertasInumet } from "./inumet";
 import { DIAS_VIGENCIA_SST } from "./mar";
 import { getMeGusta } from "./me-gusta";
@@ -88,7 +89,7 @@ const DEFS: Def[] = [
     id: "im-playas",
     nombre: "Montevideo API — Playas",
     grupo: "Intendencia de Montevideo",
-    usa: "Casillas y banderas. Si falla, el mapa muestra playas de respaldo sin banderas.",
+    usa: "Casillas y banderas. Si falla, el navegador de cada visitante pide las banderas a la IM (ver «Desde tu navegador»).",
     async probar() {
       if (!hasImCredentials()) throw new Error("Faltan IM_CLIENT_ID / IM_CLIENT_SECRET");
       const casillas = await getImLifeguardStations();
@@ -99,7 +100,7 @@ const DEFS: Def[] = [
     id: "im-transporte",
     nombre: "Montevideo API — Transporte (STM)",
     grupo: "Intendencia de Montevideo",
-    usa: "Ómnibus en vivo y horarios de “Cómo ir”.",
+    usa: "Ómnibus en vivo y horarios de “Cómo ir”. Si falla, los horarios salen de nuestra copia y no hay ómnibus en vivo.",
     async probar() {
       if (!hasImCredentials("transporte")) throw new Error("Faltan IM_TRANSPORTE_CLIENT_ID / IM_TRANSPORTE_CLIENT_SECRET");
       return { detalle: `GTFS versión ${await versionGtfsCacheada()}` };
@@ -226,6 +227,26 @@ const DEFS: Def[] = [
       if (!avist) throw new Error("No respondió (detalle en los logs)");
       const n = avist.length;
       return { detalle: `${n} reporte${n === 1 ? "" : "s"} en los últimos ${DIAS_VIGENCIA_AGUAS_VIVAS} días` };
+    },
+  },
+  {
+    id: "gtfs-copia",
+    nombre: "Copia de los horarios del STM (Supabase)",
+    grupo: "Sitio",
+    usa: "Horarios de “Cómo ir” cuando la API de transporte de la IM no responde. Se actualiza a mano con `npm run gtfs`.",
+    async probar() {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (!url) throw new Error("Falta NEXT_PUBLIC_SUPABASE_URL");
+      const { version, hasta } = (await (await pedir(`${url}/storage/v1/object/public/gtfs/version.json`)).json()) as {
+        version: string;
+        hasta: string | null;
+      };
+      const v = /^\d{8}$/.test(version) ? new Date(`${version.slice(0, 4)}-${version.slice(4, 6)}-${version.slice(6)}T12:00:00-03:00`) : null;
+      const fin = hasta ? new Date(`${hasta}T23:59:59-03:00`) : null;
+      return {
+        detalle: `Versión ${v ? `del ${fmtFecha.format(v)}` : version}${fin ? `, vale hasta el ${fmtFecha.format(fin)}` : ""}`,
+        viejo: fin ? fin.getTime() < Date.now() : false,
+      };
     },
   },
   {

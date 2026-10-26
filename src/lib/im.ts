@@ -1,5 +1,6 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
+import { HORAS_VIGENCIA_UV, URL_CASILLAS_MOVIL, URL_CLIMA_MOVIL } from "./banderas";
 
 // Cliente de Montevideo API (Intendencia de Montevideo).
 // Docs: https://api.montevideo.gub.uy/apidocs/beaches
@@ -114,8 +115,6 @@ export function getImLifeguardStations() {
   return imGet<ImLifeguardStation[]>("/beaches/lifeguardstations");
 }
 
-export const URL_CASILLAS_MOVIL = "https://m.montevideo.gub.uy/playas/api/casillas";
-
 export type VencimientoIm = {
   healthFlagExpiration: string | null;
   healthFlagCauseLongDesc: string | null; // "Se recomienda no bañarse en las 24hs posteriores a lluvias."
@@ -158,9 +157,7 @@ export async function getImVencimientos(): Promise<Record<string, VencimientoIm>
 // `ValorIndiceUV { value, dateIssued }` (un solo valor para la ciudad) y también temperatura actual y
 // mín/máx del día, que no usamos (el clima sale de MET Norway). No está documentado: si falla o cambia de
 // forma, se muestra solo el máximo estimado de MET. Es "TemepraturaActual", con la errata, en la respuesta.
-export const URL_CLIMA_MOVIL = "https://m.montevideo.gub.uy/playas/api/clima";
-/** Un UV con más horas que esto no se muestra como actual (la IM lo actualiza cada 5 min, medido 20/10/2026). */
-export const HORAS_VIGENCIA_UV = 1;
+// La URL está en banderas.ts: si el servidor no llega a la IM, la pide el navegador.
 
 export type UvIm = { valor: number; fecha: string };
 

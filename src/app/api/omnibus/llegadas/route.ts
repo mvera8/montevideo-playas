@@ -1,3 +1,4 @@
+import { getIndice } from "@/lib/transporte/gtfs";
 import { llegadas } from "@/lib/transporte/tiempo-real";
 
 // GET /api/omnibus/llegadas?tramos=8:3009,4585:1234   (variante:parada)
@@ -12,6 +13,8 @@ export async function GET(req: Request) {
     return Response.json({ error: "Formato: tramos=variante:parada,..." }, { status: 400 });
   }
   try {
+    // Con la copia de los horarios la IM no responde: no esperar su timeout en cada consulta.
+    if ((await getIndice()).origen === "copia") return Response.json({ error: "Sin datos en vivo" }, { status: 503 });
     const resultados = await Promise.all(
       tramos.map(async ([v, p]) => ({ variante: Number(v), parada: p, llegadas: await llegadas(Number(v), p) })),
     );

@@ -207,6 +207,12 @@ export default function Privacidad() {
         privacidad.
       </p>
       <p>
+        Hay una excepción: cuando nuestro servidor no logra conectarse con la Intendencia de Montevideo (por ejemplo,
+        porque filtra las conexiones desde fuera de Uruguay), tu navegador pide las banderas de las casillas y el índice
+        UV directamente al sitio de playas de la Intendencia (m.montevideo.gub.uy). En ese caso la Intendencia recibe tu
+        dirección IP, como en cualquier visita a su sitio; no le enviamos ningún otro dato tuyo.
+      </p>
+      <p>
         El ícono de Instagram del encabezado y del pie es un enlace común a nuestra cuenta: no cargamos ningún botón ni
         script de Instagram (Meta) en el sitio, así que no recibe datos tuyos mientras navegás. Si lo abrís, pasás a
         Instagram y rige su política de privacidad.
