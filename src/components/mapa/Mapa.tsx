@@ -26,6 +26,8 @@ import AlertaInumet from "./AlertaInumet";
 import PanelGeneral, { ESTADOS, estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import CalidadAgua from "./CalidadAgua";
 import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
+import { BotonFavorita, ModalFavoritas } from "./Favorita";
+import { favoritasPrimero, useFavoritas } from "@/lib/favorita-cliente";
 import FotoPlaya from "./FotoPlaya";
 import { useTeclado } from "./useTeclado";
 import type { Sello } from "@/lib/sello-foto";
@@ -126,7 +128,7 @@ const grados = (n: number | null | undefined) => (n == null ? "—" : `${Math.ro
 
 // Una casilla 3D por cada casilla de la IM; si la playa no tiene casillas
 // informadas, se dibuja una en la ubicación de la playa.
-function aCasillas(playas: Playa[]): (CasillaMapa & { slug: string; nombre: string })[] {
+function aCasillas(playas: Playa[]): (CasillaMapa & { nombre: string })[] {
   return playas.flatMap((p) => {
     const viento = { vientoDeg: p.clima?.windDirection ?? null, vientoKmh: p.clima?.windSpeed ?? null };
     if (p.guardavidas.length === 0)
@@ -311,10 +313,11 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     return playa ? { lat: playa.lat, lon: playa.lon } : null;
   }, [casillas, casillaId, playa]);
 
+  const { favoritas } = useFavoritas();
   const resultados = useMemo(() => {
     const q = normalizar(busqueda.trim());
-    // Listado en orden alfabético (las playas llegan de oeste a este).
-    return playas
+    // Listado en orden alfabético (las playas llegan de oeste a este), con las de casillas favoritas primero.
+    const lista = playas
       .filter(
         (p) =>
           (!filtro || estadoPlaya(p) === filtro) &&
@@ -323,7 +326,8 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
             p.guardavidas.some((g) => normalizar(g.nombre).includes(q))),
       )
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  }, [busqueda, filtro, playas]);
+    return favoritasPrimero(lista, favoritas);
+  }, [busqueda, filtro, playas, favoritas]);
 
   // Inicializa el mapa una sola vez.
   useEffect(() => {
@@ -648,6 +652,11 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     map.once("moveend", () => abrirPopup(map, s, popupRef));
   }
 
+  // Estrella 3D girando sobre cada casilla favorita.
+  useEffect(() => {
+    if (listo) capaRef.current?.setFavoritas(favoritas.map((f) => f.casilla));
+  }, [listo, favoritas]);
+
   // Datos → capa 3D y fuentes GeoJSON.
   useEffect(() => {
     const map = mapRef.current;
@@ -851,6 +860,15 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     <div className="relative h-dvh w-full overflow-hidden">
       <div ref={contenedor} className="h-full w-full" />
       {lluvia && <Lluvia intensidad={lluvia} oscuro={tema === "noche"} />}
+
+      <ModalFavoritas
+        playas={playas}
+        temporadaActiva={temporada.activa}
+        onVer={(p, casilla) => {
+          elegirPlaya(p);
+          setCasillaId(casilla);
+        }}
+      />
 
       <ModalUbicacion
         falla={fallaUbicacion}
@@ -1142,22 +1160,30 @@ function Detalle({
                 const b = g.bandera ? BANDERAS[g.bandera] : null;
                 return (
                   <li key={g.id}>
-                    <button
-                      onClick={() => onCasilla(g.id)}
-                      className={`flex w-full items-start gap-3 rounded-xl px-2 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-oscuro-3 ${
+                    {/* La estrella de favorita va al costado, no adentro: un botón no puede tener otro. */}
+                    <div
+                      className={`flex items-start rounded-xl hover:bg-slate-50 dark:hover:bg-oscuro-3 ${
                         casillaId === g.id ? "bg-sky-50 dark:bg-oscuro-3" : ""
                       }`}
                     >
-                      <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: b?.color ?? "#c9ced4" }} />
-                      <span className="min-w-0">
-                        <span className="block font-medium">{g.nombre}</span>
-                        {g.direccion && <span className="block text-xs text-slate-500">{g.direccion}</span>}
-                        <span className="block text-xs text-slate-600 dark:text-neutral-400">
-                          {b ? b.label : temporada.activa ? "Bandera sin datos" : "Sin servicio"}
+                      <button
+                        onClick={() => onCasilla(g.id)}
+                        className="flex min-w-0 flex-1 items-start gap-3 px-2 py-2 text-left text-sm"
+                      >
+                        <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: b?.color ?? "#c9ced4" }} />
+                        <span className="min-w-0">
+                          <span className="block font-medium">{g.nombre}</span>
+                          {g.direccion && <span className="block text-xs text-slate-500">{g.direccion}</span>}
+                          <span className="block text-xs text-slate-600 dark:text-neutral-400">
+                            {b ? b.label : temporada.activa ? "Bandera sin datos" : "Sin servicio"}
+                          </span>
+                          {g.banderaSanitaria?.activa && <AvisoSanitaria sanitaria={g.banderaSanitaria} />}
                         </span>
-                        {g.banderaSanitaria?.activa && <AvisoSanitaria sanitaria={g.banderaSanitaria} />}
+                      </button>
+                      <span className="p-1">
+                        <BotonFavorita playa={playa.slug} casilla={g.id} nombre={g.nombre} />
                       </span>
-                    </button>
+                    </div>
                     {g.comoIr && (
                       <a
                         href={g.comoIr}

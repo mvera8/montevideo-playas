@@ -357,6 +357,49 @@ Supabase; para recrearlo, correr ese SQL en el SQL Editor).
   (`RankingFavoritas`). Cada playa enlaza
   a `/playas?playa=<slug>`. Si la base no responde, avisa en vez de mostrar todo en 0.
 
+## Casillas favoritas
+
+Dato **propio del sitio**, mismo proyecto de Supabase y misma cuenta anónima que los me gusta (ver
+"Me gusta"). Esquema en `supabase/migrations/`: `20261026115250_playa_favorita.sql` (empezó siendo
+una playa), `20261026121129_casilla_favorita.sql` (pasó a ser una casilla) y
+`20261026121753_favoritas_hasta_3.sql` (hasta 3).
+
+- **Tabla `casilla_favorita`** (PK user_id + casilla, playa FK a `playas.slug`, actualizado): hasta
+  **3 por persona**. El tope lo pone el trigger `casilla_favorita_tope` (como `me_gusta_tope`: no en
+  la política, recursa) y se repite en el navegador (`TOPE_FAVORITAS` en `favorita-cliente.ts`) y en
+  la capa 3D (`MAX_ESTRELLAS`): cambiar los tres juntos. `casilla` es el id de la IM
+  (`MVD:lifeguardstation:1`, el mismo de `https://m.montevideo.gub.uy/playas/api/casillas`); no hay
+  tabla de casillas en la base porque cambian en la IM, así que solo se valida el formato. RLS: cada
+  uno ve, agrega y saca solo las suyas. **Nada es público**: no hay totales ni ranking.
+- **Escritura:** RPC `alternar_favorita(p_playa, p_casilla)` agrega la casilla o la saca si ya
+  estaba, y devuelve todas (`[{playa, casilla}, …]`, por orden de elección). Con 3 ya elegidas falla
+  con `check_violation` (23514). Crea la cuenta anónima si no había. Botón ⭐ en cada casilla de la
+  sección "Casillas" del detalle (`src/components/mapa/Favorita.tsx`).
+- **Tope:** si ya hay 3 y se toca otra estrella, el navegador no llama a la base y muestra un modal
+  ("Ya tenés 3 casillas favoritas"); si la base igual rechaza (copia vieja, otra pestaña), muestra
+  el mismo modal.
+- **Lectura:** `src/lib/favorita-cliente.ts`. Copia en `localStorage` (`favoritas`, JSON
+  `[{playa, casilla}]`) para ordenar el listado al instante sin bajar supabase-js. Solo si hay
+  sesión se leen las filas propias (`casilla_favorita?select=playa,casilla&order=actualizado`,
+  hasta 3) una vez por carga y se corrige la copia; sin sesión se borra la copia y no se pide nada.
+  La base manda.
+- **Orden:** en el listado de `/playas` (tarjetas en escritorio, píldoras en el celular) las playas
+  con casillas favoritas van primero, con una estrellita, y todo sigue en orden alfabético
+  (`favoritasPrimero`). Respeta búsqueda y filtro.
+- **Estrellas 3D en el mapa:** sobre cada casilla favorita gira una estrella dorada (una vuelta cada
+  6 s, `VUELTA_ESTRELLA_S` en `capa-casillas.ts`). Un `InstancedMesh` para las 3 (un draw call); las
+  matrices se recalculan en cada cuadro solo si hay alguna. Giran con la misma regla que las
+  banderas: a 30 fps, solo con zoom ≥ 13 y quietas con "reducir movimiento". Si la IM deja de
+  informar una casilla, no hay estrella (la favorita queda guardada).
+- **Modal (`ModalFavoritas`, solo en `/playas`):** un único `<Modal>` que cambia de contenido. El
+  tope tiene prioridad; si no, avisa las favoritas con bandera verde vigente (confirmadas por la
+  base, mismo dato y misma vigencia de la IM que el resto del mapa) en temporada, con un botón
+  "Ver …" por casilla que abre la playa con esa casilla elegida. Al cerrar el aviso verde se guarda
+  el día en `localStorage` (`aviso-favorita-cerrado=2026-10-26`, fecha de Montevideo) y no vuelve
+  hasta el día siguiente.
+- **Validar:** `select * from casilla_favorita` desde el conector (no por la API); `get_advisors`
+  suma solo el aviso esperado de acceso de cuentas anónimas a `casilla_favorita`.
+
 ## Foto de playa
 
 Botón 📷 al lado del me gusta en el detalle de cada playa: abre la cámara del celular
@@ -526,6 +569,8 @@ Analytics porque el plan gratis de Vercel lo permite en un solo proyecto.
 - `src/lib/playas.ts` — une playas + casillas + clima, lógica de temporada
 - `src/lib/transporte/` — GTFS, planificador y tiempo real
 - `src/lib/me-gusta.ts` / `me-gusta-cliente.ts` — totales (servidor) y botón ❤️ (navegador, Supabase)
+- `src/lib/favorita-cliente.ts` / `src/components/mapa/Favorita.tsx` — casillas favoritas ⭐ (hasta 3) y su modal
+- `src/lib/supabase-navegador.ts` — cliente de Supabase y cuenta anónima del navegador (compartido)
 - `src/lib/sello-foto.ts` — foto de playa con sello (Canvas, en el navegador)
 - `src/components/mapa/Mapa.tsx` — mapa, buscador y panel de detalle
 - `src/components/mapa/ComoIr.tsx` — UI de "cómo llegar en ómnibus"
