@@ -15,6 +15,8 @@ y, al final, las decisiones que faltan tomar para arrancar.
 | [Bicicleteros y estacionamientos](bicicleteros-estacionamientos.md) | Idea (15/10/2026) | Medir antes cuántos hay cerca de cada playa en OSM |
 | [Imágenes de cada playa](imagenes-de-playas.md) | Idea (15/10/2026) | Elegir fotos de Commons a mano; crédito y licencia por foto |
 | [Proyecto en iNaturalist (fauna)](proyecto-inaturalist.md) | Idea (15/10/2026) | Escribirle a NaturalistaUY; cuenta de Playas UY en iNaturalist |
+| [Actividades: surf y kite/windsurf](surf-y-kite.md) | Descartada por ahora (30/10/2026), código en un patch | Validar umbrales; el surf rinde más con costa oceánica |
+| [Eventos y cortes cerca de la playa](eventos-cerca-de-la-playa.md) | Idea (30/10/2026) | Sin API: lista a mano o leer la agenda de la IM; revisar permiso de uso |
 | [Fuentes de datos posibles](fuentes-posibles.md) | Lista (15/10/2026) | Nada: candidatas para sumar, con lo que hay que verificar |
 
 "Rey de la playa" y "Me gusta" comparten base de datos (Supabase) y sistema de cuentas: conviene

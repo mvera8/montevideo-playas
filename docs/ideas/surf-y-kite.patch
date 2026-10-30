@@ -1,0 +1,957 @@
+diff --git a/README.md b/README.md
+index dca5f5e..11919f3 100644
+--- a/README.md
++++ b/README.md
+@@ -204,8 +204,11 @@ día se suma publicidad, hay que pasar a Pro.
+   (corchetes codificados). Diaria, 0,25°, ~1 día de demora (medido 04/10/2026). Si tiene más de 4
+   días (`DIAS_VIGENCIA_SST`) no se muestra. Cache 6 h. Si la IM midió la temperatura, manda la de la IM.
+ - **Olas — WaveWatch III global de PacIOOS/NOAA** (`src/lib/mar.ts`):
+-  `https://pae-paha.pacioos.hawaii.edu/erddap/griddap/ww3_global.csv?Thgt[(desde):(hasta)][(0.0)][(lat)][(lon)]`
+-  (longitud 0–360). Hora a hora, 7 días, 0,5°: en el Río de la Plata es la ola de afuera, orientativa. Cache 1 h.
++  `https://pae-paha.pacioos.hawaii.edu/erddap/griddap/ww3_global.csv?Thgt[(desde):(hasta)][(0.0)][(lat)][(lon)],Tper[...],Tdir[...]`
++  (altura, período y de dónde vienen; cada variable repite los ejes; longitud 0–360). Hora a hora, 7 días, 0,5°:
++  en el Río de la Plata es la ola de afuera, orientativa. Cache 1 h. Las variables de swell (`shgt`, `sper`,
++  `sdir`) vinieron `NaN` frente a Uruguay (medido 30/10/2026), por eso no se usan. Open-Meteo Marine sí trae swell,
++  pero su plan gratis es no comercial y puede limitar en hosting compartido como Vercel.
+ - En ERDDAP las celdas de tierra vienen como `NaN`: se pide una cajita de ±0,5° y se usa la celda con
+   dato más cercana. Timeout de 10 s; si el mar falla, la app sigue sin agua ni olas. Si un servidor no
+   responde (timeout, error de red o 5xx) no se vuelve a consultar por 5 min, para no esperar el timeout en
+@@ -295,6 +298,22 @@ con lo último que respondió de ella (o sin ella, si nunca respondió) y se rei
+ (`PAUSA_FALLA`), no a las 24 h. La falla se registra con `console.warn` (es esperable y está manejada). En el mapa: íconos desde zoom 13,5
+ con popup (armado con DOM/textContent, los datos de OSM son texto libre).
+ 
++## Actividades: surf y kite/windsurf
++
++Botón "Actividades" del mapa (`src/components/mapa/Actividades.tsx`, reglas puras en `src/lib/actividades.ts`).
++Por cada playa dibuja una ola con surfista o un kite 3D, con el color del nivel (ideal, posible, no se puede o
++peligro), una etiqueta y una lista con el motivo.
++
++- **Sin pedidos nuevos:** usa el viento de MET Norway y las olas de WaveWatch III que ya trae el clima de cada playa,
++  más su orientación. No se muestra si el paso del pronóstico tiene más de 3 horas (`vientoVigente`).
++- **Surf:** olas de 0,5 a 2,5 m que entren a la playa. Ideal con 7 s o más y viento de tierra o flojo.
++- **Kite/windsurf:** 20 a 45 km/h, ideal hasta 40 km/h con viento lateral. Viento hacia el agua (más de 10° pasado el
++  lateral) = "peligro", porque aleja de la costa, aunque la velocidad sea buena.
++- **De noche o con tormenta** no se recomienda ninguna.
++- **Validación pendiente:** los umbrales son una estimación propia: hay que revisarlos con gente que practique
++  en Montevideo. La ola es la de afuera de la costa (0,5°), así que el surf es lo menos preciso.
++- **Performance:** un `InstancedMesh` por actividad, animado en el vertex shader; solo se anima con el modo prendido.
++
+ ## ¿A qué playa voy? y mejor horario
+ 
+ Lógica pura en `src/lib/recomendacion.ts` (sirve en cliente y servidor):
+diff --git a/src/app/terminos/page.tsx b/src/app/terminos/page.tsx
+index dce60c9..6f6b1d4 100644
+--- a/src/app/terminos/page.tsx
++++ b/src/app/terminos/page.tsx
+@@ -37,7 +37,7 @@ const FUENTES = [
+   {
+     nombre: "MET Norway (Instituto Meteorológico de Noruega)",
+     url: "https://api.met.no",
+-    usa: "Clima actual y pronóstico por hora (temperatura, sensación térmica, viento, lluvia, UV) y flechas del modo Viento del mapa.",
++    usa: "Clima actual y pronóstico por hora (temperatura, sensación térmica, viento, lluvia, UV) flechas del modo Viento del mapa y evaluación del modo Actividades.",
+     licencia: "Datos bajo licencia CC BY 4.0, con uso comercial permitido.",
+     licenciaUrl: "https://creativecommons.org/licenses/by/4.0/deed.es",
+   },
+@@ -50,7 +50,7 @@ const FUENTES = [
+   {
+     nombre: "NOAA — OISST y WaveWatch III (PacIOOS)",
+     url: "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21NrtAgg_LonPM180.html",
+-    usa: "Temperatura del agua (modelo satelital diario) y altura de olas (pronóstico hora a hora).",
++    usa: "Temperatura del agua (modelo satelital diario) y altura, período y dirección de olas (pronóstico hora a hora).",
+     licencia: "Datos públicos del gobierno de EE. UU. y de PacIOOS, de uso y redistribución libres.",
+   },
+   {
+@@ -195,6 +195,19 @@ export default function Terminos() {
+         con espuma de cianobacterias, siempre se marcan como “No recomendable”.
+       </p>
+ 
++      <h3 id="actividades">Actividades: surf y kite o windsurf</h3>
++      <p>
++        El modo “Actividades” del mapa es un <strong>cálculo propio y orientativo, no un dato oficial</strong>. Combina el
++        pronóstico de viento de MET Norway, el de olas de NOAA y hacia dónde mira cada playa, con umbrales generales que
++        definimos nosotros. No considera tu nivel ni tu equipo, ráfagas, corrientes, mareas, bancos de arena, rocas,
++        tránsito de embarcaciones ni las normas de cada lugar. El modelo de olas tiene una resolución de unos 50 km y en
++        el Río de la Plata muestra la ola de afuera de la costa, así que la ola real puede ser muy distinta. Si el
++        pronóstico tiene más de 3 horas, no mostramos la evaluación. Que una playa aparezca como “Ideal” <strong>no
++        significa que sea segura</strong>: mirá el lugar antes de entrar, hacé caso a la bandera y a los guardavidas, y
++        ante una alerta manda Inumet. El viento hacia el agua te aleja de la costa y puede ser peligroso. Estas actividades
++        implican riesgos que asumís vos.
++      </p>
++
+       <h3>Baños, bebederos y duchas</h3>
+       <p>
+         Combinamos el registro oficial de la Intendencia (solo los marcados como activos) con datos de OpenStreetMap,
+diff --git a/src/components/mapa/Actividades.tsx b/src/components/mapa/Actividades.tsx
+new file mode 100644
+index 0000000..bb3f755
+--- /dev/null
++++ b/src/components/mapa/Actividades.tsx
+@@ -0,0 +1,173 @@
++"use client";
++
++import { useEffect, useRef, useState } from "react";
++import { Waves, Wind } from "@phosphor-icons/react/dist/ssr";
++import type { Map as MapLibreMap } from "maplibre-gl";
++import { NIVEL_ACTIVIDAD, evaluarKite, evaluarSurf, type Evaluacion } from "@/lib/actividades";
++import type { Playa } from "@/lib/playas";
++import type { Actividad, ActividadMapa, PuntoActividad } from "./capa-casillas";
++import { vientoVigente } from "./Viento";
++
++// Modo "Actividades" del mapa: por cada playa, una ola con surfista o un kite 3D (los dibuja `CapaCasillas`,
++// un draw call por actividad) con el color de la condición de hoy, una etiqueta y una lista con el motivo.
++// Usa el clima que ya trae cada playa: no hace pedidos nuevos. Las reglas están en `src/lib/actividades.ts`.
++
++const ACTIVIDADES: Record<Actividad, { label: string; Icono: typeof Waves }> = {
++  surf: { label: "Surf", Icono: Waves },
++  kite: { label: "Kite / windsurf", Icono: Wind },
++};
++
++const evaluar = (a: Actividad, p: Playa) => (a === "surf" ? evaluarSurf : evaluarKite)(p.orientacion, p.clima!);
++const conClima = (playas: Playa[], ahora = Date.now()) => playas.filter((p) => p.clima && vientoVigente(p.clima.time, ahora));
++const etiqueta = (e: Evaluacion) => `${NIVEL_ACTIVIDAD[e.nivel].label} · ${e.datos}`;
++
++/** Lo que dibuja la capa 3D: solo playas con clima vigente. */
++export function actividadesMapa(playas: Playa[], ahora = Date.now()): Record<Actividad, ActividadMapa[]> {
++  const vigentes = conClima(playas, ahora);
++  const items = (a: Actividad, rumbo: (p: Playa) => number) =>
++    vigentes.map((p) => {
++      const e = evaluar(a, p);
++      return {
++        lng: p.lon,
++        lat: p.lat,
++        orientacion: p.orientacion,
++        rumbo: rumbo(p),
++        color: NIVEL_ACTIVIDAD[e.nivel].color,
++        viva: e.nivel === "ideal" || e.nivel === "posible",
++        etiqueta: etiqueta(e),
++      };
++    });
++  return {
++    surf: items("surf", (p) => p.orientacion + 180), // la ola va hacia la costa
++    kite: items("kite", (p) => p.clima!.windDirection + 180), // el viento tira hacia donde sopla
++  };
++}
++
++/** Capa de etiquetas (oculta hasta que se elige una actividad). La ubica la capa 3D: ver `onActividadMovida`. */
++export function agregarCapaActividad(map: MapLibreMap) {
++  map.addSource("actividad", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
++  map.addLayer({
++    id: "actividad",
++    type: "symbol",
++    source: "actividad",
++    layout: {
++      visibility: "none",
++      "text-field": ["get", "etiqueta"],
++      "text-font": ["Noto Sans Bold"],
++      "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 15, 13],
++    },
++    paint: { "text-color": "#0f3a52", "text-halo-color": "#ffffff", "text-halo-width": 1.6 },
++  });
++}
++
++export function etiquetasActividad(puntos: PuntoActividad[]): GeoJSON.FeatureCollection {
++  return {
++    type: "FeatureCollection",
++    features: puntos.map((p) => ({
++      type: "Feature",
++      geometry: { type: "Point", coordinates: p.lngLat },
++      properties: { etiqueta: p.etiqueta },
++    })),
++  };
++}
++
++/** Botón con desplegable para elegir la actividad (arriba a la derecha, junto a Viento). */
++export function BotonActividades({ actividad, onCambiar }: { actividad: Actividad | null; onCambiar: (a: Actividad | null) => void }) {
++  const [abierto, setAbierto] = useState(false);
++  const ref = useRef<HTMLDivElement>(null);
++
++  // Cerrar al tocar afuera o con Escape.
++  useEffect(() => {
++    if (!abierto) return;
++    const fuera = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setAbierto(false);
++    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAbierto(false);
++    document.addEventListener("pointerdown", fuera);
++    document.addEventListener("keydown", esc);
++    return () => {
++      document.removeEventListener("pointerdown", fuera);
++      document.removeEventListener("keydown", esc);
++    };
++  }, [abierto]);
++
++  return (
++    <div ref={ref} className="relative">
++      <button
++        onClick={() => setAbierto((v) => !v)}
++        aria-expanded={abierto}
++        aria-haspopup="menu"
++        title="Actividades"
++        className={`flex h-10 w-10 items-center justify-center gap-2 rounded-xl text-sm font-medium shadow-lg ring-1 backdrop-blur md:h-12 md:w-auto md:rounded-2xl md:px-4 ${
++          actividad
++            ? "bg-sky-700 text-white ring-sky-800/20"
++            : "bg-white/95 text-slate-700 ring-black/5 hover:text-slate-900 dark:bg-oscuro-1/95 dark:text-neutral-200 dark:ring-white/10"
++        }`}
++      >
++        <Waves className="h-5 w-5" weight={actividad ? "bold" : "regular"} aria-hidden />
++        <span className="max-md:sr-only">Actividades</span>
++      </button>
++
++      {abierto && (
++        <div
++          role="menu"
++          className="absolute right-0 top-full z-30 mt-2 w-52 origin-top-right animate-[aparecer_150ms_ease-out] rounded-2xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5 backdrop-blur motion-reduce:animate-none dark:bg-oscuro-1/95 dark:text-neutral-200 dark:ring-white/10"
++        >
++          {(Object.keys(ACTIVIDADES) as Actividad[]).map((a) => {
++            const { label, Icono } = ACTIVIDADES[a];
++            const activa = actividad === a;
++            return (
++              <button
++                key={a}
++                role="menuitemradio"
++                aria-checked={activa}
++                onClick={() => {
++                  onCambiar(activa ? null : a);
++                  setAbierto(false);
++                }}
++                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${
++                  activa ? "bg-sky-50 font-medium text-sky-900 dark:bg-oscuro-3 dark:text-white" : "hover:bg-slate-50 dark:hover:bg-oscuro-3"
++                }`}
++              >
++                <Icono className="h-5 w-5" aria-hidden />
++                {label}
++              </button>
++            );
++          })}
++        </div>
++      )}
++    </div>
++  );
++}
++
++/** Playas de mejor a peor, con el motivo; avisa si no hay datos recientes. */
++export function LeyendaActividad({ actividad, playas }: { actividad: Actividad; playas: Playa[] }) {
++  const lista = conClima(playas)
++    .map((p) => ({ slug: p.slug, nombre: p.nombre, e: evaluar(actividad, p) }))
++    .sort((a, b) => NIVEL_ACTIVIDAD[a.e.nivel].orden - NIVEL_ACTIVIDAD[b.e.nivel].orden);
++
++  return (
++    <div className="pointer-events-auto w-64 animate-[aparecer_150ms_ease-out] rounded-2xl bg-white/95 px-3 py-2.5 text-xs text-slate-600 shadow-lg ring-1 ring-black/5 backdrop-blur motion-reduce:animate-none dark:bg-oscuro-1/95 dark:text-neutral-300 dark:ring-white/10">
++      {lista.length ? (
++        <>
++          <p className="font-medium text-slate-900 dark:text-white">{ACTIVIDADES[actividad].label} ahora</p>
++          <ul className="mt-2 max-h-[32vh] space-y-1.5 max-md:max-h-[20vh] overflow-y-auto">
++            {lista.map(({ slug, nombre, e }) => (
++              <li key={slug} className="flex gap-2">
++                <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: NIVEL_ACTIVIDAD[e.nivel].color }} aria-hidden />
++                <span>
++                  <span className="font-medium text-slate-800 dark:text-neutral-100">{nombre}</span>
++                  <span className="sr-only"> ({NIVEL_ACTIVIDAD[e.nivel].label})</span>
++                  <span className="block text-slate-500 dark:text-neutral-400">{e.motivo}</span>
++                </span>
++              </li>
++            ))}
++          </ul>
++          <p className="mt-2 border-t border-slate-100 pt-2 text-slate-400 dark:border-oscuro-3">
++            Cálculo propio y orientativo, con pronósticos de MET Norway y NOAA. Mirá el lugar y hacé caso a la bandera.
++          </p>
++        </>
++      ) : (
++        <p className="font-medium text-slate-900 dark:text-white">Sin datos recientes para {ACTIVIDADES[actividad].label.toLowerCase()}</p>
++      )}
++    </div>
++  );
++}
+diff --git a/src/components/mapa/Mapa.tsx b/src/components/mapa/Mapa.tsx
+index 1ff2512..bd86775 100644
+--- a/src/components/mapa/Mapa.tsx
++++ b/src/components/mapa/Mapa.tsx
+@@ -45,6 +45,8 @@ import SelectorTema, { OpcionesTema } from "./SelectorTema";
+ import MenuSitio from "@/components/MenuSitio";
+ import Modal, { BotonModal } from "@/components/Modal";
+ import Lluvia from "./Lluvia";
++import { BotonActividades, LeyendaActividad, actividadesMapa, agregarCapaActividad, etiquetasActividad } from "./Actividades";
++import type { Actividad } from "./capa-casillas";
+ import { BotonViento, LeyendaViento, agregarCapaViento, etiquetasViento, vientoVigente, vientosMapa } from "./Viento";
+ import { AvisoSanitaria } from "./BanderaSanitaria";
+ import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
+@@ -253,6 +255,15 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
+       return false;
+     }
+   });
++  // Modo actividades (surf o kite); se recuerda por navegador. No se muestra junto con el viento.
++  const [actividad, setActividad] = useState<Actividad | null>(() => {
++    try {
++      const a = localStorage.getItem("actividad");
++      return a === "surf" || a === "kite" ? a : null;
++    } catch {
++      return null;
++    }
++  });
+   const temaAuto = temaPorClima(climaCiudad);
+   const tema = temaManual ?? temaAuto;
+   const temaRef = useRef(tema);
+@@ -406,6 +417,14 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
+         cancelAnimationFrame(cuadro);
+         cuadro = requestAnimationFrame(() => (map.getSource("viento") as GeoJSONSource | undefined)?.setData(etiquetasViento(puntos)));
+       };
++      agregarCapaActividad(map);
++      let cuadroActividad = 0;
++      capa.onActividadMovida = (puntos) => {
++        cancelAnimationFrame(cuadroActividad);
++        cuadroActividad = requestAnimationFrame(() =>
++          (map.getSource("actividad") as GeoJSONSource | undefined)?.setData(etiquetasActividad(puntos)),
++        );
++      };
+       map.addSource("playas", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+       map.addLayer({
+         id: "playas-nombres",
+@@ -624,8 +643,21 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
+ 
+   function cambiarViento(v: boolean) {
+     setViento(v);
++    if (v) setActividad(null);
+     try {
+       localStorage.setItem("viento", v ? "1" : "0");
++      if (v) localStorage.removeItem("actividad");
++    } catch {}
++  }
++
++  function cambiarActividad(a: Actividad | null) {
++    setActividad(a);
++    if (a) setViento(false);
++    try {
++      if (a) {
++        localStorage.setItem("actividad", a);
++        localStorage.setItem("viento", "0");
++      } else localStorage.removeItem("actividad");
+     } catch {}
+   }
+ 
+@@ -639,6 +671,14 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
+     map.setLayoutProperty("viento", "visibility", viento ? "visible" : "none");
+   }, [listo, viento]);
+ 
++  // Actividad → mapa.
++  useEffect(() => {
++    const map = mapRef.current;
++    if (!listo || !map) return;
++    capaRef.current?.setActividadVisible(actividad);
++    map.setLayoutProperty("actividad", "visibility", actividad ? "visible" : "none");
++  }, [listo, actividad]);
++
+   // Servicios → mapa.
+   useEffect(() => {
+     const map = mapRef.current;
+@@ -671,6 +711,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
+     if (!listo || !map) return;
+     capaRef.current?.setAguasVivas(aguasVivas);
+     capaRef.current?.setVientos(vientosMapa(playas));
++    capaRef.current?.setActividades(actividadesMapa(playas));
+     capaRef.current?.setCasillas(casillas);
+     (map.getSource("casillas") as GeoJSONSource).setData({
+       type: "FeatureCollection",
+@@ -931,6 +972,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
+         <div className="max-md:hidden">
+           <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
+         </div>
++        <BotonActividades actividad={actividad} onCambiar={cambiarActividad} />
+         <BotonViento activo={viento} onCambiar={cambiarViento} />
+         <MenuSitio>
+           {(cerrarMenu) => (
+@@ -959,6 +1001,12 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
+         </div>
+       )}
+ 
++      {actividad && (
++        <div className={`pointer-events-none absolute right-3 top-[128px] z-20 md:right-4 md:top-20 ${teclado ? "max-md:hidden" : ""}`}>
++          <LeyendaActividad actividad={actividad} playas={playas} />
++        </div>
++      )}
++
+       <aside
+         id="panel-lateral"
+         className={`pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-3 p-3 transition-[translate,visibility] duration-700 ease-fluido motion-reduce:transition-none md:inset-y-0 md:right-auto md:w-[380px] md:p-4 ${
+diff --git a/src/components/mapa/capa-casillas.ts b/src/components/mapa/capa-casillas.ts
+index 0628ffe..95df814 100644
+--- a/src/components/mapa/capa-casillas.ts
++++ b/src/components/mapa/capa-casillas.ts
+@@ -27,6 +27,8 @@ import {
+   crearGeometriaCasilla,
+   crearGeometriaEstrella,
+   crearGeometriaFlecha,
++  crearGeometriaKite,
++  crearGeometriaSurf,
+ } from "./modelo";
+ import { SANITARIA } from "./BanderaSanitaria";
+ 
+@@ -61,6 +63,20 @@ export type VientoMapa = {
+   color: string;
+ };
+ 
++export type Actividad = "surf" | "kite";
++
++// Una playa en el modo "Actividades" (ver Actividades.tsx): ola con surfista o kite 3D sobre el agua.
++export type ActividadMapa = {
++  lng: number;
++  lat: number;
++  orientacion: number; // rumbo hacia el agua
++  rumbo: number; // hacia dónde avanza la ola o tira el viento (0 = norte)
++  color: string; // según el nivel de la condición
++  viva: boolean; // false = no se puede hoy: más chica y quieta
++  etiqueta: string;
++};
++export type PuntoActividad = { lngLat: [number, number]; etiqueta: string };
++
+ // Flechas por playa: avanzan en fila hacia donde sopla, cada una aparece, recorre y se desvanece.
+ const FLECHAS_POR_PLAYA = 3;
+ const SEPARACION_VIENTO = 15; // más lejos que el agua viva, para no taparla
+@@ -124,6 +140,12 @@ export class CapaCasillas implements CustomLayerInterface {
+   private vientoVisible = false;
+   /** Se llama cuando las flechas cambian de lugar (zoom): Mapa.tsx mueve las etiquetas de km/h. */
+   onVientoMovido?: (puntos: { lngLat: [number, number]; kmh: number }[]) => void;
++  private actividadMeshes: Partial<Record<Actividad, InstancedMesh>> = {};
++  private actividadMats: Partial<Record<Actividad, ShaderMaterial>> = {};
++  private actividades: Record<Actividad, ActividadMapa[]> = { surf: [], kite: [] };
++  private actividad: Actividad | null = null;
++  /** Como onVientoMovido, para las etiquetas del modo actividades. */
++  onActividadMovida?: (puntos: PuntoActividad[]) => void;
+   // Dónde quedó cada agua viva en el último cuadro (se corre con el zoom) y su alto en pantalla, para
+   // saber si un toque cayó sobre ella (ver aguaVivaEn).
+   private aguasVivasEnMapa: { slug: string; lngLat: [number, number] }[] = [];
+@@ -318,6 +340,53 @@ export class CapaCasillas implements CustomLayerInterface {
+         }`,
+     });
+ 
++    // Ola y kite: comparten color y luz; cambia solo el movimiento. Las que no se pueden hoy (aViva = 0) quedan quietas.
++    const materialActividad = (movimiento: string) =>
++      new ShaderMaterial({
++        side: DoubleSide,
++        uniforms: { uTime: { value: 0 } },
++        vertexShader: /* glsl */ `
++          uniform float uTime;
++          attribute vec3 aFijo;
++          attribute float aTinte;
++          attribute float aParte;
++          attribute vec3 aColor;
++          attribute float aFase;
++          attribute float aViva;
++          varying vec3 vColor;
++          varying float vLuz;
++          void main() {
++            vec3 p = position;
++            float t = uTime * aViva + aFase * 6.28;
++            ${movimiento}
++            vColor = mix(aFijo, aColor, aTinte);
++            vLuz = 0.68 + 0.32 * clamp(normal.y + 0.3 * normal.z, 0.0, 1.0);
++            gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(p, 1.0);
++          }`,
++        fragmentShader: /* glsl */ `
++          varying vec3 vColor;
++          varying float vLuz;
++          void main() {
++            gl_FragColor = vec4(vColor * vLuz, 1.0);
++            #include <colorspace_fragment>
++          }`,
++      });
++    this.actividadMats = {
++      // La ola respira y el surfista (aParte = 1) corre a lo largo de la cresta.
++      surf: materialActividad(/* glsl */ `
++        if (aParte < 0.5) p.y *= 1.0 + 0.07 * aViva * sin(t * 1.3);
++        else {
++          p.z += 2.6 * aViva * sin(t * 0.8);
++          p.y += 0.12 * aViva * sin(t * 2.0);
++        }`),
++      // La vela y las líneas (aParte = 2) se inclinan con el viento y se mecen; la persona sube y baja.
++      kite: materialActividad(/* glsl */ `
++        if (aParte > 1.5) {
++          p.z += p.y * 0.42;
++          p.x += p.y * 0.1 * aViva * sin(t * 0.9);
++        } else p.y += 0.14 * aViva * sin(t * 1.8);`),
++    };
++
+     this.construirMeshes();
+     document.addEventListener("visibilitychange", this.alCambiarVisibilidad);
+   }
+@@ -329,6 +398,8 @@ export class CapaCasillas implements CustomLayerInterface {
+     this.banderaMat?.dispose();
+     this.aguaVivaMat?.dispose();
+     this.vientoMat?.dispose();
++    this.actividadMats.surf?.dispose();
++    this.actividadMats.kite?.dispose();
+     this.estrellas?.geometry.dispose();
+     (this.estrellas?.material as MeshLambertMaterial | undefined)?.dispose();
+     this.estrellas?.dispose();
+@@ -356,6 +427,21 @@ export class CapaCasillas implements CustomLayerInterface {
+     this.map?.triggerRepaint();
+   }
+ 
++  /** Se aplica en el próximo setCasillas, igual que las aguas vivas. */
++  setActividades(actividades: Record<Actividad, ActividadMapa[]>) {
++    this.actividades = actividades;
++  }
++
++  setActividadVisible(actividad: Actividad | null) {
++    this.actividad = actividad;
++    for (const a of ["surf", "kite"] as const) {
++      const m = this.actividadMeshes[a];
++      if (m) m.visible = a === actividad;
++    }
++    this.zoomAplicado = -1; // recalcula las etiquetas de la actividad elegida
++    this.map?.triggerRepaint();
++  }
++
+   /** Slug de la playa cuya agua viva está bajo el punto de pantalla (px del canvas), o null. */
+   aguaVivaEn(punto: { x: number; y: number }): string | null {
+     if (!this.map || !this.altoAguaVivaPx) return null;
+@@ -411,6 +497,7 @@ export class CapaCasillas implements CustomLayerInterface {
+     this.banderaMat!.uniforms.uTime.value = t;
+     this.aguaVivaMat!.uniforms.uTime.value = t;
+     this.vientoMat!.uniforms.uTime.value = t;
++    if (this.actividad) this.actividadMats[this.actividad]!.uniforms.uTime.value = t;
+     if (this.estrellas?.count) {
+       this.estrellaGiro.makeRotationY((t * 2 * Math.PI) / VUELTA_ESTRELLA_S).setPosition(0, ESTRELLA.altura, 0);
+       this.estrellasBase.forEach((b, i) => this.estrellas!.setMatrixAt(i, this.estrellaMatriz.copy(b).multiply(this.estrellaGiro)));
+@@ -421,7 +508,7 @@ export class CapaCasillas implements CustomLayerInterface {
+     this.renderer.render(this.scene, this.camera);
+ 
+     // Con el modo viento se anima a cualquier zoom: las flechas se ven también de lejos.
+-    const vientoAnimado = this.vientoVisible && this.vientoMesh;
++    const vientoAnimado = (this.vientoVisible && this.vientoMesh) || this.actividad;
+     if (this.animar && (zoom >= ZOOM_ANIMACION || vientoAnimado) && !this.timer && !document.hidden) {
+       this.timer = window.setTimeout(() => {
+         this.timer = 0;
+@@ -435,7 +522,7 @@ export class CapaCasillas implements CustomLayerInterface {
+   };
+ 
+   private liberarMeshes() {
+-    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh]) {
++    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh, this.actividadMeshes.surf, this.actividadMeshes.kite]) {
+       if (!m) continue;
+       this.scene.remove(m);
+       m.geometry.dispose();
+@@ -443,6 +530,7 @@ export class CapaCasillas implements CustomLayerInterface {
+     }
+     (this.casillasMesh?.material as MeshLambertMaterial | undefined)?.dispose();
+     this.casillasMesh = this.banderasMesh = this.aguasVivasMesh = this.vientoMesh = undefined;
++    this.actividadMeshes = {};
+     this.aguasVivasEnMapa = [];
+     this.altoAguaVivaPx = 0;
+   }
+@@ -514,7 +602,27 @@ export class CapaCasillas implements CustomLayerInterface {
+       this.vientoMesh.visible = this.vientoVisible;
+     }
+ 
+-    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh]) {
++    for (const a of ["surf", "kite"] as const) {
++      const items = this.actividades[a];
++      if (!items.length) continue;
++      const geo = a === "surf" ? crearGeometriaSurf() : crearGeometriaKite();
++      const colores = new Float32Array(items.length * 3);
++      const fases = new Float32Array(items.length);
++      const vivas = new Float32Array(items.length);
++      items.forEach((it, i) => {
++        color.set(it.color).toArray(colores, i * 3);
++        fases[i] = (i * 0.37) % 1; // cada playa a su ritmo
++        vivas[i] = it.viva ? 1 : 0;
++      });
++      geo.setAttribute("aColor", new InstancedBufferAttribute(colores, 3));
++      geo.setAttribute("aFase", new InstancedBufferAttribute(fases, 1));
++      geo.setAttribute("aViva", new InstancedBufferAttribute(vivas, 1));
++      const mesh = new InstancedMesh(geo, this.actividadMats[a]!, items.length);
++      mesh.visible = this.actividad === a;
++      this.actividadMeshes[a] = mesh;
++    }
++
++    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh, this.actividadMeshes.surf, this.actividadMeshes.kite]) {
+       if (!m) continue;
+       m.frustumCulled = false; // la cámara es la del mapa; son pocas instancias
+       m.matrixAutoUpdate = false;
+@@ -627,5 +735,35 @@ export class CapaCasillas implements CustomLayerInterface {
+       this.vientoMesh.instanceMatrix.needsUpdate = true;
+       this.onVientoMovido?.(puntos);
+     }
++
++    // Actividades: en el mismo lugar que las flechas (nunca se ven juntas), a escala de la casilla.
++    for (const a of ["surf", "kite"] as const) {
++      const mesh = this.actividadMeshes[a];
++      if (!mesh) continue;
++      const puntos: PuntoActividad[] = [];
++      const rot = new Matrix4();
++      this.actividades[a].forEach((it, i) => {
++        const m = MercatorCoordinate.fromLngLat([it.lng, it.lat], 0);
++        const haciaAgua = (it.orientacion * Math.PI) / 180;
++        const d = SEPARACION_VIENTO * escalaBase * (1 + Math.min(Math.max((zoom - 12) / 3, 0), 1));
++        const e = escalaBase * (it.viva ? 1 : 0.7);
++        const x = (m.x - this.origen.x) / this.escalaMerc + Math.sin(haciaAgua) * d;
++        const z = (m.y - this.origen.y) / this.escalaMerc - Math.cos(haciaAgua) * d;
++        const rumbo = (it.rumbo * Math.PI) / 180;
++        // Surf: el modelo avanza hacia +X. Kite: el viento tira hacia +Z.
++        rot.makeRotationY(a === "surf" ? Math.PI / 2 - rumbo : Math.PI - rumbo);
++        base.makeScale(e, e, e).premultiply(rot).setPosition(x, 0, z);
++        mesh.setMatrixAt(i, base);
++        const dz = 8 * escalaBase; // etiqueta más hacia el agua, para que el modelo no la tape
++        const ll = new MercatorCoordinate(
++          this.origen.x + (x + Math.sin(haciaAgua) * dz) * this.escalaMerc,
++          this.origen.y + (z - Math.cos(haciaAgua) * dz) * this.escalaMerc,
++          0,
++        ).toLngLat();
++        puntos.push({ lngLat: [ll.lng, ll.lat], etiqueta: it.etiqueta });
++      });
++      mesh.instanceMatrix.needsUpdate = true;
++      if (a === this.actividad) this.onActividadMovida?.(puntos);
++    }
+   }
+ }
+diff --git a/src/components/mapa/modelo.ts b/src/components/mapa/modelo.ts
+index e4d3c17..33e03b9 100644
+--- a/src/components/mapa/modelo.ts
++++ b/src/components/mapa/modelo.ts
+@@ -2,13 +2,17 @@ import {
+   BoxGeometry,
+   BufferAttribute,
+   BufferGeometry,
++  CapsuleGeometry,
+   Color,
+   CylinderGeometry,
+   ExtrudeGeometry,
+   Matrix4,
+   PlaneGeometry,
++  Quaternion,
+   Shape,
+   SphereGeometry,
++  Vector2,
++  Vector3,
+ } from "three";
+ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+ 
+@@ -271,3 +275,126 @@ export function crearGeometriaEstrella(): BufferGeometry {
+   g.deleteAttribute("uv");
+   return g;
+ }
++
++// Modelos del modo "Actividades" (Actividades.tsx). Cada pieza lleva su color fijo (aFijo), cuánto toma del
++// color de la instancia, que es el nivel de la condición (aTinte), y si es la parte móvil (aParte). Se dibujan
++// con InstancedMesh y se animan en el vertex shader, como las flechas de viento.
++function pieza(geo: BufferGeometry, color: string, tinte = 0, parte = 1): BufferGeometry {
++  const g = geo.index ? geo.toNonIndexed() : geo;
++  g.deleteAttribute("uv");
++  g.computeVertexNormals();
++  const n = g.attributes.position.count;
++  const c = new Color(color);
++  const fijo = new Float32Array(n * 3);
++  for (let i = 0; i < n; i++) c.toArray(fijo, i * 3);
++  g.setAttribute("aFijo", new BufferAttribute(fijo, 3));
++  g.setAttribute("aTinte", new BufferAttribute(new Float32Array(n).fill(tinte), 1));
++  g.setAttribute("aParte", new BufferAttribute(new Float32Array(n).fill(parte), 1));
++  return g;
++}
++
++// Persona parada sobre una tabla larga en Z, con los pies en el origen (y un poco de lado, como al surfear).
++function persona(tablaLargo: number, tablaColor: string, tinte: number): BufferGeometry[] {
++  const contorno = new Shape();
++  contorno.moveTo(-0.32, -tablaLargo / 2 + 0.3);
++  contorno.quadraticCurveTo(0, -tablaLargo / 2 - 0.1, 0.32, -tablaLargo / 2 + 0.3);
++  contorno.lineTo(0.42, tablaLargo / 4);
++  contorno.quadraticCurveTo(0, tablaLargo / 2 + 0.3, -0.42, tablaLargo / 4);
++  contorno.closePath();
++  const tabla = new ExtrudeGeometry(contorno, { depth: 0.14, bevelEnabled: false, curveSegments: 4 });
++  tabla.rotateX(Math.PI / 2);
++  tabla.translate(0, 0.14, 0);
++  const cuerpo = new CapsuleGeometry(0.3, 0.8, 2, 6);
++  cuerpo.rotateX(0.25);
++  cuerpo.translate(0, 1, 0);
++  const cabeza = new SphereGeometry(0.28, 8, 6);
++  cabeza.translate(0, 1.95, 0.14);
++  const brazos = new BoxGeometry(0.16, 0.16, 1.7);
++  brazos.translate(0, 1.35, 0);
++  const piernas = new BoxGeometry(0.3, 0.5, 0.75);
++  piernas.translate(0, 0.35, 0);
++  return [
++    pieza(tabla, tablaColor, tinte),
++    pieza(cuerpo, "#1f2937"),
++    pieza(cabeza, "#e8b98f"),
++    pieza(brazos, "#1f2937"),
++    pieza(piernas, "#1f2937"),
++  ];
++}
++
++// Ola con surfista: rompe hacia +X (la capa la gira hacia la costa) y el surfista corre a lo largo de la
++// cresta (Z). La parte de arriba de la ola toma el color del nivel, para leerlo desde lejos.
++export function crearGeometriaSurf(): BufferGeometry {
++  const perfil = new Shape();
++  perfil.moveTo(-7, 0);
++  perfil.bezierCurveTo(-4, 0.3, -2, 4.8, 0.8, 5);
++  perfil.quadraticCurveTo(2.6, 5.1, 3.6, 3.7);
++  perfil.quadraticCurveTo(2.2, 3.7, 2.1, 2.3);
++  perfil.quadraticCurveTo(2.2, 0.8, 5.2, 0);
++  perfil.closePath();
++  const ANCHO_OLA = 10;
++  const ola = new ExtrudeGeometry(perfil, { depth: ANCHO_OLA, steps: 12, bevelEnabled: false, curveSegments: 10 });
++  ola.translate(0, 0, -ANCHO_OLA / 2);
++  // Se afina hacia los costados para que no parezca una caja.
++  const vertices = ola.attributes.position;
++  for (let i = 0; i < vertices.count; i++) {
++    const borde = 1 - ((vertices.getZ(i) / (ANCHO_OLA / 2)) ** 4);
++    vertices.setY(i, vertices.getY(i) * 0.8 * borde);
++    vertices.setX(i, vertices.getX(i) * (0.55 + 0.45 * borde));
++  }
++  const olaPieza = pieza(ola, "#1683a8", 0, 0);
++  // Degradé: abajo agua, arriba espuma del color del nivel.
++  const pos = olaPieza.attributes.position;
++  const tinte = olaPieza.attributes.aTinte;
++  for (let i = 0; i < pos.count; i++) tinte.setX(i, Math.min(Math.max((pos.getY(i) - 2.4) / 1.1, 0), 1));
++
++  const surfista = persona(3.1, "#ffffff", 0.75);
++  // Sobre la cresta y más grande que a escala: la cámara suele ver la ola de atrás, desde el agua.
++  const giro = new Matrix4().makeRotationZ(-0.2).scale(new Vector3(1.7, 1.7, 1.7)).setPosition(0.4, 3.9, 0);
++  surfista.forEach((g) => g.applyMatrix4(giro));
++
++  const merged = mergeGeometries([olaPieza, ...surfista])!;
++  merged.computeBoundingSphere();
++  return merged;
++}
++
++function linea(a: Vector3, b: Vector3): BufferGeometry {
++  const d = b.clone().sub(a);
++  const g = new CylinderGeometry(0.07, 0.07, d.length(), 4, 1, true);
++  g.applyQuaternion(new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), d.clone().normalize()));
++  g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
++  return g;
++}
++
++// Kite con su navegante: la vela es una medialuna ancha en X, a ~12 m, unida con dos líneas a la persona en
++// el origen. El viento va hacia +Z (la capa la gira): en el shader la vela se inclina hacia ahí.
++export function crearGeometriaKite(): BufferGeometry {
++  const puntos: Vector2[] = [];
++  const pasos = 16;
++  const arco = (t: number) => (Math.PI / 12) * (1 - t) + ((11 * Math.PI) / 12) * t;
++  for (let i = 0; i <= pasos; i++) {
++    const a = arco(i / pasos);
++    puntos.push(new Vector2(Math.cos(a) * 7, 6 + Math.sin(a) * 7));
++  }
++  for (let i = pasos; i >= 0; i--) {
++    const t = i / pasos;
++    const a = arco(t);
++    const r = 7 - 1.7 * Math.sin(t * Math.PI);
++    puntos.push(new Vector2(Math.cos(a) * r, 6 + Math.sin(a) * r));
++  }
++  const vela = new ExtrudeGeometry(new Shape(puntos), { depth: 2.2, bevelEnabled: false });
++  vela.translate(0, 0, -1.1);
++
++  const punta = 7 * Math.cos(Math.PI / 12);
++  const altoPunta = 6 + 7 * Math.sin(Math.PI / 12);
++  const manos = new Vector3(0, 1.4, 0);
++  const partes = [
++    pieza(vela, "#ffffff", 1, 2),
++    pieza(linea(new Vector3(-punta, altoPunta, 0), manos), "#f8fafc", 0, 2),
++    pieza(linea(new Vector3(punta, altoPunta, 0), manos), "#f8fafc", 0, 2),
++    ...persona(2.2, "#ffffff", 0.75),
++  ];
++  const merged = mergeGeometries(partes)!;
++  merged.computeBoundingSphere();
++  return merged;
++}
+diff --git a/src/lib/actividades.ts b/src/lib/actividades.ts
+new file mode 100644
+index 0000000..0f78f20
+--- /dev/null
++++ b/src/lib/actividades.ts
+@@ -0,0 +1,73 @@
++// Lógica pura (cliente y servidor) del modo "Actividades" del mapa: si hoy sirve cada playa para surf o
++// kite/windsurf. No hace pedidos: usa el viento de MET Norway y las olas de WaveWatch III que ya trae el clima
++// de cada playa (ver `weather.ts` y `mar.ts`), más su orientación. Los umbrales son una estimación propia,
++// a calibrar con gente que practique en Montevideo; no son datos oficiales (ver /terminos#actividades).
++// Vigencia: quien la usa no evalúa si el pronóstico tiene más de 3 horas (`vientoVigente`, Viento.tsx).
++
++import { exposicion } from "./recomendacion";
++import type { Weather } from "./weather";
++
++export type NivelActividad = "ideal" | "posible" | "no" | "peligro";
++
++export type Evaluacion = {
++  nivel: NivelActividad;
++  motivo: string;
++  datos: string; // para la etiqueta del mapa: "1,2 m · 8 s"
++};
++
++export const NIVEL_ACTIVIDAD: Record<NivelActividad, { color: string; label: string; orden: number }> = {
++  ideal: { color: "#16a34a", label: "Ideal", orden: 0 },
++  posible: { color: "#eab308", label: "Posible", orden: 1 },
++  no: { color: "#94a3b8", label: "No", orden: 2 },
++  peligro: { color: "#ef4444", label: "Peligro", orden: 3 },
++};
++
++const uno = (v: number) => v.toFixed(1).replace(".", ",");
++
++/** Noche o tormenta: no se recomienda ninguna actividad, con cualquier viento u ola. */
++function impedimento(c: Weather): Pick<Evaluacion, "nivel" | "motivo"> | null {
++  if (c.weatherCode >= 95) return { nivel: "peligro", motivo: "Tormenta" };
++  if (!c.isDay) return { nivel: "no", motivo: "Es de noche" };
++  return null;
++}
++
++export function evaluarSurf(orientacion: number, c: Weather): Evaluacion {
++  const h = c.waveHeight;
++  const periodo = c.wavePeriod;
++  const datos = h == null ? "sin datos" : `${uno(h)} m${periodo == null ? "" : ` · ${Math.round(periodo)} s`}`;
++  const no = (motivo: string): Evaluacion => ({ nivel: "no", motivo, datos });
++
++  const imp = impedimento(c);
++  if (imp) return { ...imp, datos };
++  if (h == null || periodo == null) return no("Sin datos de olas");
++  if (h < 0.5) return no(`Olas muy chicas (${uno(h)} m)`);
++  if (h > 2.5) return { nivel: "peligro", motivo: `Olas muy grandes (${uno(h)} m)`, datos };
++  if (periodo < 4) return no(`Olas muy seguidas (${Math.round(periodo)} s)`);
++  if (c.waveDirection != null && exposicion(orientacion, c.waveDirection).tipo === "tierra") return no("Las olas no entran a esta playa");
++
++  const viento = exposicion(orientacion, c.windDirection);
++  if (viento.tipo === "frente" && c.windSpeed >= 25) return no(`Viento de frente fuerte (${Math.round(c.windSpeed)} km/h)`);
++
++  const vientoBueno = viento.tipo === "tierra" || c.windSpeed < 12;
++  if (periodo >= 7 && vientoBueno && h <= 2) return { nivel: "ideal", motivo: `Olas ordenadas, de ${Math.round(periodo)} s, y viento a favor`, datos };
++  if (periodo < 7) return { nivel: "posible", motivo: `Olas cortas (${Math.round(periodo)} s), más desordenadas`, datos };
++  return { nivel: "posible", motivo: "Hay olas, pero el viento no ayuda", datos };
++}
++
++export function evaluarKite(orientacion: number, c: Weather): Evaluacion {
++  const kmh = Math.round(c.windSpeed);
++  const datos = `${kmh} km/h`;
++
++  const imp = impedimento(c);
++  if (imp) return { ...imp, datos };
++  if (c.windSpeed < 20) return { nivel: "no", motivo: `Poco viento (${kmh} km/h)`, datos };
++  if (c.windSpeed > 45) return { nivel: "peligro", motivo: `Demasiado viento (${kmh} km/h)`, datos };
++
++  const viento = exposicion(orientacion, c.windDirection);
++  // Va antes que "ideal": el viento hacia el agua aleja de la costa, por buena que sea la velocidad.
++  // Más estricto que `tipo === "tierra"`: un lateral que ya tira un poco hacia el agua (más de 10°) también aleja.
++  if (viento.factor < -0.17) return { nivel: "peligro", motivo: "El viento va hacia el agua y te aleja de la costa", datos };
++  if (viento.factor > 0.85) return { nivel: "posible", motivo: "Viento de frente: cuesta salir", datos };
++  if (c.windSpeed > 40) return { nivel: "posible", motivo: `Mucho viento (${kmh} km/h), para quien tiene experiencia`, datos };
++  return { nivel: "ideal", motivo: `Viento lateral de ${kmh} km/h`, datos };
++}
+diff --git a/src/lib/mar.ts b/src/lib/mar.ts
+index 5e17f25..429a0dc 100644
+--- a/src/lib/mar.ts
++++ b/src/lib/mar.ts
+@@ -9,7 +9,8 @@ import "server-only";
+ //   dato tiene más de DIAS_VIGENCIA_SST días no se muestra. Cacheado 6 h.
+ // - Olas: WaveWatch III global de PacIOOS (Univ. de Hawái / NOAA), hora a hora, 0,5°, 7 días de
+ //   pronóstico. https://pae-paha.pacioos.hawaii.edu/erddap/griddap/ww3_global (longitud 0–360).
+-//   Cacheado 1 h.
++//   Variables: Thgt (altura), Tper (período) y Tdir (de dónde viene). Cacheado 1 h. Las de swell
++//   (shgt, sper, sdir) vinieron NaN frente a Uruguay (medido el 30/10/2026): no se usan.
+ //
+ // Quirks: ERDDAP pide los corchetes de la consulta codificados (%5B %5D); las celdas de tierra o
+ // del estuario interior vienen como NaN, por eso se pide una cajita alrededor del punto y se usa la
+@@ -45,14 +46,14 @@ async function erddapCsv(url: string, revalidate: number) {
+   }
+   if (res.status >= 500) caidoHasta.set(host, Date.now() + PAUSA_FALLA);
+   if (!res.ok) throw new Error(`ERDDAP falló (${res.status}): ${url}`);
+-  // Encabezado + fila de unidades, después: time,profundidad,lat,lon,valor
++  // Encabezado + fila de unidades, después: time,profundidad,lat,lon,valor[,más variables]
+   return (await res.text())
+     .trim()
+     .split("\n")
+     .slice(2)
+     .map((l) => {
+-      const [time, , lat, lon, valor] = l.split(",");
+-      return { time, lat: Number(lat), lon: Number(lon), valor: Math.round(Number(valor) * 10) / 10 };
++      const [time, , lat, lon, valor, ...extras] = l.split(",");
++      return { time, lat: Number(lat), lon: Number(lon), valor: Math.round(Number(valor) * 10) / 10, extras: extras.map(Number) };
+     })
+     .filter((f) => Number.isFinite(f.valor));
+ }
+@@ -96,7 +97,11 @@ export async function getTemperaturaAgua(points: Point[]): Promise<(number | nul
+ 
+ // ---------- olas ----------
+ 
+-/** Altura significativa de ola (m) por hora UTC ("YYYY-MM-DDTHH"), desde la hora actual a +`horas`. */
++export type Ola = { altura: number; periodo: number | null; direccion: number | null };
++
++const finito = (v: number) => (Number.isFinite(v) ? v : null);
++
++/** Ola (altura en m, período en s, de dónde viene en grados) por hora UTC ("YYYY-MM-DDTHH"), desde la hora actual a +`horas`. */
+ async function olas(p: Point, horas: number) {
+   const lat = redondear(p.lat, 0.5);
+   const lon = redondear((p.lon + 360) % 360, 0.5);
+@@ -104,19 +109,23 @@ async function olas(p: Point, horas: number) {
+   desde.setUTCMinutes(0, 0, 0);
+   const hasta = new Date(desde.getTime() + horas * 3_600_000);
+   const iso = (d: Date) => d.toISOString().slice(0, 19) + "Z";
+-  const url =
+-    "https://pae-paha.pacioos.hawaii.edu/erddap/griddap/ww3_global.csv?Thgt" +
++  const ejes =
+     q(`(${iso(desde)}):(${iso(hasta)})`) +
+     q("(0.0)") +
+     q(`(${lat - 0.5}):(${lat + 0.5})`) +
+     q(`(${lon - 0.5}):(${lon + 0.5})`);
++  const url = `https://pae-paha.pacioos.hawaii.edu/erddap/griddap/ww3_global.csv?Thgt${ejes},Tper${ejes},Tdir${ejes}`;
+   const filas = await erddapCsv(url, 3600);
+   const c = masCercana(filas, p, true);
+-  if (!c) return new Map<string, number>();
+-  return new Map(filas.filter((f) => f.lat === c.lat && f.lon === c.lon).map((f) => [f.time.slice(0, 13), f.valor]));
++  if (!c) return new Map<string, Ola>();
++  return new Map<string, Ola>(
++    filas
++      .filter((f) => f.lat === c.lat && f.lon === c.lon)
++      .map((f) => [f.time.slice(0, 13), { altura: f.valor, periodo: finito(f.extras[0]), direccion: finito(f.extras[1]) }]),
++  );
+ }
+ 
+ /** Olas por hora UTC para cada punto (mapa vacío si falla). Mismo orden que `points`. */
+-export async function getOlas(points: Point[], horas = 48): Promise<Map<string, number>[]> {
+-  return Promise.all(points.map((p) => olas(p, horas).catch(() => new Map<string, number>())));
++export async function getOlas(points: Point[], horas = 48): Promise<Map<string, Ola>[]> {
++  return Promise.all(points.map((p) => olas(p, horas).catch(() => new Map<string, Ola>())));
+ }
+diff --git a/src/lib/weather.ts b/src/lib/weather.ts
+index b8b9c7f..3bd2479 100644
+--- a/src/lib/weather.ts
++++ b/src/lib/weather.ts
+@@ -21,7 +21,8 @@ import type { Hora } from "./recomendacion";
+ // - El estado del cielo viene como `symbol_code` ("partlycloudy_day"); lo traducimos a códigos WMO
+ //   para que el resto de la app no dependa del proveedor.
+ // - El viento de cada playa (`windSpeed`, `windDirection`) también alimenta las flechas del modo
+-//   "Viento" del mapa (`src/components/mapa/Viento.tsx`), sin pedidos extra.
++//   "Viento" del mapa (`src/components/mapa/Viento.tsx`) y el modo "Actividades"
++//   (`src/lib/actividades.ts`), sin pedidos extra.
+ 
+ const TZ = "America/Montevideo";
+ const USER_AGENT = "PlayasUY/0.1 (+https://github.com/mvera8/montevideo-playas)";
+@@ -46,6 +47,8 @@ export type Weather = {
+   max: number;
+   waterTemp: number | null;
+   waveHeight: number | null;
++  wavePeriod: number | null; // s
++  waveDirection: number | null; // de dónde vienen las olas (0 = norte)
+ };
+ 
+ type Point = { lat: number; lon: number };
+@@ -194,6 +197,7 @@ export async function getWeatherForPoints(points: Point[]): Promise<Weather[]> {
+     const temps = [...deHoy.map((x) => x.air_temperature), d.air_temperature];
+     const uvs = [...deHoy.map((x) => x.ultraviolet_index_clear_sky ?? 0), d.ultraviolet_index_clear_sky ?? 0];
+     const [sale, pone] = sol(hoy, points[i]);
++    const ola = olas[i].get(new Date(ahora).toISOString().slice(0, 13));
+     return {
+       time: local(Date.parse(t.time)),
+       airTemp: d.air_temperature,
+@@ -210,7 +214,9 @@ export async function getWeatherForPoints(points: Point[]): Promise<Weather[]> {
+       min: Math.min(...temps),
+       max: Math.max(...temps),
+       waterTemp: agua[i],
+-      waveHeight: olas[i].get(new Date(ahora).toISOString().slice(0, 13)) ?? null,
++      waveHeight: ola?.altura ?? null,
++      wavePeriod: ola?.periodo ?? null,
++      waveDirection: ola?.direccion ?? null,
+     };
+   });
+ }
+@@ -251,7 +257,7 @@ export async function getPronostico(lat: number, lon: number): Promise<Pronostic
+         viento: kmh(d.wind_speed),
+         vientoDesde: d.wind_from_direction,
+         code: codigoWmo(t.data.next_1_hours!.summary.symbol_code),
+-        olas: olas.get(t.time.slice(0, 13)) ?? null,
++        olas: olas.get(t.time.slice(0, 13))?.altura ?? null,
+       };
+     });
+ 
