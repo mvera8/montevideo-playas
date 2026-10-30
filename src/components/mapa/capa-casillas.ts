@@ -22,11 +22,13 @@ import {
   ESTRELLA,
   FLECHA,
   MASTIL_POS,
+  OLA,
   crearGeometriaAguaViva,
   crearGeometriaBandera,
   crearGeometriaCasilla,
   crearGeometriaEstrella,
   crearGeometriaFlecha,
+  crearGeometriaOla,
 } from "./modelo";
 import { SANITARIA } from "./BanderaSanitaria";
 
@@ -66,6 +68,20 @@ const FLECHAS_POR_PLAYA = 3;
 const SEPARACION_VIENTO = 15; // más lejos que el agua viva, para no taparla
 const RECORRIDO_VIENTO = 24; // metros del modelo que avanza cada flecha en su ciclo
 const ALTURA_VIENTO = 3; // flotando sobre el agua
+
+// Ola de una playa para el modo "Olas" (ver Olas.tsx): crestas 3D que avanzan hacia la costa.
+export type OlaMapa = {
+  lng: number;
+  lat: number;
+  orientacion: number; // rumbo hacia el agua
+  metros: number;
+  color: string;
+};
+
+// Crestas por playa: en fila, cada una se levanta, avanza hacia la costa y se desvanece.
+const OLAS_POR_PLAYA = 3;
+const SEPARACION_OLAS = 15; // como las flechas: los modos no se muestran juntos
+const RECORRIDO_OLA = 15; // metros del modelo que avanza cada cresta en su ciclo
 
 const COLOR_AGUA_VIVA = { normal: "#8f6bff", peligrosa: "#f0364f" };
 // Distancia al agua desde el centro de la playa, en "metros del modelo" (escala con el zoom igual que la
@@ -122,6 +138,12 @@ export class CapaCasillas implements CustomLayerInterface {
   private vientoMat?: ShaderMaterial;
   private vientos: VientoMapa[] = [];
   private vientoVisible = false;
+  private olaMesh?: InstancedMesh;
+  private olaMat?: ShaderMaterial;
+  private olas: OlaMapa[] = [];
+  private olasVisible = false;
+  /** Como onVientoMovido, para las etiquetas de metros. */
+  onOlasMovido?: (puntos: { lngLat: [number, number]; metros: number }[]) => void;
   /** Se llama cuando las flechas cambian de lugar (zoom): Mapa.tsx mueve las etiquetas de km/h. */
   onVientoMovido?: (puntos: { lngLat: [number, number]; kmh: number }[]) => void;
   // Dónde quedó cada agua viva en el último cuadro (se corre con el zoom) y su alto en pantalla, para
@@ -318,6 +340,47 @@ export class CapaCasillas implements CustomLayerInterface {
         }`,
     });
 
+    // Crestas de ola: avanzan hacia +Z de su instancia (ya girada hacia la costa). El alto sigue una campana a
+    // lo ancho del paso de la cresta y crece al acercarse. Más alta y más rápida cuanto más grande la ola.
+    this.olaMat = new ShaderMaterial({
+      side: DoubleSide,
+      transparent: true,
+      depthWrite: false,
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: /* glsl */ `
+        uniform float uTime;
+        attribute vec3 aColor;
+        attribute float aFase;
+        attribute float aVel;
+        attribute float aAlto;
+        varying vec3 vColor;
+        varying float vCresta;
+        varying float vAlfa;
+        void main() {
+          vec3 p = position;
+          float f = fract(uTime * aVel + aFase);
+          float u = p.x / ${(OLA.ancho / 2).toFixed(2)};
+          float borde = 1.0 - u * u; // más baja y transparente en las puntas
+          float perfil = exp(-p.z * p.z / 1.6) * borde;
+          vCresta = perfil;
+          p.y += aAlto * perfil * (0.45 + 0.55 * sin(f * 3.14159));
+          p.z += (f - 0.5) * ${RECORRIDO_OLA.toFixed(1)} - 1.6 * u * u; // las puntas se adelantan: arco
+          vAlfa = borde * smoothstep(0.0, 0.2, f) * (1.0 - smoothstep(0.7, 1.0, f));
+          vColor = aColor;
+          gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(p, 1.0);
+        }`,
+      fragmentShader: /* glsl */ `
+        varying vec3 vColor;
+        varying float vCresta;
+        varying float vAlfa;
+        void main() {
+          // Espuma blanca arriba de la cresta; el pie de la banda se funde con el agua.
+          vec3 col = mix(vColor, vec3(1.0), smoothstep(0.7, 1.0, vCresta) * 0.75);
+          gl_FragColor = vec4(col, vAlfa * smoothstep(0.03, 0.3, vCresta) * 0.9);
+          #include <colorspace_fragment>
+        }`,
+    });
+
     this.construirMeshes();
     document.addEventListener("visibilitychange", this.alCambiarVisibilidad);
   }
@@ -329,6 +392,7 @@ export class CapaCasillas implements CustomLayerInterface {
     this.banderaMat?.dispose();
     this.aguaVivaMat?.dispose();
     this.vientoMat?.dispose();
+    this.olaMat?.dispose();
     this.estrellas?.geometry.dispose();
     (this.estrellas?.material as MeshLambertMaterial | undefined)?.dispose();
     this.estrellas?.dispose();
@@ -353,6 +417,17 @@ export class CapaCasillas implements CustomLayerInterface {
   setVientoVisible(visible: boolean) {
     this.vientoVisible = visible;
     if (this.vientoMesh) this.vientoMesh.visible = visible;
+    this.map?.triggerRepaint();
+  }
+
+  /** Se aplica en el próximo setCasillas, igual que las aguas vivas. */
+  setOlas(olas: OlaMapa[]) {
+    this.olas = olas;
+  }
+
+  setOlasVisible(visible: boolean) {
+    this.olasVisible = visible;
+    if (this.olaMesh) this.olaMesh.visible = visible;
     this.map?.triggerRepaint();
   }
 
@@ -411,6 +486,7 @@ export class CapaCasillas implements CustomLayerInterface {
     this.banderaMat!.uniforms.uTime.value = t;
     this.aguaVivaMat!.uniforms.uTime.value = t;
     this.vientoMat!.uniforms.uTime.value = t;
+    this.olaMat!.uniforms.uTime.value = t;
     if (this.estrellas?.count) {
       this.estrellaGiro.makeRotationY((t * 2 * Math.PI) / VUELTA_ESTRELLA_S).setPosition(0, ESTRELLA.altura, 0);
       this.estrellasBase.forEach((b, i) => this.estrellas!.setMatrixAt(i, this.estrellaMatriz.copy(b).multiply(this.estrellaGiro)));
@@ -420,9 +496,9 @@ export class CapaCasillas implements CustomLayerInterface {
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
 
-    // Con el modo viento se anima a cualquier zoom: las flechas se ven también de lejos.
-    const vientoAnimado = this.vientoVisible && this.vientoMesh;
-    if (this.animar && (zoom >= ZOOM_ANIMACION || vientoAnimado) && !this.timer && !document.hidden) {
+    // Con el modo viento u olas se anima a cualquier zoom: se ven también de lejos.
+    const modoAnimado = (this.vientoVisible && this.vientoMesh) || (this.olasVisible && this.olaMesh);
+    if (this.animar && (zoom >= ZOOM_ANIMACION || modoAnimado) && !this.timer && !document.hidden) {
       this.timer = window.setTimeout(() => {
         this.timer = 0;
         this.map?.triggerRepaint();
@@ -435,14 +511,14 @@ export class CapaCasillas implements CustomLayerInterface {
   };
 
   private liberarMeshes() {
-    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh]) {
+    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh, this.olaMesh]) {
       if (!m) continue;
       this.scene.remove(m);
       m.geometry.dispose();
       m.dispose();
     }
     (this.casillasMesh?.material as MeshLambertMaterial | undefined)?.dispose();
-    this.casillasMesh = this.banderasMesh = this.aguasVivasMesh = this.vientoMesh = undefined;
+    this.casillasMesh = this.banderasMesh = this.aguasVivasMesh = this.vientoMesh = this.olaMesh = undefined;
     this.aguasVivasEnMapa = [];
     this.altoAguaVivaPx = 0;
   }
@@ -514,7 +590,34 @@ export class CapaCasillas implements CustomLayerInterface {
       this.vientoMesh.visible = this.vientoVisible;
     }
 
-    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh]) {
+    const no = this.olas.length * OLAS_POR_PLAYA;
+    if (no) {
+      const geo = crearGeometriaOla();
+      const colores = new Float32Array(no * 3);
+      const fases = new Float32Array(no);
+      const vels = new Float32Array(no);
+      const altos = new Float32Array(no);
+      this.olas.forEach((o, i) => {
+        color.set(o.color);
+        const m = Math.min(o.metros, 3);
+        for (let k = 0; k < OLAS_POR_PLAYA; k++) {
+          const j = i * OLAS_POR_PLAYA + k;
+          color.toArray(colores, j * 3);
+          fases[j] = (k + 0.5) / OLAS_POR_PLAYA;
+          vels[j] = 0.2 + m * 0.07; // una vuelta cada ~5 s con olas chicas y ~2,5 s con grandes
+          altos[j] = 0.7 + m * 1.3; // no es a escala: tiene que leerse de lejos
+        }
+      });
+      geo.setAttribute("aColor", new InstancedBufferAttribute(colores, 3));
+      geo.setAttribute("aFase", new InstancedBufferAttribute(fases, 1));
+      geo.setAttribute("aVel", new InstancedBufferAttribute(vels, 1));
+      geo.setAttribute("aAlto", new InstancedBufferAttribute(altos, 1));
+      this.olaMesh = new InstancedMesh(geo, this.olaMat!, no);
+      this.olaMesh.renderOrder = 2;
+      this.olaMesh.visible = this.olasVisible;
+    }
+
+    for (const m of [this.casillasMesh, this.banderasMesh, this.aguasVivasMesh, this.vientoMesh, this.olaMesh]) {
       if (!m) continue;
       m.frustumCulled = false; // la cámara es la del mapa; son pocas instancias
       m.matrixAutoUpdate = false;
@@ -626,6 +729,32 @@ export class CapaCasillas implements CustomLayerInterface {
       });
       this.vientoMesh.instanceMatrix.needsUpdate = true;
       this.onVientoMovido?.(puntos);
+    }
+
+    // Crestas: frente a la playa como las flechas, giradas para avanzar hacia la costa.
+    if (this.olaMesh) {
+      const puntos: { lngLat: [number, number]; metros: number }[] = [];
+      const rot = new Matrix4();
+      this.olas.forEach((o, i) => {
+        const m = MercatorCoordinate.fromLngLat([o.lng, o.lat], 0);
+        const haciaAgua = (o.orientacion * Math.PI) / 180;
+        const d = SEPARACION_OLAS * escalaBase * (1 + Math.min(Math.max((zoom - 12) / 3, 0), 1));
+        const x = (m.x - this.origen.x) / this.escalaMerc + Math.sin(haciaAgua) * d;
+        const z = (m.y - this.origen.y) / this.escalaMerc - Math.cos(haciaAgua) * d;
+        rot.makeRotationY(-haciaAgua); // +Z del modelo hacia la costa
+        base.makeScale(escalaBase, escalaBase, escalaBase).premultiply(rot).setPosition(x, 0, z);
+        for (let k = 0; k < OLAS_POR_PLAYA; k++) this.olaMesh!.setMatrixAt(i * OLAS_POR_PLAYA + k, base);
+        // Etiqueta del lado del agua, para que las crestas no la tapen.
+        const de = (RECORRIDO_OLA / 2 + 2) * escalaBase;
+        const ll = new MercatorCoordinate(
+          this.origen.x + (x + Math.sin(haciaAgua) * de) * this.escalaMerc,
+          this.origen.y + (z - Math.cos(haciaAgua) * de) * this.escalaMerc,
+          0,
+        ).toLngLat();
+        puntos.push({ lngLat: [ll.lng, ll.lat], metros: o.metros });
+      });
+      this.olaMesh.instanceMatrix.needsUpdate = true;
+      this.onOlasMovido?.(puntos);
     }
   }
 }

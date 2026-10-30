@@ -214,6 +214,14 @@ día se suma publicidad, hay que pasar a Pro.
 - **Olas — WaveWatch III global de PacIOOS/NOAA** (`src/lib/mar.ts`):
   `https://pae-paha.pacioos.hawaii.edu/erddap/griddap/ww3_global.csv?Thgt[(desde):(hasta)][(0.0)][(lat)][(lon)]`
   (longitud 0–360). Hora a hora, 7 días, 0,5°: en el Río de la Plata es la ola de afuera, orientativa. Cache 1 h.
+  - **Modo olas del mapa** (botón "Olas", `src/components/mapa/Olas.tsx`): por playa, tres crestas 3D que avanzan hacia
+    la costa, con color, alto y ritmo según `waveHeight`, y una etiqueta en metros. Reusa la ola que ya trae cada
+    playa: **no hace pedidos nuevos**. Un `InstancedMesh` más (1 draw call), animado en el vertex shader con el reloj de
+    30 fps de las flechas, solo mientras el modo está prendido y quieto con "reducir movimiento". Es uno a la vez con el
+    viento (van en el mismo lugar). El modelo no da dirección en lo que pedimos (`Thgt`): el avance hacia la costa es un
+    dibujo y la leyenda lo aclara. Con celdas de 0,5°, playas vecinas suelen dar lo mismo. Vigencia: la misma de las
+    flechas (`HORAS_VIGENCIA_VIENTO`); sin dato dice "Sin datos recientes de olas". Botón, leyenda y etiquetas son
+    compartidos con el viento (`ModoMapa.tsx`).
 - En ERDDAP las celdas de tierra vienen como `NaN`: se pide una cajita de ±0,5° y se usa la celda con
   dato más cercana. Timeout de 10 s; si el mar falla, la app sigue sin agua ni olas. Si un servidor no
   responde (timeout, error de red o 5xx) no se vuelve a consultar por 5 min, para no esperar el timeout en
