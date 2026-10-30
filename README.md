@@ -10,7 +10,7 @@ flameando (color real de la IM, dirección según el viento) y temperatura de ai
 ## Configuración
 
 ```bash
-cp .env.example .env.local   # completar IM_CLIENT_ID e IM_CLIENT_SECRET (y Supabase para los me gusta)
+cp .env.example .env.local   # Supabase para los me gusta; IM_TRANSPORTE_* para ómnibus; IM_CLIENT_* solo para npm run orientaciones
 npm run dev
 ```
 
@@ -59,16 +59,21 @@ header entra en la clave del cache y el token cambia por instancia y cada ~5 min
 
 ### Vencimiento de las banderas
 
-La API oficial (`/beaches/lifeguardstations`) **no trae** `healthFlagExpiration` ni `safetyFlagExpiration`
-(verificado 08/10/2026). Se toman del endpoint que usa el sitio móvil de la IM:
+Las casillas y banderas salen del endpoint que usa el sitio móvil de la IM (`getImCasillas` en `src/lib/im.ts`), no de
+la API oficial (`/beaches/lifeguardstations`):
 
 - URL: `https://m.montevideo.gub.uy/playas/api/casillas`. Es GeoJSON (`features[].properties`) y no pide
-  autenticación. Usa los mismos `id` de casilla que la API (`MVD:lifeguardstation:N`) y trae además
-  `healthFlagCauseLongDesc`, el texto de la recomendación.
-- Medido: ~2,7 KB con gzip, ~0,1 s. Manda `cache-control: no-cache`, sin ETag. Se cachea 5 min con
-  `unstable_cache` (`getImVencimientos` en `src/lib/im.ts`), igual que la API.
-- No está documentado. Si falla o cambia de forma, se sigue con la API sola (devuelve `null` y se loguea).
-- Quirk: `healthFlag` llega como **texto** (`"true"`/`"false"`) en ambos endpoints, así que se compara con `"true"`.
+  autenticación. Comparado el 30/10/2026: mismas 32 casillas e `id` que la API, y además trae los vencimientos
+  (`healthFlagExpiration`, `safetyFlagExpiration`) y `healthFlagCauseLongDesc`, el texto de la recomendación.
+- **Por qué no la API:** tiene cupo (`429 Usage limit exceeded`, visto el 30/10/2026 compilando varias veces) y no aporta
+  nada más. Lo fijo (nombre, dirección, playa, ubicación) está en `src/data/casillas.json`; lo único que cambia en el día
+  son las banderas. El cupo de este endpoint no se midió.
+- Diferencia con la API: esta omite una bandera vencida y el endpoint público la sigue mandando, con su fecha ya pasada.
+  Por eso siempre pasa por `banderasDe`.
+- Medido: ~2,7 KB con gzip, ~0,1 s. Manda `cache-control: no-cache`, sin ETag. Se cachea 5 min con `unstable_cache`, con
+  un solo pedido en curso y 60 s de pausa si falla.
+- No está documentado. Si falla o cambia de forma, se sigue con el snapshot (ver abajo).
+- Quirk: `healthFlag` llega como **texto** (`"true"`/`"false"`), así que se compara con `"true"`.
 
 Si hay vencimiento, se respeta, también fuera de temporada. Si no lo hay, la bandera solo se considera
 válida en temporada (15/11 – 30/04).
@@ -86,7 +91,7 @@ Todos sus hosts (`api`, `mvdapi-auth`, `m`, `ckan-data`, `intgis`) resuelven al 
 `prx.montevideo.gub.uy` (190.64.5.9 / .26), y desde Vercel dan `UND_ERR_CONNECT_TIMEOUT`. Vercel no
 tiene región en Uruguay (`gru1` es Brasil). Mientras dure:
 
-- **Servidor** (`getPlayas` en `src/lib/playas.ts`): si la API falla, arma las playas con el snapshot
+- **Servidor** (`getPlayas` en `src/lib/playas.ts`): si el endpoint falla, arma las playas con el snapshot
   `src/data/casillas.json` (las 32 casillas: id, nombre, dirección, playa, ubicación; sin banderas) y
   `fuente: "respaldo"`. El mapa tiene las 19 playas reales con clima, agua y servicios.
 - **Navegador** (`useBanderasNavegador` en `src/lib/banderas-cliente.ts`, usado en `Mapa.tsx`): con
@@ -143,6 +148,9 @@ geométrica de 5 muestras que publica la IM. `src/lib/calidad-agua.ts` los cruza
   en `next build` Next cachea los fetch sin configuración de caché duplicando la respuesta, y con
   `abort()` su copia nunca terminaba, así que la página no cerraba el prerender ("took more than 60
   seconds", 26/10/2026). Vale para cualquier lectura en streaming con corte temprano.
+- **Si el servidor no contesta**: toda la actualización tiene un tope de 15 s (`TOPE_ACTUALIZAR`, una carrera y no un
+  `signal`, por lo anterior). Después de una falla no se reintenta por 5 min, y si hay datos anteriores se responde con
+  ellos sin esperar.
 
 - Criterio del **Decreto 226/025** (la IM lo aplica desde el 27/03/2026): supera el límite si la media
   de 5 muestras (≤ 40 días) pasa 200 enterococos/100 ml o una muestra pasa 500.
@@ -292,7 +300,9 @@ iNaturalist** en la costa de Montevideo, y `AguasVivas.tsx` los muestra en el de
 
 Cache en memoria de 24 h, guardando lo último bueno de cada fuente por separado. Si una falla se sigue
 con lo último que respondió de ella (o sin ella, si nunca respondió) y se reintenta a los 5 min
-(`PAUSA_FALLA`), no a las 24 h. La falla se registra con `console.warn` (es esperable y está manejada). En el mapa: íconos desde zoom 13,5
+(`PAUSA_FALLA`), no a las 24 h. Un render espera a Overpass como máximo 4 s (`ESPERA_OSM`): si tarda más, la
+página sale con lo último que respondió y la consulta sigue en segundo plano (`after`) para el próximo render.
+Con Overpass caído cada render tardaba 30 s o más, porque todo `getPlayas()` depende de esto (medido 30/10/2026). La falla se registra con `console.warn` (es esperable y está manejada). En el mapa: íconos desde zoom 13,5
 con popup (armado con DOM/textContent, los datos de OSM son texto libre).
 
 ## ¿A qué playa voy? y mejor horario
@@ -433,7 +443,7 @@ a una; quien tenía varias se quedó con la última que marcó).
 - **Escritura:** RPC `alternar_favorita(p_playa, p_casilla)` elige la casilla, reemplaza la anterior
   o la saca si ya era esa, y devuelve una lista (`[{playa, casilla}]` o `[]`). Crea la cuenta anónima
   si no había. Botón ⭐ en cada casilla de la sección "Casillas" del detalle
-  (`src/components/mapa/Favorita.tsx`).
+  (`src/components/mapa/Favorita.tsx`). Si ya hay otra favorita, un modal pregunta antes de reemplazarla.
 - **Lectura:** `src/lib/favorita-cliente.ts`. Copia en `localStorage` (`favorita`, JSON
   `{playa, casilla}`) para ordenar el listado y centrar el mapa al instante sin bajar supabase-js.
   Solo si hay sesión se lee la fila propia (`casilla_favorita?select=playa,casilla&limit=1`) una vez
@@ -477,6 +487,31 @@ compartir (Web Share API con archivos; si no se puede, se descarga). Solo se mue
 - 1080 px de ancho, alto proporcional con tope de 1920 (recorte al centro); JPEG 0,9. La orientación la
   corrige el navegador al dibujar el `<img>`.
 - Probar en iPhone real: formato HEIC de la cámara y el menú de compartir.
+
+## Enlace y tarjeta de cada playa
+
+`/playas/[slug]` abre el mapa con esa playa elegida y tiene título, descripción y canónica propios; al elegir una
+playa en el mapa, la dirección pasa a ser esa (`replaceState`). `/playas?playa=slug` sigue funcionando y se
+reescribe a la dirección nueva en el navegador. El mapa y sus datos están en `src/app/playas/layout.tsx`: así
+`/playas` y `/playas/[slug]` comparten la misma instancia y `router.refresh()` no lo vuelve a montar.
+
+- **Imagen** (`src/app/playas/[slug]/opengraph-image.tsx`, 1200×630): banderas vigentes (una marca por color, con
+  cuántas casillas), bandera sanitaria, aire, agua y UV máximo. **No usa fuentes nuevas**: sale de `getPlayas()`,
+  con sus mismas cachés. ISR de 5 min, como el mapa; solo se genera cuando alguien la pide.
+- **Datos viejos**: WhatsApp y similares guardan la vista previa por días y no se puede forzar a renovarla, por eso
+  la imagen lleva la hora y dice que los datos pueden haber cambiado. El clima con más de 3 h no se muestra. Sin
+  bandera vigente dice "Sin bandera vigente", nunca una bandera anterior.
+- **Mientras el servidor no llegue a la IM** (ver "Banderas desde el navegador"; `fuente: "respaldo"` en producción,
+  verificado 30/10/2026): la imagen no puede mostrar banderas y dice "Bandera: mirala en el sitio". La genera el
+  servidor, así que el navegador no la puede completar.
+- **Botón compartir** (`src/components/mapa/BotonCompartir.tsx`): menú del sistema con Web Share; si no hay, copia el enlace.
+- La descripción de la página no lleva datos del momento, para que no quede un estado viejo en buscadores.
+- Las páginas se generan al compilar con `getSlugsPlayas()` (lee `src/data/casillas.json`, sin red), que también
+  alimenta el sitemap. Con `dynamicParams = false`, un slug inventado da 404 sin pedir datos (sin esto, medido
+  30/10/2026, quedaba más de 100 s colgado). Una playa nueva de la IM necesita actualizar `casillas.json` y
+  desplegar: hasta entonces su dirección da 404, aunque se vea en el mapa.
+- Probar: abrir `/playas/pocitos/opengraph-image` en el navegador, o pegar el enlace en el
+  [inspector de Facebook](https://developers.facebook.com/tools/debug/), que además obliga a renovar su copia.
 
 ## Contacto
 

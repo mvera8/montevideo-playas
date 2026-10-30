@@ -13,13 +13,13 @@ const FUENTES = [
   {
     nombre: "Intendencia de Montevideo — Montevideo API",
     url: "https://api.montevideo.gub.uy",
-    usa: "Playas, casillas de guardavidas y banderas; ómnibus en vivo y horarios del STM (GTFS).",
+    usa: "Ómnibus en vivo y horarios del STM (GTFS).",
     licencia: "Servicio gratuito del portal Montevideo API.",
   },
   {
     nombre: "Intendencia de Montevideo — Sitio de playas",
     url: "https://m.montevideo.gub.uy/playas/",
-    usa: "Hasta cuándo vale cada bandera (de seguridad y sanitaria), la recomendación que acompaña a la bandera sanitaria y el índice UV medido en la ciudad.",
+    usa: "Playas, casillas de guardavidas y banderas (de seguridad y sanitaria) con su vencimiento, la recomendación que acompaña a la bandera sanitaria y el índice UV medido en la ciudad.",
     licencia: "Información pública del sitio de la Intendencia.",
   },
   {
@@ -231,7 +231,7 @@ export default function Terminos() {
       <h3 id="favorita">Casilla favorita</h3>
       <p>
         Podés marcar una casilla de guardavidas como favorita con la estrella de la lista de casillas (elegir otra
-        reemplaza la anterior): su playa aparece primero en el listado, lleva una estrella en el mapa, el mapa arranca
+        reemplaza la anterior, después de preguntarte): su playa aparece primero en el listado, lleva una estrella en el mapa, el mapa arranca
         centrado ahí y, si tiene bandera verde, te avisamos al entrar al mapa (una vez por día, si lo cerrás). Es una preferencia tuya, no una recomendación. El
         aviso usa la misma bandera publicada por la Intendencia que muestra el resto del sitio, con su misma demora y
         límites: <strong>no es un aviso oficial</strong>, la bandera puede cambiar en cualquier momento y lo que vale es lo
@@ -248,6 +248,14 @@ export default function Terminos() {
         oficial</strong>: no sirven como constancia de las condiciones de la playa. La foto se arma en tu dispositivo y no
         la subimos ni la guardamos. Sos responsable de lo que fotografiás y compartís (por ejemplo, de contar con el
         consentimiento de las personas que aparecen).
+      </p>
+
+      <h3 id="compartir">Imagen al compartir una playa</h3>
+      <p>
+        Al compartir el enlace de una playa, la vista previa muestra la bandera (si en ese momento tenemos el dato), la temperatura y el UV máximo con la
+        hora en que se generó. WhatsApp y otras aplicaciones pueden guardar esa imagen por días, así que{" "}
+        <strong>puede estar desactualizada y no es un dato oficial</strong>: antes de bañarte, mirá la bandera en la playa y
+        hacé caso a los guardavidas.
       </p>
 
       <h3 id="novedades">Novedades</h3>

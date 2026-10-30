@@ -1,5 +1,6 @@
 import "server-only";
 import { unzipSync } from "fflate";
+import { after } from "next/server";
 
 // Baños, bebederos y duchas públicos cerca de las playas. Dos fuentes:
 // - IM, datos abiertos "Equipamiento urbano – espacios públicos" (oficial, sobre todo plazas y parques).
@@ -95,10 +96,12 @@ function filasDbf(buf: Uint8Array): Record<string, string>[] {
   });
 }
 
+const TIMEOUT_IM = 10_000;
+
 async function capa(tabla: string) {
   // Pedir la generación (deja el zip actualizado en /sit/tmp) y luego descargarlo.
-  await fetch(`${GIS}/php/common/datos/generar_zip2.php?nom_tab=${tabla}&tipo=gis`).catch(() => null);
-  const res = await fetch(`${GIS}/tmp/${tabla}.zip`);
+  await fetch(`${GIS}/php/common/datos/generar_zip2.php?nom_tab=${tabla}&tipo=gis`, { signal: AbortSignal.timeout(5000) }).catch(() => null);
+  const res = await fetch(`${GIS}/tmp/${tabla}.zip`, { signal: AbortSignal.timeout(TIMEOUT_IM) });
   if (!res.ok) throw new Error(`Servicios IM ${tabla}: ${res.status}`);
   const zip = unzipSync(new Uint8Array(await res.arrayBuffer()));
   const shp = Object.entries(zip).find(([k]) => k.endsWith(".shp"))?.[1];
@@ -164,6 +167,9 @@ export const OVERPASS = "https://overpass-api.de/api/interpreter";
 const BBOX = "-34.95,-56.45,-34.83,-56.02";
 // La consulta pide `timeout:25` al servidor; unos segundos más para la respuesta.
 const TIMEOUT_OVERPASS = 30_000;
+// Cuánto espera un render a Overpass. Si tarda más, sigue sin frenar la página: todo getPlayas() depende
+// de esto y, con Overpass saturado, cada render tardaba 30 s o más (medido 30/10/2026).
+const ESPERA_OSM = 4000;
 
 type ElementoOsm = {
   type: string;
@@ -262,6 +268,8 @@ type Estado = {
   datos?: Servicio[];
   vence: number;
   promesa?: Promise<Servicio[]>;
+  imOk?: boolean;
+  osmEnCurso?: Promise<Servicio[] | null>;
 };
 const g = globalThis as unknown as { __servicios?: Estado };
 g.__servicios ??= { vence: 0 };
@@ -273,12 +281,7 @@ const falla = (fuente: string) => (e: unknown) => {
   return null;
 };
 
-async function cargar(): Promise<Servicio[]> {
-  const [im, osm] = await Promise.all([cargarIm().catch(falla("IM")), cargarOsm().catch(falla("Overpass"))]);
-  if (im) estado.im = im;
-  if (osm) estado.osm = osm;
-  if (!estado.im && !estado.osm) throw new Error("Servicios: no respondió ninguna fuente");
-  estado.vence = Date.now() + (im && osm ? CACHE_MS : PAUSA_FALLA);
+function combinar() {
   const oficiales = estado.im ?? [];
   const extra = (estado.osm ?? []).filter(
     (o) => !oficiales.some((s) => s.tipo === o.tipo && Math.hypot((s.lat - o.lat) * M_LAT, (s.lon - o.lon) * M_LON) < 40),
@@ -286,8 +289,43 @@ async function cargar(): Promise<Servicio[]> {
   return [...oficiales, ...extra];
 }
 
+// Una sola consulta en curso. Si responde después de ESPERA_OSM, actualiza los datos para el próximo render.
+function refrescarOsm() {
+  estado.osmEnCurso ??= cargarOsm()
+    .catch(falla("Overpass"))
+    .then((osm) => {
+      if (osm) {
+        estado.osm = osm;
+        estado.datos = combinar();
+        if (estado.imOk) estado.vence = Date.now() + CACHE_MS;
+      }
+      return osm;
+    })
+    .finally(() => {
+      estado.osmEnCurso = undefined;
+    });
+  return estado.osmEnCurso;
+}
+
+async function cargar(): Promise<Servicio[]> {
+  const osmEnCurso = refrescarOsm();
+  // En Vercel, para que la función no se congele antes de que Overpass responda. Fuera de un pedido, after() falla.
+  try {
+    after(() => osmEnCurso);
+  } catch {}
+  const [im, osm] = await Promise.all([
+    cargarIm().catch(falla("IM")),
+    Promise.race([osmEnCurso, new Promise<null>((r) => setTimeout(() => r(null), ESPERA_OSM))]),
+  ]);
+  if (im) estado.im = im;
+  estado.imOk = Boolean(im);
+  if (!estado.im && !estado.osm) throw new Error("Servicios: no respondió ninguna fuente");
+  estado.vence = Date.now() + (im && osm ? CACHE_MS : PAUSA_FALLA);
+  return combinar();
+}
+
 export async function getServicios(): Promise<Servicio[]> {
-  if (estado.datos && Date.now() < estado.vence) return estado.datos;
+  if (Date.now() < estado.vence) return estado.datos ?? [];
   estado.promesa ??= cargar()
     .then((d) => (estado.datos = d))
     .catch((e) => {
@@ -298,7 +336,8 @@ export async function getServicios(): Promise<Servicio[]> {
     .finally(() => {
       estado.promesa = undefined;
     });
-  return estado.promesa;
+  // Con datos anteriores no se espera: se actualizan para el próximo render.
+  return estado.datos ?? estado.promesa;
 }
 
 /** Servicios a menos de RADIO_SERVICIOS de alguno de los puntos (casillas), ordenados por distancia. */

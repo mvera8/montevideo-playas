@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { getAguasVivas, DIAS_VIGENCIA as DIAS_VIGENCIA_AGUAS_VIVAS } from "./aguas-vivas";
 import { DIAS_VIGENCIA as DIAS_VIGENCIA_AGUA, getCalidadAgua, URL_MUESTRAS } from "./calidad-agua";
 import { HORAS_VIGENCIA_UV, URL_CASILLAS_MOVIL, URL_CLIMA_MOVIL } from "./banderas";
-import { getImLifeguardStations, hasImCredentials } from "./im";
+import { hasImCredentials } from "./im";
 import { getAlertasInumet } from "./inumet";
 import { DIAS_VIGENCIA_SST } from "./mar";
 import { getMeGusta } from "./me-gusta";
@@ -27,7 +27,7 @@ import { met } from "./weather";
 const TIMEOUT = 8000;
 
 // `versionGtfs` pide con `cache: "no-store"` (el GTFS lo usan rutas dinámicas): adentro de
-// unstable_cache no vuelve dinámica a /estado, igual que imGetCacheado en im.ts.
+// unstable_cache no vuelve dinámica a /estado, igual que getCasillasCacheado en im.ts.
 const versionGtfsCacheada = unstable_cache(versionGtfs, ["estado-gtfs-version-v1"], { revalidate: 300 });
 
 export type Estado = "ok" | "viejo" | "caido";
@@ -86,17 +86,6 @@ async function ultimoTiempo(dataset: string) {
 
 const DEFS: Def[] = [
   {
-    id: "im-playas",
-    nombre: "Montevideo API — Playas",
-    grupo: "Intendencia de Montevideo",
-    usa: "Casillas y banderas. Si falla, el navegador de cada visitante pide las banderas a la IM (ver «Desde tu navegador»).",
-    async probar() {
-      if (!hasImCredentials()) throw new Error("Faltan IM_CLIENT_ID / IM_CLIENT_SECRET");
-      const casillas = await getImLifeguardStations();
-      return { detalle: `${casillas.length} casillas` };
-    },
-  },
-  {
     id: "im-transporte",
     nombre: "Montevideo API — Transporte (STM)",
     grupo: "Intendencia de Montevideo",
@@ -108,9 +97,9 @@ const DEFS: Def[] = [
   },
   {
     id: "im-casillas-movil",
-    nombre: "Sitio de playas de la IM — vencimiento de banderas",
+    nombre: "Sitio de playas de la IM — casillas y banderas",
     grupo: "Intendencia de Montevideo",
-    usa: "Hasta cuándo vale cada bandera. Si falla, solo cuenta la temporada.",
+    usa: "Casillas y banderas. Si falla, el navegador de cada visitante pide las banderas a la IM (ver «Desde tu navegador»).",
     async probar() {
       const { features } = (await (await pedir(URL_CASILLAS_MOVIL)).json()) as { features: unknown[] };
       return { detalle: `${features.length} casillas` };

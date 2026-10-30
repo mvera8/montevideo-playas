@@ -13,8 +13,9 @@ import {
   setWorkerUrl,
 } from "maplibre-gl";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BANDERAS } from "@/lib/banderas";
 import type { Guardavidas, Playa, Temporada } from "@/lib/playas";
 import type { Weather } from "@/lib/weather";
 import type { AlertasInumet } from "@/lib/inumet";
@@ -29,6 +30,7 @@ import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
 import { BotonFavorita, ModalFavorita } from "./Favorita";
 import { favoritaPrimero, useFavorita } from "@/lib/favorita-cliente";
 import { useBanderasNavegador } from "@/lib/banderas-cliente";
+import BotonCompartir from "./BotonCompartir";
 import FotoPlaya from "./FotoPlaya";
 import { useTeclado } from "./useTeclado";
 import type { Sello } from "@/lib/sello-foto";
@@ -67,13 +69,6 @@ type Props = {
   error: string | null;
   climaCiudad: Weather | null;
   alertas: AlertasInumet | null;
-};
-
-const BANDERAS: Record<NonNullable<Guardavidas["bandera"]>, { label: string; color: string; corto: [string, string] }> = {
-  green: { label: "Verde · apto para bañarse", color: "#1f9d4c", corto: ["verde", "verdes"] },
-  yellow: { label: "Amarilla · precaución", color: "#f5c518", corto: ["amarilla", "amarillas"] },
-  red: { label: "Roja · no bañarse", color: "#d62828", corto: ["roja", "rojas"] },
-  black: { label: "Negra · sin guardavidas", color: "#1b1b1b", corto: ["negra", "negras"] },
 };
 
 // Datos para el sello de la foto: solo lo vigente. La bandera va en gris fuera de temporada o si la IM
@@ -265,10 +260,13 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       localStorage.setItem("panel", abierto ? "1" : "0");
     } catch {}
   }, [abierto]);
-  // Playa inicial desde ?playa=. useSearchParams (y no window.location) porque al llegar con <Link>
-  // (menú, /favoritas) el componente se renderiza antes de que cambie la URL del navegador. Solo
-  // corre en el cliente (ssr: false), así que no hace falta un Suspense extra.
-  const playaUrl = useSearchParams().get("playa");
+  // Playa inicial desde /playas/[slug] (o ?playa=, los enlaces viejos). useParams y useSearchParams (y no
+  // window.location) porque al llegar con <Link> (menú, /favoritas) el componente se renderiza antes de
+  // que cambie la URL del navegador. Solo corre en el cliente (ssr: false), así que no hace falta un
+  // Suspense extra.
+  const parametroPlaya = useParams().slug;
+  const consultaPlaya = useSearchParams().get("playa");
+  const playaUrl = typeof parametroPlaya === "string" ? parametroPlaya : consultaPlaya;
   const [slug, setSlug] = useState<string | null>(() => {
     const inicial = playaUrl;
     return inicial && playas.some((p) => p.slug === inicial) ? inicial : null;
@@ -322,6 +320,11 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
   }, [casillas, casillaId, playa]);
 
   const { favorita, cargada } = useFavorita();
+  const nombreFavorita = useMemo(() => {
+    const p = playas.find((x) => x.slug === favorita?.playa);
+    const g = p?.guardavidas.find((x) => x.id === favorita?.casilla);
+    return g && p ? (g.nombre === p.nombre ? g.nombre : `${g.nombre} (${p.nombre})`) : undefined;
+  }, [playas, favorita]);
   const resultados = useMemo(() => {
     const q = normalizar(busqueda.trim());
     // Listado en orden alfabético (las playas llegan de oeste a este), con la de la casilla favorita primero.
@@ -666,7 +669,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
   }, [listo, favorita]);
 
   // Al abrir /playas el mapa arranca en la favorita, sin elegirla (panel general, sin detalle). Una sola
-  // vez por carga: después no le movemos el mapa a nadie. Si se llega con ?playa=, manda esa playa.
+  // vez por carga: después no le movemos el mapa a nadie. Si se llega con el enlace de una playa, manda esa playa.
   const centradaEnFavorita = useRef(false);
   useEffect(() => {
     const map = mapRef.current;
@@ -781,8 +784,9 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (slug) url.searchParams.set("playa", slug);
-    else url.searchParams.delete("playa");
+    // Cada playa tiene su dirección: al compartirla sale con su tarjeta (/playas/[slug]/opengraph-image).
+    url.pathname = slug ? `/playas/${slug}` : "/playas";
+    url.searchParams.delete("playa");
     window.history.replaceState(null, "", url);
 
     const map = mapRef.current;
@@ -1043,6 +1047,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
           <section className={`${hoja} pointer-events-auto fixed inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-3xl bg-white p-4 shadow-2xl ring-1 ring-black/5 md:static md:max-h-none md:min-h-0 md:rounded-2xl md:shadow-lg dark:bg-oscuro-1 dark:ring-white/10`}>
             <Detalle
               playa={playa}
+              nombreFavorita={nombreFavorita}
               temporada={temporada}
               alertas={alertas}
               casillaId={casillaId}
@@ -1103,6 +1108,7 @@ function padding(extra: number, panelAbierto: boolean) {
 
 function Detalle({
   playa,
+  nombreFavorita,
   temporada,
   alertas,
   casillaId,
@@ -1113,6 +1119,7 @@ function Detalle({
   comoIr,
 }: {
   playa: Playa;
+  nombreFavorita?: string;
   temporada: Temporada;
   alertas: AlertasInumet | null;
   casillaId: string | null;
@@ -1137,6 +1144,7 @@ function Detalle({
           <h2 className="truncate text-2xl font-semibold tracking-tight md:text-xl">{playa.nombre}</h2>
           <div className="flex shrink-0 items-center gap-2">
             <BotonMeGusta slug={playa.slug} nombre={playa.nombre} inicial={playa.meGusta} />
+            <BotonCompartir slug={playa.slug} nombre={playa.nombre} />
             <FotoPlaya slug={playa.slug} sello={selloDe(playa, temporada)} meGusta={playa.meGusta} />
           </div>
         </div>
@@ -1210,7 +1218,7 @@ function Detalle({
                         </span>
                       </button>
                       <span className="p-1">
-                        <BotonFavorita playa={playa.slug} casilla={g.id} nombre={g.nombre} />
+                        <BotonFavorita playa={playa.slug} casilla={g.id} nombre={g.nombre} nombreActual={nombreFavorita} />
                       </span>
                     </div>
                     {g.comoIr && (

@@ -41,7 +41,7 @@ export default function PodioFavoritas({ inicial, errorServidor }: { inicial: Fa
       {podio.map((p, i) => (
         <li key={p.slug}>
           <Link
-            href={`/playas?playa=${p.slug}`}
+            href={`/playas/${p.slug}`}
             className="flex items-center gap-4 rounded-2xl bg-white/10 px-6 py-4 ring-1 ring-white/20 backdrop-blur transition-colors duration-700 ease-fluido hover:bg-white/15"
           >
             <span className="text-2xl" aria-hidden>
