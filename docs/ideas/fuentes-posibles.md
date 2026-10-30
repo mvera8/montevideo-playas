@@ -12,7 +12,7 @@ de la IM (servicios).
 
 | Dato | Fuente | Notas |
 |---|---|---|
-| **Nivel del agua / marea** | Mareógrafo de Montevideo en IOC Sea Level Monitoring (UNESCO); pronóstico de marea del SHN (Argentina) | El más montevideano: con sudestada la playa desaparece. Verificar que la estación transmita y con qué demora. |
+| **Nivel del agua / marea** | Pronóstico PronUy_RPFM del IMFIA (FING, UdelaR): `https://www.fing.edu.uy/imfia/pronostico-marea/`; mareógrafo de Montevideo del SOHMA (Armada) | El más montevideano: con sudestada la playa desaparece. Medido 30/10/2026: **IOC no tiene ninguna estación en Uruguay** y el CSV horario del SHN (`https://www.hidro.gov.ar/oceanografia/AlturasHorarias.asp?export=csv`, ~20 KB, demora < 1 h) solo trae estaciones argentinas, con otro cero. El sitio del IMFIA no respondió en 25 s desde acá. Falta preguntarle al IMFIA y al SOHMA si hay un dato abierto y con qué permiso. |
 | **Cianobacterias / clorofila satelital** | Copernicus Marine, o color del océano (VIIRS / Sentinel-3) en ERDDAP de NOAA | Orientativo; la IM manda. Nubes = sin dato. |
 | **Enterococos en tiempo real** | IM, equipo en Pocitos | Ver [enterococos-tiempo-real.md](enterococos-tiempo-real.md). |
 

@@ -247,6 +247,17 @@ export function crearGeometriaFlecha(): BufferGeometry {
   return geo;
 }
 
+// Cresta de ola: una banda acostada sobre el plano XZ, a lo largo de X y centrada en el origen. Con muchos
+// segmentos porque el perfil (alto, curva y avance hacia +Z) lo arma el vertex shader de la capa.
+export const OLA = { ancho: 16, fondo: 5 };
+
+export function crearGeometriaOla(): BufferGeometry {
+  const geo = new PlaneGeometry(OLA.ancho, OLA.fondo, 28, 10);
+  geo.rotateX(-Math.PI / 2);
+  geo.deleteAttribute("uv");
+  return geo;
+}
+
 // Estrella de la casilla favorita, flotando sobre ella (Favorita.tsx). Extruida y parada (cara hacia
 // ±Z), centrada en el origen: la capa la gira sobre Y. Unidades = metros.
 export const ESTRELLA = { radio: 1.5, altura: ALTURA_MODELO + 1.9 }; // centro, por encima del mástil

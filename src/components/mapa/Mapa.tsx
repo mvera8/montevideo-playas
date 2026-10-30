@@ -47,7 +47,9 @@ import SelectorTema, { OpcionesTema } from "./SelectorTema";
 import MenuSitio from "@/components/MenuSitio";
 import Modal, { BotonModal } from "@/components/Modal";
 import Lluvia from "./Lluvia";
-import { BotonViento, LeyendaViento, agregarCapaViento, etiquetasViento, vientoVigente, vientosMapa } from "./Viento";
+import { agregarCapaEtiquetas, etiquetas } from "./ModoMapa";
+import { BotonOlas, LeyendaOlas, olasMapa, textoOla } from "./Olas";
+import { BotonViento, LeyendaViento, vientoVigente, vientosMapa } from "./Viento";
 import { AvisoSanitaria } from "./BanderaSanitaria";
 import { aplicarTema, estiloConTema, intensidadLluvia, temaPorClima, type Tema } from "./temas";
 
@@ -240,6 +242,14 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       return null;
     }
   });
+  // Modo olas (crestas por playa); se recuerda por navegador. Uno solo a la vez con el viento: van en el mismo lugar.
+  const [olas, setOlas] = useState(() => {
+    try {
+      return localStorage.getItem("olas") === "1";
+    } catch {
+      return false;
+    }
+  });
   // Modo viento (flechas por playa); se recuerda por navegador.
   const [viento, setViento] = useState(() => {
     try {
@@ -402,12 +412,20 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
           "circle-translate-anchor": "viewport",
         },
       });
-      agregarCapaViento(map);
+      agregarCapaEtiquetas(map, "viento");
+      agregarCapaEtiquetas(map, "olas");
       // La capa 3D avisa dónde quedaron las flechas al cambiar el zoom; las etiquetas se mueven una vez por cuadro.
       let cuadro = 0;
       capa.onVientoMovido = (puntos) => {
         cancelAnimationFrame(cuadro);
-        cuadro = requestAnimationFrame(() => (map.getSource("viento") as GeoJSONSource | undefined)?.setData(etiquetasViento(puntos)));
+        const datos = etiquetas(puntos.map((p) => ({ lngLat: p.lngLat, texto: `${Math.round(p.kmh)} km/h` })));
+        cuadro = requestAnimationFrame(() => (map.getSource("viento") as GeoJSONSource | undefined)?.setData(datos));
+      };
+      let cuadroOlas = 0;
+      capa.onOlasMovido = (puntos) => {
+        cancelAnimationFrame(cuadroOlas);
+        const datos = etiquetas(puntos.map((p) => ({ lngLat: p.lngLat, texto: textoOla(p.metros) })));
+        cuadroOlas = requestAnimationFrame(() => (map.getSource("olas") as GeoJSONSource | undefined)?.setData(datos));
       };
       map.addSource("playas", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
@@ -625,10 +643,12 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     } catch {}
   }
 
-  function cambiarViento(v: boolean) {
-    setViento(v);
+  function cambiarModo(modo: { viento: boolean; olas: boolean }) {
+    setViento(modo.viento);
+    setOlas(modo.olas);
     try {
-      localStorage.setItem("viento", v ? "1" : "0");
+      localStorage.setItem("viento", modo.viento ? "1" : "0");
+      localStorage.setItem("olas", modo.olas ? "1" : "0");
     } catch {}
   }
 
@@ -640,7 +660,10 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     if (!listo || !map) return;
     capaRef.current?.setVientoVisible(viento);
     map.setLayoutProperty("viento", "visibility", viento ? "visible" : "none");
-  }, [listo, viento]);
+    capaRef.current?.setOlasVisible(olas);
+    map.setLayoutProperty("olas", "visibility", olas ? "visible" : "none");
+  }, [listo, viento, olas]);
+  const olasAlDia = vientoAlDia && playas.some((p) => p.clima?.waveHeight != null);
 
   // Servicios → mapa.
   useEffect(() => {
@@ -695,6 +718,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     if (!listo || !map) return;
     capaRef.current?.setAguasVivas(aguasVivas);
     capaRef.current?.setVientos(vientosMapa(playas));
+    capaRef.current?.setOlas(olasMapa(playas));
     capaRef.current?.setCasillas(casillas);
     (map.getSource("casillas") as GeoJSONSource).setData({
       type: "FeatureCollection",
@@ -956,7 +980,8 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         <div className="max-md:hidden">
           <SelectorTema tema={tema} auto={temaManual === null} temaAuto={temaAuto} onElegir={elegirTema} />
         </div>
-        <BotonViento activo={viento} onCambiar={cambiarViento} />
+        <BotonViento activo={viento} onCambiar={(v) => cambiarModo({ viento: v, olas: false })} />
+        <BotonOlas activo={olas} onCambiar={(v) => cambiarModo({ viento: false, olas: v })} />
         <MenuSitio>
           {(cerrarMenu) => (
             <section aria-label="Estilo del mapa" className="md:hidden">
@@ -978,9 +1003,9 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
         </MenuSitio>
       </div>
 
-      {viento && (
+      {(viento || olas) && (
         <div className={`pointer-events-none absolute right-3 top-[128px] z-20 md:right-4 md:top-20 ${teclado ? "max-md:hidden" : ""}`}>
-          <LeyendaViento time={vientoHora} vigente={vientoAlDia} />
+          {viento ? <LeyendaViento time={vientoHora} vigente={vientoAlDia} /> : <LeyendaOlas time={vientoHora} vigente={olasAlDia} />}
         </div>
       )}
 

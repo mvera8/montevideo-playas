@@ -29,6 +29,15 @@ Cosas que **cambian en el día** y que sirven para decidir a qué playa ir:
 
 MVP recomendado: los primeros 3 o 4.
 
+### Ocupación (lleno / moderado / vacío)
+
+**Revisar el 15/11/2026, cuando arranca la temporada de guardavidas:** el endpoint público de la IM
+(`https://m.montevideo.gub.uy/playas/api/casillas`) trae por casilla `occupationIndex`, `occupationIndexDesc` y
+`occupationIndexExpiration`. El 30/10/2026, fuera de temporada, venían en 0, vacío y con fecha vieja (08/10).
+Si la IM los completa en temporada, hay un dato oficial y no hace falta pedirle reportes a la gente: anotar qué
+valores usa y con qué frecuencia cambian. Si siguen vacíos, sumar la ocupación como un tipo de reporte más, que
+venza a las 2 o 3 horas y vuelva a "Sin datos de ocupación". Sirve poco hasta que haya suficientes usuarios.
+
 Para fauna, mostrar siempre **"no te acerques ni lo toques; avisá a Prefectura o a un grupo de
 rescate de fauna marina"**. No convertirlo en atracción.
 

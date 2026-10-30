@@ -156,7 +156,8 @@ export default function Terminos() {
         Provienen de modelos meteorológicos (MET Norway para el clima, NOAA para el mar) y pueden fallar. La
         temperatura del agua es estimada por un modelo satelital diario, salvo cuando indicamos “medida IM”, y si
         tiene más de 4 días no la mostramos. Las olas salen de un modelo global de baja resolución y son orientativas
-        en el Río de la Plata. El índice UV del pronóstico y el “máx. hoy” de la tarjeta del clima son
+        en el Río de la Plata; en el modo Olas del mapa, el alto de las crestas no es a escala, su movimiento hacia la costa es
+        un dibujo y que las olas sean chicas no significa que sea seguro bañarse. El índice UV del pronóstico y el “máx. hoy” de la tarjeta del clima son
         los que habría con cielo despejado (el máximo posible; con nubes es menor). El UV “ahora” de esa tarjeta, que también usa el aviso de UV alto de la recomendación, es el que
         publica la Intendencia de Montevideo, un solo valor para toda la ciudad; si tiene más de 1 hora, no lo mostramos.
         Para alertas de radiación, la fuente oficial es la Intendencia o Inumet. La lluvia es la
