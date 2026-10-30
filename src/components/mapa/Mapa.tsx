@@ -26,8 +26,8 @@ import AlertaInumet from "./AlertaInumet";
 import PanelGeneral, { ESTADOS, estadoPlaya, type EstadoBandera } from "./PanelGeneral";
 import CalidadAgua from "./CalidadAgua";
 import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
-import { BotonFavorita, ModalFavoritas } from "./Favorita";
-import { favoritasPrimero, useFavoritas } from "@/lib/favorita-cliente";
+import { BotonFavorita, ModalFavorita } from "./Favorita";
+import { favoritaPrimero, useFavorita } from "@/lib/favorita-cliente";
 import { useBanderasNavegador } from "@/lib/banderas-cliente";
 import FotoPlaya from "./FotoPlaya";
 import { useTeclado } from "./useTeclado";
@@ -321,10 +321,10 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     return playa ? { lat: playa.lat, lon: playa.lon } : null;
   }, [casillas, casillaId, playa]);
 
-  const { favoritas } = useFavoritas();
+  const { favorita, cargada } = useFavorita();
   const resultados = useMemo(() => {
     const q = normalizar(busqueda.trim());
-    // Listado en orden alfabético (las playas llegan de oeste a este), con las de casillas favoritas primero.
+    // Listado en orden alfabético (las playas llegan de oeste a este), con la de la casilla favorita primero.
     const lista = playas
       .filter(
         (p) =>
@@ -334,8 +334,8 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
             p.guardavidas.some((g) => normalizar(g.nombre).includes(q))),
       )
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-    return favoritasPrimero(lista, favoritas);
-  }, [busqueda, filtro, playas, favoritas]);
+    return favoritaPrimero(lista, favorita);
+  }, [busqueda, filtro, playas, favorita]);
 
   // Inicializa el mapa una sola vez.
   useEffect(() => {
@@ -660,10 +660,31 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     map.once("moveend", () => abrirPopup(map, s, popupRef));
   }
 
-  // Estrella 3D girando sobre cada casilla favorita.
+  // Estrella 3D girando sobre la casilla favorita.
   useEffect(() => {
-    if (listo) capaRef.current?.setFavoritas(favoritas.map((f) => f.casilla));
-  }, [listo, favoritas]);
+    if (listo) capaRef.current?.setFavoritas(favorita ? [favorita.casilla] : []);
+  }, [listo, favorita]);
+
+  // Al abrir /playas el mapa arranca en la favorita, sin elegirla (panel general, sin detalle). Una sola
+  // vez por carga: después no le movemos el mapa a nadie. Si se llega con ?playa=, manda esa playa.
+  const centradaEnFavorita = useRef(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !listo || centradaEnFavorita.current) return;
+    if (slug || (!favorita && cargada)) centradaEnFavorita.current = true;
+    if (slug || !favorita) return;
+    centradaEnFavorita.current = true;
+    const casilla = casillas.find((c) => c.id === favorita.casilla);
+    const enPlaya = playas.find((p) => p.slug === favorita.playa);
+    const centro: [number, number] | null = casilla
+      ? [casilla.lng, casilla.lat]
+      : enPlaya
+        ? [enPlaya.lon, enPlaya.lat]
+        : null; // la IM dejó de informarla: queda el encuadre normal
+    if (centro) {
+      map.flyTo({ center: centro, zoom: 15.2, pitch: 60, padding: padding(0, abiertoRef.current), essential: true });
+    }
+  }, [listo, favorita, cargada, slug, casillas, playas]);
 
   // Datos → capa 3D y fuentes GeoJSON.
   useEffect(() => {
@@ -869,7 +890,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
       <div ref={contenedor} className="h-full w-full" />
       {lluvia && <Lluvia intensidad={lluvia} oscuro={tema === "noche"} />}
 
-      <ModalFavoritas
+      <ModalFavorita
         playas={playas}
         temporadaActiva={temporada.activa}
         onVer={(p, casilla) => {

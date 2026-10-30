@@ -1,15 +1,15 @@
 "use client";
 
-// Casillas favoritas desde el navegador (README → "Casillas favoritas"). Hasta 3 por persona
-// (`TOPE_FAVORITAS`, mismo tope que el trigger de la base), con la misma cuenta anónima de los me gusta
-// (supabase-navegador.ts). Tabla `casilla_favorita` con RLS (cada uno ve y cambia solo las suyas) y
-// función `alternar_favorita(p_playa, p_casilla)`: agrega o saca y devuelve todas, en un viaje. Se
-// guarda la casilla (id de la IM) y su playa: la playa ordena el listado, la casilla lleva la estrella
-// 3D y el aviso de bandera verde.
+// Casilla favorita desde el navegador (README → "Casilla favorita"). Una por persona (la PK de la base):
+// elegir otra reemplaza la anterior. Misma cuenta anónima de los me gusta (supabase-navegador.ts). Tabla
+// `casilla_favorita` con RLS (cada uno ve y cambia solo la suya) y función
+// `alternar_favorita(p_playa, p_casilla)`: elige, reemplaza o saca, en un viaje. Se guarda la casilla
+// (id de la IM) y su playa: la playa ordena el listado, la casilla lleva la estrella 3D, el centrado
+// inicial del mapa y el aviso de bandera verde.
 //
-// Performance: las favoritas se copian en localStorage (`favoritas`, JSON) para ordenar el listado al
-// instante sin bajar supabase-js. La base manda: si el navegador tiene sesión, al cargar se leen (hasta
-// 3 filas, por RLS solo las propias) y se corrige la copia. Sin sesión no hay favoritas y no se pide nada.
+// Performance: la favorita se copia en localStorage (`favorita`, JSON) para ordenar el listado y centrar
+// el mapa al instante sin bajar supabase-js. La base manda: si el navegador tiene sesión, al cargar se
+// lee (una fila, por RLS solo la propia) y se corrige la copia. Sin sesión no hay favorita y no se pide nada.
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { haySesion, sesion, supabaseDisponible } from "./supabase-navegador";
@@ -18,36 +18,33 @@ export const favoritaDisponible = supabaseDisponible;
 
 export type Favorita = { playa: string; casilla: string };
 
-export const TOPE_FAVORITAS = 3;
+const CLAVE_LOCAL = "favorita";
 
-const CLAVE_LOCAL = "favoritas";
-
-function leerCopia(): Favorita[] {
+function leerCopia(): Favorita | null {
   try {
-    localStorage.removeItem("favorita"); // copia de cuando había una sola
-    const f = JSON.parse(localStorage.getItem(CLAVE_LOCAL) ?? "[]");
-    return Array.isArray(f) ? f.filter((x) => typeof x?.playa === "string" && typeof x?.casilla === "string") : [];
+    localStorage.removeItem("favoritas"); // copia de cuando había hasta 3
+    const f = JSON.parse(localStorage.getItem(CLAVE_LOCAL) ?? "null");
+    return typeof f?.playa === "string" && typeof f?.casilla === "string" ? { playa: f.playa, casilla: f.casilla } : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
-function guardarCopia(f: Favorita[]) {
+function guardarCopia(f: Favorita | null) {
   try {
-    if (f.length) localStorage.setItem(CLAVE_LOCAL, JSON.stringify(f));
+    if (f) localStorage.setItem(CLAVE_LOCAL, JSON.stringify(f));
     else localStorage.removeItem(CLAVE_LOCAL);
   } catch {}
 }
 
 type Estado = {
-  favoritas: Favorita[];
+  favorita: Favorita | null;
   cargada: boolean;
   pendiente: boolean;
   error: string | null;
-  tope: boolean; // quiso agregar una más con el tope lleno: Favorita.tsx muestra el modal
 };
 
-let estado: Estado = { favoritas: [], cargada: false, pendiente: false, error: null, tope: false };
+let estado: Estado = { favorita: null, cargada: false, pendiente: false, error: null };
 let iniciado = false;
 let elegidaEnEstaCarga = false; // si la eligió mientras cargaba, manda la elección
 const oyentes = new Set<() => void>();
@@ -67,67 +64,58 @@ function cargar() {
   if (iniciado || !favoritaDisponible) return;
   iniciado = true;
   if (!haySesion()) {
-    guardarCopia([]);
-    cambiar({ favoritas: [], cargada: true });
+    guardarCopia(null);
+    cambiar({ favorita: null, cargada: true });
     return;
   }
-  cambiar({ favoritas: leerCopia() });
+  cambiar({ favorita: leerCopia() });
   sesion(false)
     .then(async (c) => {
-      if (!c) return [];
-      const { data, error } = await c.from("casilla_favorita").select("playa,casilla").order("actualizado");
+      if (!c) return null;
+      const { data, error } = await c
+        .from("casilla_favorita")
+        .select("playa,casilla")
+        .order("actualizado", { ascending: false })
+        .limit(1);
       if (error) throw error;
-      return data as Favorita[];
+      return (data[0] as Favorita | undefined) ?? null;
     })
     .then((f) => {
       if (elegidaEnEstaCarga) return;
       guardarCopia(f);
-      cambiar({ favoritas: f });
+      cambiar({ favorita: f });
     })
     .catch(() => {}) // sin conexión: queda la copia local
     .finally(() => cambiar({ cargada: true }));
 }
 
-/** Casillas favoritas del navegador y la acción de agregar o sacar una, con actualización optimista. */
-export function useFavoritas() {
+/** Casilla favorita del navegador y la acción de elegirla o sacarla, con actualización optimista. */
+export function useFavorita() {
   const e = useSyncExternalStore(suscribir, () => estado, () => estado);
   useEffect(cargar, []);
 
   const alternar = useCallback(async (f: Favorita) => {
     if (estado.pendiente) return;
-    const antes = estado.favoritas;
-    const esta = antes.some((x) => x.casilla === f.casilla);
-    if (!esta && antes.length >= TOPE_FAVORITAS) {
-      cambiar({ tope: true });
-      return;
-    }
+    const antes = estado.favorita;
     elegidaEnEstaCarga = true;
-    cambiar({
-      favoritas: esta ? antes.filter((x) => x.casilla !== f.casilla) : [...antes, f],
-      pendiente: true,
-      error: null,
-    });
+    cambiar({ favorita: antes?.casilla === f.casilla ? null : f, pendiente: true, error: null });
     try {
       const c = await sesion(true);
       const { data, error } = await c!.rpc("alternar_favorita", { p_playa: f.playa, p_casilla: f.casilla });
       if (error) throw error;
-      guardarCopia(data as Favorita[]);
-      cambiar({ favoritas: data as Favorita[], pendiente: false });
-    } catch (err) {
-      // check_violation: el tope de la base (p. ej. eligió desde otra pestaña con la copia vieja).
-      const tope = (err as { code?: string })?.code === "23514";
-      cambiar({ favoritas: antes, pendiente: false, tope, error: tope ? null : "No se pudo guardar. Probá de nuevo." });
+      const nueva = (data as Favorita[]).at(-1) ?? null;
+      guardarCopia(nueva);
+      cambiar({ favorita: nueva, pendiente: false });
+    } catch {
+      cambiar({ favorita: antes, pendiente: false, error: "No se pudo guardar. Probá de nuevo." });
     }
   }, []);
 
-  const cerrarTope = useCallback(() => cambiar({ tope: false }), []);
-
-  return { ...e, disponible: favoritaDisponible, alternar, cerrarTope };
+  return { ...e, disponible: favoritaDisponible, alternar };
 }
 
-/** Pone primero las playas con casillas favoritas (en orden alfabético entre ellas, como el resto). */
-export function favoritasPrimero<T extends { slug: string }>(playas: T[], favoritas: Favorita[]) {
-  if (!favoritas.length) return playas;
-  const conFavorita = new Set(favoritas.map((f) => f.playa));
-  return [...playas.filter((p) => conFavorita.has(p.slug)), ...playas.filter((p) => !conFavorita.has(p.slug))];
+/** Pone primero la playa de la casilla favorita (el resto queda como venía). */
+export function favoritaPrimero<T extends { slug: string }>(playas: T[], favorita: Favorita | null) {
+  if (!favorita) return playas;
+  return [...playas.filter((p) => p.slug === favorita.playa), ...playas.filter((p) => p.slug !== favorita.playa)];
 }

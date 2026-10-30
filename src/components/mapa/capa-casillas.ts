@@ -92,9 +92,9 @@ function banderasDe(c: CasillaMapa): { color: string; cruz: boolean }[] {
   return c.sanitaria ? [{ color: COLORES[c.bandera], cruz: false }, sanitaria] : [{ color: COLORES[c.bandera], cruz: false }];
 }
 
-// Estrellas de las casillas favoritas (hasta 3): una vuelta cada 6 s (lenta, que se note sin distraer).
+// Estrella de la casilla favorita: una vuelta cada 6 s (lenta, que se note sin distraer).
 const VUELTA_ESTRELLA_S = 6;
-const MAX_ESTRELLAS = 3; // TOPE_FAVORITAS (favorita-cliente.ts) y trigger casilla_favorita_tope
+const MAX_ESTRELLAS = 1; // una favorita por persona (PK de casilla_favorita)
 
 const FRAME_MS = 1000 / 30; // la bandera se anima a 30 fps para no recargar la GPU
 const ZOOM_ANIMACION = 13; // más lejos la bandera es muy chica: el mapa queda quieto
@@ -385,7 +385,7 @@ export class CapaCasillas implements CustomLayerInterface {
     this.map?.triggerRepaint();
   }
 
-  /** Casillas favoritas (ids): les pone una estrella 3D girando arriba. */
+  /** Casilla favorita (id, o ninguno): le pone una estrella 3D girando arriba. */
   setFavoritas(ids: string[]) {
     if (ids.join() === this.favoritas.join()) return;
     this.favoritas = ids;
@@ -566,7 +566,7 @@ export class CapaCasillas implements CustomLayerInterface {
     this.casillasMesh!.instanceMatrix.needsUpdate = true;
     this.banderasMesh!.instanceMatrix.needsUpdate = true;
 
-    // Estrellas sobre las casillas favoritas que están en el mapa (el giro se aplica en render).
+    // Estrella sobre la casilla favorita, si está en el mapa (el giro se aplica en render).
     if (this.estrellas) {
       this.estrellasBase = this.casillas
         .flatMap((c, i) => (this.favoritas.includes(c.id) ? [i] : []))

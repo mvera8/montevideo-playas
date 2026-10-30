@@ -116,7 +116,7 @@ export default function Terminos() {
       <h2 id="servicio">El servicio</h2>
       <p>
         {SITIO.nombre} reúne información pública sobre las playas de Montevideo: casillas y banderas, calidad del agua,
-        clima y alertas de Inumet, aguas vivas reportadas por la comunidad, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas, elegir tus casillas favoritas, sacarte una foto con los datos de la playa, leer novedades de la
+        clima y alertas de Inumet, aguas vivas reportadas por la comunidad, recomendaciones y cómo llegar en ómnibus. También podés darle “me gusta” a las playas, elegir tu casilla favorita, sacarte una foto con los datos de la playa, leer novedades de la
         temporada y escribirnos desde el formulario de contacto. Usarlo es gratuito y
         no requiere registro. Al usar el sitio aceptás estos términos.
       </p>
@@ -228,11 +228,11 @@ export default function Terminos() {
         de preferencias de quienes usan el sitio, no una recomendación ni una evaluación de las playas.
       </p>
 
-      <h3 id="favorita">Casillas favoritas</h3>
+      <h3 id="favorita">Casilla favorita</h3>
       <p>
-        Podés marcar hasta tres casillas de guardavidas como favoritas con la estrella de la lista de casillas: sus
-        playas aparecen primero en el listado, cada una lleva una estrella en el mapa y, si alguna tiene bandera verde,
-        te avisamos al entrar al mapa (una vez por día, si lo cerrás). Es una preferencia tuya, no una recomendación. El
+        Podés marcar una casilla de guardavidas como favorita con la estrella de la lista de casillas (elegir otra
+        reemplaza la anterior): su playa aparece primero en el listado, lleva una estrella en el mapa, el mapa arranca
+        centrado ahí y, si tiene bandera verde, te avisamos al entrar al mapa (una vez por día, si lo cerrás). Es una preferencia tuya, no una recomendación. El
         aviso usa la misma bandera publicada por la Intendencia que muestra el resto del sitio, con su misma demora y
         límites: <strong>no es un aviso oficial</strong>, la bandera puede cambiar en cualquier momento y lo que vale es lo
         que indican los guardavidas en la playa. Si no hay bandera vigente, la casilla deja de figurar en los datos de la

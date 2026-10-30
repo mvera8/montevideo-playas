@@ -18,7 +18,7 @@ export default function Privacidad() {
           <li>No tenés que crear una cuenta ni darnos tu nombre o correo (solo si nos escribís por el formulario de contacto).</li>
           <li>
             Si das <strong>“me gusta”</strong> a una playa, se crea una cuenta anónima en tu navegador y guardamos qué playas
-            te gustan. Lo mismo si elegís <strong>casillas favoritas</strong>, que solo ves vos. Nadie más ve quién dio
+            te gustan. Lo mismo si elegís tu <strong>casilla favorita</strong>, que solo ves vos. Nadie más ve quién dio
             cada me gusta: solo se muestra el total.
           </li>
           <li>
@@ -79,12 +79,12 @@ export default function Privacidad() {
       <ul>
         <li>un identificador aleatorio de esa cuenta y la fecha en que se creó;</li>
         <li>a qué playas les diste me gusta, en qué temporada y cuándo;</li>
-        <li>cuáles son tus casillas de guardavidas favoritas (hasta tres, con su playa), si elegiste, y cuándo las marcaste.</li>
+        <li>cuál es tu casilla de guardavidas favorita (una, con su playa), si elegiste, y cuándo la marcaste.</li>
       </ul>
       <p>
-        La cuenta se crea igual si lo primero que tocás es la estrella de <strong>casilla favorita</strong>. Tus favoritas no
-        se publican de ninguna forma (ni siquiera como total): solo las usamos para poner sus playas primero en el
-        listado, marcarlas en el mapa y avisarte si tienen bandera verde. Podés sacar una tocando su estrella de nuevo.
+        La cuenta se crea igual si lo primero que tocás es la estrella de <strong>casilla favorita</strong>. Tu favorita no
+        se publica de ninguna forma (ni siquiera como total): solo la usamos para poner su playa primero en el
+        listado, marcarla en el mapa, centrar el mapa ahí al abrirlo y avisarte si tiene bandera verde. Podés sacarla tocando su estrella de nuevo.
       </p>
       <p>
         Para qué: contar un solo me gusta por persona y mostrarte cuáles marcaste. <strong>Solo publicamos el total por
@@ -134,13 +134,13 @@ export default function Privacidad() {
       <h2 id="dispositivo">Lo que queda en tu dispositivo</h2>
       <p>
         Guardamos algunas preferencias en el almacenamiento local de tu navegador (no son cookies y no se envían a ningún
-        lado): si dejaste el panel lateral abierto o cerrado, el estilo del mapa que elegiste, una copia de tus casillas
-        favoritas (para ordenar el listado sin esperar a Supabase) y el día en que cerraste el aviso de bandera verde. Podés borrarlas borrando
+        lado): si dejaste el panel lateral abierto o cerrado, el estilo del mapa que elegiste, una copia de tu casilla
+        favorita (para ordenar el listado y centrar el mapa sin esperar a Supabase) y el día en que cerraste el aviso de bandera verde. Podés borrarlas borrando
         los datos del sitio en tu navegador.
       </p>
       <p>
         Si diste me gusta, también queda ahí la sesión de tu cuenta anónima (una clave que se envía a Supabase solo para
-        guardar o leer tus me gusta y tus casillas favoritas).
+        guardar o leer tus me gusta y tu casilla favorita).
       </p>
 
       <h2 id="analitica">Estadísticas de uso (Google Analytics)</h2>
