@@ -157,6 +157,7 @@ export async function met(p: Point) {
   const res = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/complete?${qs}`, {
     headers: { "User-Agent": USER_AGENT },
     next: { revalidate: 1800 },
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`MET Norway falló (${res.status}): ${await res.text()}`);
   return ((await res.json()) as MetResponse).properties.timeseries;

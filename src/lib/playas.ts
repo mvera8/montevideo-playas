@@ -1,12 +1,5 @@
 import "server-only";
-import {
-  getImLifeguardStations,
-  getImVencimientos,
-  hasImCredentials,
-  type ImLifeguardStation,
-  type SafetyFlag,
-  type VencimientoIm,
-} from "./im";
+import { getImCasillas, type ImLifeguardStation, type SafetyFlag } from "./im";
 import casillasSnapshot from "@/data/casillas.json";
 import orientaciones from "@/data/orientaciones.json";
 import { banderasDe } from "./banderas";
@@ -131,12 +124,10 @@ function coordenadas(s: ImLifeguardStation): [number, number] {
   return [-Math.abs(lon), -Math.abs(lat)];
 }
 
-// `venc`: vencimientos del sitio móvil de la IM (la API no los trae; ver src/lib/im.ts). `null`: sin
-// banderas (casillas del snapshot; las completa el navegador, ver banderas-cliente.ts).
-function toGuardavidas(s: ImLifeguardStation, temporadaActiva: boolean, venc: VencimientoIm | undefined | null): Guardavidas {
+// `conBanderas` false: casillas del snapshot, sin banderas (las completa el navegador, ver banderas-cliente.ts).
+function toGuardavidas(s: ImLifeguardStation, temporadaActiva: boolean, conBanderas: boolean): Guardavidas {
   const [lon, lat] = coordenadas(s);
-  const { bandera, banderaSanitaria } =
-    venc === null ? { bandera: null, banderaSanitaria: null } : banderasDe(s, temporadaActiva, venc);
+  const { bandera, banderaSanitaria } = conBanderas ? banderasDe(s, temporadaActiva) : { bandera: null, banderaSanitaria: null };
   return {
     id: s.id,
     nombre: s.name,
@@ -150,7 +141,7 @@ function toGuardavidas(s: ImLifeguardStation, temporadaActiva: boolean, venc: Ve
   };
 }
 
-// Respaldo para cuando no hay credenciales de la IM o la API no responde (desde 10/2026 la IM filtra las
+// Respaldo para cuando la IM no responde (desde 10/2026 la IM filtra las
 // IP de fuera de Uruguay y Vercel no tiene región acá): las mismas casillas, de un snapshot del repo
 // (src/data/casillas.json, `npm run casillas` desde Uruguay), sin banderas. Así el mapa tiene las playas
 // reales con su clima, agua y servicios, y el navegador completa las banderas pidiéndoselas a la IM.
@@ -191,16 +182,11 @@ async function withClima(playas: Omit<Playa, "clima" | "agua" | "servicios" | "o
 }
 
 /** Agrupa las casillas por su código de playa (el endpoint de la IM devuelve casillas, no playas). */
-function armarPlayas(
-  stations: ImLifeguardStation[],
-  temporadaActiva: boolean,
-  vencimientos: Record<string, VencimientoIm> | null | "sin-banderas",
-) {
+function armarPlayas(stations: ImLifeguardStation[], temporadaActiva: boolean, conBanderas: boolean) {
   const porPlaya = new Map<string, Guardavidas[]>();
   for (const s of stations) {
     const codigo = s.beach || "sin-playa";
-    const venc = vencimientos === "sin-banderas" ? null : vencimientos?.[s.id];
-    porPlaya.set(codigo, [...(porPlaya.get(codigo) ?? []), toGuardavidas(s, temporadaActiva, venc)]);
+    porPlaya.set(codigo, [...(porPlaya.get(codigo) ?? []), toGuardavidas(s, temporadaActiva, conBanderas)]);
   }
   return (
     [...porPlaya.entries()]
@@ -222,24 +208,20 @@ function armarPlayas(
 }
 
 function respaldo(temporadaActiva: boolean) {
-  return armarPlayas(CASILLAS_SNAPSHOT, temporadaActiva, "sin-banderas");
+  return armarPlayas(CASILLAS_SNAPSHOT, temporadaActiva, false);
+}
+
+/** Slugs de todas las playas, sin pedir nada a la red (sitemap y páginas que se generan al compilar). */
+export function getSlugsPlayas() {
+  return respaldo(false).map((p) => p.slug);
 }
 
 export async function getPlayas(): Promise<PlayasResult> {
   const temporada = getTemporada();
 
-  if (!hasImCredentials()) {
-    return {
-      fuente: "respaldo",
-      error: "Faltan IM_CLIENT_ID / IM_CLIENT_SECRET en .env.local",
-      temporada,
-      playas: await withClima(respaldo(temporada.activa)),
-    };
-  }
-
   try {
-    const [stations, vencimientos] = await Promise.all([getImLifeguardStations(), getImVencimientos()]);
-    return { fuente: "im", error: null, temporada, playas: await withClima(armarPlayas(stations, temporada.activa, vencimientos)) };
+    const stations = await getImCasillas();
+    return { fuente: "im", error: null, temporada, playas: await withClima(armarPlayas(stations, temporada.activa, true)) };
   } catch (e) {
     console.error(e);
     return {

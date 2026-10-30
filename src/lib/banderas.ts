@@ -24,6 +24,13 @@ export type BanderasIm = {
   healthFlagExpiration?: string | null;
 };
 
+export const BANDERAS: Record<NonNullable<Guardavidas["bandera"]>, { label: string; color: string; corto: [string, string] }> = {
+  green: { label: "Verde · apto para bañarse", color: "#1f9d4c", corto: ["verde", "verdes"] },
+  yellow: { label: "Amarilla · precaución", color: "#f5c518", corto: ["amarilla", "amarillas"] },
+  red: { label: "Roja · no bañarse", color: "#d62828", corto: ["roja", "rojas"] },
+  black: { label: "Negra · sin guardavidas", color: "#1b1b1b", corto: ["negra", "negras"] },
+};
+
 const SEGURIDAD = new Set(["green", "yellow", "red", "black"]);
 
 // Si la IM informa vencimiento, se respeta; si no lo informa, el dato solo
@@ -33,24 +40,20 @@ function vigente(expiration: string | null | undefined, temporadaActiva: boolean
   return temporadaActiva;
 }
 
-/** Banderas vigentes de una casilla. `extra`: vencimientos y detalle que la API no trae (sitio móvil). */
-export function banderasDe(
-  s: BanderasIm,
-  temporadaActiva: boolean,
-  extra?: Pick<BanderasIm, "safetyFlagExpiration" | "healthFlagExpiration" | "healthFlagCauseLongDesc">,
-): Pick<Guardavidas, "bandera" | "banderaSanitaria"> {
+/** Banderas vigentes de una casilla. */
+export function banderasDe(s: BanderasIm, temporadaActiva: boolean): Pick<Guardavidas, "bandera" | "banderaSanitaria"> {
   const bandera =
-    s.safetyFlag && SEGURIDAD.has(s.safetyFlag) && vigente(s.safetyFlagExpiration ?? extra?.safetyFlagExpiration, temporadaActiva)
+    s.safetyFlag && SEGURIDAD.has(s.safetyFlag) && vigente(s.safetyFlagExpiration, temporadaActiva)
       ? (s.safetyFlag as Guardavidas["bandera"])
       : null;
   // Llega como texto: "false" sería verdadero si se usara tal cual.
   const sanitaria = s.healthFlag === true || s.healthFlag === "true";
   const banderaSanitaria =
-    s.healthFlag != null && vigente(s.healthFlagExpiration ?? extra?.healthFlagExpiration, temporadaActiva)
+    s.healthFlag != null && vigente(s.healthFlagExpiration, temporadaActiva)
       ? {
           activa: sanitaria,
           causa: s.healthFlagCauseDesc || null,
-          detalle: sanitaria ? (s.healthFlagCauseLongDesc ?? extra?.healthFlagCauseLongDesc ?? null) : null,
+          detalle: sanitaria ? (s.healthFlagCauseLongDesc ?? null) : null,
         }
       : null;
   return { bandera, banderaSanitaria };

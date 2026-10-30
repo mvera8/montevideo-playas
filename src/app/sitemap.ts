@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { ENLACES_LEGALES, ENLACES_PRINCIPALES } from "@/lib/navegacion";
 import { getNovedades } from "@/lib/novedades";
+import { getSlugsPlayas } from "@/lib/playas";
 import { SITIO } from "@/lib/sitio";
 
 // Mismo ritmo que /novedades/[slug]: una nota programada entra al sitemap el día que se publica.
@@ -20,5 +21,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${SITIO.url}/novedades/${n.slug}`,
     lastModified: n.fecha,
   }));
-  return [...paginas, ...notas];
+  const playas = getSlugsPlayas().map((slug) => ({ url: `${SITIO.url}/playas/${slug}` }));
+  return [...paginas, ...playas, ...notas];
 }

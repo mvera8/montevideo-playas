@@ -12,6 +12,10 @@ export const URL_MUESTRAS = `${BASE}/b143b5d2-5721-4efd-8ac5-9edb6e1ae3ac/downlo
 const URL_MEDIAS = `${BASE}/01e9385e-1b1f-4070-81ed-e288fe71f0d4/download/media_geometrica_de_enterococos_en_playas.csv`;
 const CACHE_MS = 3 * 60 * 60 * 1000; // cada cuánto se verifica si hay datos nuevos (HEAD)
 const DIAS_HISTORIAL = 120;
+// Tope de toda la actualización, con una carrera y no con `signal`: abortar estas lecturas colgaba el build
+// (ver README, "Calidad del agua"). Si falla, no se reintenta hasta PAUSA_FALLA: todo getPlayas() la espera.
+const TOPE_ACTUALIZAR = 15_000;
+const PAUSA_FALLA = 5 * 60_000;
 // La IM muestrea cada punto cada ~4 días (p90: 7 días, medido en 2025-2026). Un análisis con más
 // de 21 días (~5 muestreos salteados) ya no describe el agua de hoy: se muestra "sin datos".
 export const DIAS_VIGENCIA = 21;
@@ -238,8 +242,11 @@ async function actualizar(): Promise<Map<string, CalidadAgua>> {
 }
 
 export async function getCalidadAgua(): Promise<Map<string, CalidadAgua>> {
-  if (estado.datos && Date.now() - estado.hora < CACHE_MS) return estado.datos;
-  estado.promesa ??= actualizar()
+  if (Date.now() - estado.hora < CACHE_MS) return estado.datos ?? new Map();
+  estado.promesa ??= Promise.race([
+    actualizar(),
+    new Promise<never>((_, rechazar) => setTimeout(() => rechazar(new Error("Calidad de agua IM: no respondió a tiempo")), TOPE_ACTUALIZAR)),
+  ])
     .then((d) => {
       estado.datos = d;
       estado.hora = Date.now();
@@ -247,10 +254,12 @@ export async function getCalidadAgua(): Promise<Map<string, CalidadAgua>> {
     })
     .catch((e) => {
       console.error(e);
+      estado.hora = Date.now() - CACHE_MS + PAUSA_FALLA;
       return estado.datos ?? new Map();
     })
     .finally(() => {
       estado.promesa = undefined;
     });
-  return estado.promesa;
+  // Con datos anteriores no se espera: se actualizan para el próximo render.
+  return estado.datos ?? estado.promesa;
 }

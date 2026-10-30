@@ -13,24 +13,67 @@ function Estrella({ llena, className = "h-4 w-4" }: { llena: boolean; className?
   return <Star weight={llena ? "fill" : "regular"} className={className} aria-hidden />;
 }
 
-/** Botón ⭐ de cada casilla en el detalle: la elige como favorita (reemplaza la anterior) o la saca. */
-export function BotonFavorita({ playa, casilla, nombre }: { playa: string; casilla: string; nombre: string }) {
+/**
+ * Botón ⭐ de cada casilla en el detalle: la elige como favorita o la saca. Si ya hay otra, pregunta antes de
+ * reemplazarla (un toque sin querer la perdía). `nombreActual`: cómo se llama la favorita de ahora, si se sabe.
+ */
+export function BotonFavorita({
+  playa,
+  casilla,
+  nombre,
+  nombreActual,
+}: {
+  playa: string;
+  casilla: string;
+  nombre: string;
+  nombreActual?: string;
+}) {
   const { favorita, pendiente, disponible, error, alternar } = useFavorita();
+  const [confirmando, setConfirmando] = useState(false);
   if (!disponible) return null;
   const llena = favorita?.casilla === casilla;
   return (
-    <button
-      onClick={() => alternar({ playa, casilla })}
-      disabled={pendiente}
-      aria-pressed={llena}
-      aria-label={llena ? `Sacar ${nombre} como favorita` : `Elegir ${nombre} como casilla favorita`}
-      title={error ?? (llena ? "Casilla favorita" : "Elegir como favorita")}
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition-transform duration-700 ease-fluido active:scale-90 disabled:opacity-60 ${
-        llena ? "" : "hover:bg-slate-100 dark:hover:bg-oscuro-4"
-      } ${color(llena)}`}
-    >
-      <Estrella llena={llena} className="h-5 w-5" />
-    </button>
+    <>
+      <button
+        onClick={() => (favorita && !llena ? setConfirmando(true) : alternar({ playa, casilla }))}
+        disabled={pendiente}
+        aria-pressed={llena}
+        aria-label={llena ? `Sacar ${nombre} como favorita` : `Elegir ${nombre} como casilla favorita`}
+        title={error ?? (llena ? "Casilla favorita" : "Elegir como favorita")}
+        className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition-transform duration-700 ease-fluido active:scale-90 disabled:opacity-60 ${
+          llena ? "" : "hover:bg-slate-100 dark:hover:bg-oscuro-4"
+        } ${color(llena)}`}
+      >
+        <Estrella llena={llena} className="h-5 w-5" />
+      </button>
+      {confirmando && (
+        <Modal
+          abierto
+          onCerrar={() => setConfirmando(false)}
+          titulo="¿Cambiar tu casilla favorita?"
+          icono={<Estrella llena className="h-5 w-5 text-amber-400" />}
+          acciones={
+            <>
+              <BotonModal
+                principal
+                onClick={() => {
+                  setConfirmando(false);
+                  alternar({ playa, casilla });
+                }}
+              >
+                Cambiar a {nombre}
+              </BotonModal>
+              <BotonModal onClick={() => setConfirmando(false)}>Dejar {nombreActual ?? "la que tengo"}</BotonModal>
+            </>
+          }
+        >
+          <p>
+            {nombreActual ? `Tu favorita es ${nombreActual}.` : "Ya tenés una casilla favorita."} Podés tener una sola: si
+            elegís {nombre}, reemplaza a la anterior.
+          </p>
+        </Modal>
+      )}
+    </>
   );
 }
 
