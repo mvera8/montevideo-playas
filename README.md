@@ -151,6 +151,13 @@ geométrica de 5 muestras que publica la IM. `src/lib/calidad-agua.ts` los cruza
 - **Si el servidor no contesta**: toda la actualización tiene un tope de 15 s (`TOPE_ACTUALIZAR`, una carrera y no un
   `signal`, por lo anterior). Después de una falla no se reintenta por 5 min, y si hay datos anteriores se responde con
   ellos sin esperar.
+- **Si el servidor no llega a la IM** (filtro de IP de fuera de Uruguay, ver "Banderas desde el navegador"): el
+  navegador baja los mismos CSV y los procesa con el mismo código (`useAguaNavegador` en `src/lib/agua-cliente.ts`,
+  usado en `Mapa.tsx`). Solo si ninguna playa trajo `agua` del servidor. `ckan-data.montevideo.gub.uy` responde
+  `access-control-allow-origin: *` (verificado 06/11/2026) y está en `connect-src` (`next.config.ts`). Mismo corte
+  en streaming (~48 KB + ~20 KB de medias), tope de 15 s. Si falla (fuera de Uruguay), las playas quedan "sin datos".
+  Descarga, criterio y procesamiento están en `src/lib/calidad-agua-datos.ts` (sin `server-only`);
+  `src/lib/calidad-agua.ts` suma la caché del servidor. `/estado` lo prueba en "Desde tu navegador".
 
 - Criterio del **Decreto 226/025** (la IM lo aplica desde el 27/03/2026): supera el límite si la media
   de 5 muestras (≤ 40 días) pasa 200 enterococos/100 ml o una muestra pasa 500.
@@ -302,9 +309,19 @@ iNaturalist** en la costa de Montevideo, y `AguasVivas.tsx` los muestra en el de
   si no hay, la última edición ("editado"); con más de 2 años (`DIAS_VIGENCIA_OSM`) se avisa "dato viejo"
   y el ícono se ve tenue. Cerca de las playas ninguno tiene `check_date` (medido 10/2026): varios baños
   fijos no se editan desde 2017-2023. La IM no trae fecha por punto (regenera el registro a diario).
-- **Overpass** a veces responde 502/504/429 (saturado): un reintento a los 2 s, con timeout de 30 s.
-  Los espejos públicos probados (kumi.systems, private.coffee) tampoco respondieron (10/2026; el
-  15/10/2026 los tres daban 500/502 al mismo tiempo).
+- **Overpass**: primero `overpass-api.de` y, si no responde (502/504/429 o sin conexión), el de Francia,
+  `https://overpass.openstreetmap.fr/api/interpreter`; tope de 20 s por servidor (`OVERPASS` y `TIMEOUT_OVERPASS`).
+  Probados el 06/11/2026: alemán (y `lz4.`/`z.`), kumi.systems, private.coffee y openstreetmap.ru sin respuesta en
+  25 s; mail.ru 504; **solo Francia respondió** (2,5 s, 12 KB). Ojo: su base va atrasada (`osm_base` del
+  10/08/2026, ~3 meses); se ve en `/api/timestamp` (su `/api/status` da 403). Para baños y bebederos alcanza, y cada
+  punto igual muestra su propia fecha.
+- **Copia en el repo** (`src/data/servicios.json`, ~23 KB): cada instancia arranca con ella y la reemplaza cuando
+  responde la fuente en vivo, así el mapa nunca queda sin servicios aunque la IM filtre a Vercel y Overpass esté
+  caído. Guarda los zip de la IM tal cual (base64) y los elementos crudos de Overpass, para procesarlos con el mismo
+  código que en vivo (las fechas de OSM se calculan al día). **Regenerar desde Uruguay** con `npm run servicios`
+  (`scripts/servicios.mjs`) al empezar cada temporada o si la IM suma baños; si una fuente falla, conserva la parte
+  anterior (fuera de Uruguay actualiza solo OSM). `/estado` ("Copia de baños y bebederos") la marca vieja a los
+  180 días (`DIAS_VIGENCIA_COPIA`), igual que a un servidor de Overpass con la base más atrasada que eso.
 
 Cache en memoria de 24 h, guardando lo último bueno de cada fuente por separado. Si una falla se sigue
 con lo último que respondió de ella (o sin ella, si nunca respondió) y se reintenta a los 5 min
@@ -647,7 +664,8 @@ con la causa real del error (p. ej. `fetch failed — UND_ERR_CONNECT_TIMEOUT: C
 - **Qué se pide a cada fuente:** lo mínimo. IM Playas y MET Norway pasan por la misma función de la
   app (con su caché); Transporte baja `version.txt` del GTFS (token + API); los sitios móviles de la
   IM, el JSON chico de siempre; calidad del agua y GIS, un `HEAD`; NOAA y PacIOOS solo el eje `time`
-  de ERDDAP (`<dataset>.csv?time%5B(last)%5D`, ~50 B); Overpass, `/api/status` (no gasta cupo);
+  de ERDDAP (`<dataset>.csv?time%5B(last)%5D`, ~50 B); Overpass (los dos servidores), `/api/timestamp` (~20 B, no
+  gasta cupo, y da la fecha de sus datos); la copia de servicios, su fecha (sin pedidos);
   Inumet, iNaturalist y Supabase, la función de la app (si falla, el detalle queda en los logs).
 - **"Datos viejos":** se usan los mismos umbrales que la app (`DIAS_VIGENCIA` de calidad del agua,
   `DIAS_VIGENCIA_SST`, `HORAS_VIGENCIA_UV`); olas, si el pronóstico ya no llega a mañana.

@@ -63,7 +63,7 @@ const FUENTES = [
   {
     nombre: "OpenStreetMap, OpenMapTiles y OpenFreeMap",
     url: "https://www.openstreetmap.org/copyright",
-    usa: "Mapa base (calles, costa, edificios) y baños, bebederos y duchas cargados por la comunidad.",
+    usa: "Mapa base (calles, costa, edificios) y baños, bebederos y duchas cargados por la comunidad (consultados en los servidores públicos de Overpass: overpass-api.de y, si no responde, overpass.openstreetmap.fr).",
     licencia: "© colaboradores de OpenStreetMap, bajo licencia ODbL.",
   },
   {
@@ -150,6 +150,11 @@ export default function Terminos() {
         decide y comunica la Intendencia (bandera sanitaria). Los datos se publican con algunos días de demora, y si un
         muestreo tiene más de 21 días lo mostramos como “sin muestreo reciente”.
       </p>
+      <p>
+        Si nuestro servidor no logra conectarse con la Intendencia, tu navegador descarga esos mismos datos abiertos y
+        aplicamos el mismo cálculo. Desde fuera de Uruguay esa consulta puede no funcionar: en ese caso las playas se
+        muestran sin datos de calidad del agua.
+      </p>
 
       <h3>Clima y pronóstico</h3>
       <p>
@@ -203,6 +208,11 @@ export default function Terminos() {
         suelen instalarse solo en temporada. Para los de OpenStreetMap mostramos la fecha de la última verificación o
         edición, y marcamos como “dato viejo” los que no se actualizan hace más de dos años. Los de la Intendencia no
         traen fecha por punto.
+      </p>
+      <p>
+        Si la Intendencia u OpenStreetMap no responden, mostramos una copia guardada en el sitio, que actualizamos cada
+        tanto (su fecha figura en la página de estado de las fuentes): puede no incluir cambios recientes. El servidor de
+        respaldo de OpenStreetMap también puede tener sus datos con algunos meses de atraso.
       </p>
 
       <h3>Cómo llegar en ómnibus</h3>

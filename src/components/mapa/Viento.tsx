@@ -14,7 +14,8 @@ export const HORAS_VIGENCIA_VIENTO = 3;
 
 // Escala en km/h (aprox. Beaufort): calma, suave, moderado, fresco, fuerte.
 export const NIVELES_VIENTO: Nivel[] = [
-  { hasta: 12, color: "#38bdf8", label: "Calma" },
+  // Azul más oscuro que el agua del mapa (#6ec6ff): el celeste se perdía sobre ella.
+  { hasta: 12, color: "#2563eb", label: "Calma" },
   { hasta: 20, color: "#22c55e", label: "Suave" },
   { hasta: 29, color: "#eab308", label: "Moderado" },
   { hasta: 39, color: "#f97316", label: "Fresco" },
