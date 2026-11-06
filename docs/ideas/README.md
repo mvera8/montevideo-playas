@@ -11,6 +11,7 @@ y, al final, las decisiones que faltan tomar para arrancar.
 | [Reportes en la playa (estilo Waze)](reportes-playa.md) | Base preparada (5/10/2026), falta UI y 3D; revisar ocupación de la IM el 15/11/2026 | Supabase + cuenta anónima (ya existen), ubicación |
 | [Cámaras en vivo](camaras-en-vivo.md) | En pausa (6/10/2026) | Antel pide cuenta; Windy pide API key y su cámara de Pocitos está muerta |
 | [Enterococos en tiempo real (Pocitos)](enterococos-tiempo-real.md) | Para ver (15/10/2026) | Que la IM instale el equipo y publique el dato |
+| [Bandera de enterococos (naranja)](bandera-enterococos.md) | Para ver si aparece (6/11/2026) | Que la IM la use y aparezca en la API de casillas |
 | [Alerta de niño perdido](nino-perdido.md) | Descartada por ahora (15/10/2026) | Quedan anotados los riesgos (mal uso, datos de menores, push) |
 | [Bicicleteros y estacionamientos](bicicleteros-estacionamientos.md) | Idea (15/10/2026) | Medir antes cuántos hay cerca de cada playa en OSM |
 | [Imágenes de cada playa](imagenes-de-playas.md) | Idea (15/10/2026) | Elegir fotos de Commons a mano; crédito y licencia por foto |

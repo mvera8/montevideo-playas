@@ -209,8 +209,9 @@ export default function Privacidad() {
       <p>
         Hay una excepción: cuando nuestro servidor no logra conectarse con la Intendencia de Montevideo (por ejemplo,
         porque filtra las conexiones desde fuera de Uruguay), tu navegador pide las banderas de las casillas y el índice
-        UV directamente al sitio de playas de la Intendencia (m.montevideo.gub.uy). En ese caso la Intendencia recibe tu
-        dirección IP, como en cualquier visita a su sitio; no le enviamos ningún otro dato tuyo.
+        UV directamente al sitio de playas de la Intendencia (m.montevideo.gub.uy), y los datos de calidad del agua a su
+        portal de datos abiertos (ckan-data.montevideo.gub.uy). En ese caso la Intendencia recibe tu dirección IP, como
+        en cualquier visita a su sitio; no le enviamos ningún otro dato tuyo.
       </p>
       <p>
         El ícono de Instagram del encabezado y del pie es un enlace común a nuestra cuenta: no cargamos ningún botón ni

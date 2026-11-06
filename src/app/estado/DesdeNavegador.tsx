@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { pedirCalidadAguaIm } from "@/lib/agua-cliente";
 import { pedirCasillasIm, pedirUvIm } from "@/lib/banderas-cliente";
 import Fila, { type FilaEstado } from "./Fila";
 
-// Lo que el mapa le pide a la IM desde el navegador cuando el servidor no llega (src/lib/banderas-cliente.ts).
+// Lo que el mapa le pide a la IM desde el navegador cuando el servidor no llega (src/lib/banderas-cliente.ts y
+// src/lib/agua-cliente.ts).
 // Se chequea al abrir la página, desde la conexión de quien la mira: fuera de Uruguay la IM también lo bloquea.
 
 const BASE: FilaEstado[] = [
@@ -18,6 +20,13 @@ const BASE: FilaEstado[] = [
   {
     nombre: "Sitio de playas de la IM — índice UV",
     usa: "UV medido cuando el servidor no llega a la Intendencia.",
+    estado: "cargando",
+    detalle: "Consultando…",
+    ms: null,
+  },
+  {
+    nombre: "Datos abiertos de la IM — calidad del agua",
+    usa: "Enterococos y cianobacterias cuando el servidor no llega a la Intendencia.",
     estado: "cargando",
     detalle: "Consultando…",
     ms: null,
@@ -53,6 +62,11 @@ export default function DesdeNavegador() {
       const uv = await pedirUvIm();
       return uv ? `UV ${uv.valor}` : "Responde, sin UV de la última hora";
     }).then(actualizar);
+    medir(2, async () => {
+      const agua = await pedirCalidadAguaIm();
+      const ultima = [...agua.values()].map((c) => c.ultimaFecha ?? "").sort().pop();
+      return `${agua.size} playas${ultima ? `, último muestreo el ${ultima.slice(8, 10)}/${ultima.slice(5, 7)}` : ""}`;
+    }).then(actualizar);
     return () => {
       vigente = false;
     };
@@ -62,8 +76,8 @@ export default function DesdeNavegador() {
     <section className="mt-8">
       <h2 className="text-lg font-semibold text-slate-900">Desde tu navegador</h2>
       <p className="mt-1 text-sm text-slate-600">
-        Si nuestro servidor no llega a la Intendencia, el mapa le pide las banderas y el UV directamente desde tu
-        conexión. Esto se verifica ahora, desde tu navegador.
+        Si nuestro servidor no llega a la Intendencia, el mapa le pide las banderas, el UV y la calidad del agua
+        directamente desde tu conexión. Esto se verifica ahora, desde tu navegador.
       </p>
       <ul className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {filas.map((c) => (

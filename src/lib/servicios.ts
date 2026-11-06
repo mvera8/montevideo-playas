@@ -1,20 +1,27 @@
 import "server-only";
 import { unzipSync } from "fflate";
 import { after } from "next/server";
+import copia from "@/data/servicios.json";
 
 // Baños, bebederos y duchas públicos cerca de las playas. Dos fuentes:
 // - IM, datos abiertos "Equipamiento urbano – espacios públicos" (oficial, sobre todo plazas y parques).
 //   https://catalogodatos.gub.uy/dataset/equipamiento-urbano-espacios-publicos
 //   El servidor GIS genera un shapefile (UTM 21S) en /sit/tmp/<tabla>.zip al pedir generar_zip2.php.
 // - OpenStreetMap vía Overpass (comunitario): cubre la rambla y los baños químicos de temporada.
+//   Primero el servidor principal (overpass-api.de) y, si no responde, el de Francia
+//   (overpass.openstreetmap.fr: sus datos llegan con atraso, ~3 meses el 06/11/2026; ver /api/timestamp).
 // Si un punto de OSM está a menos de 40 m de uno de la IM, se considera el mismo y gana la IM.
 // Caché de 24 h por fuente; si una falla se usa lo último bueno de ella y se reintenta a los 5 min.
+// Copia en el repo (src/data/servicios.json, `npm run servicios` desde Uruguay): es con lo que arranca cada
+// instancia, así el mapa tiene servicios aunque la IM filtre las IP de Vercel y Overpass esté caído.
 
 export const GIS = "https://intgis.montevideo.gub.uy/sit";
 const CACHE_MS = 24 * 60 * 60 * 1000; // cambian muy poco
 export const RADIO_SERVICIOS = 600; // metros desde la casilla más cercana
 // Un dato de OSM sin verificar ni editar en más de 2 años se marca como posiblemente desactualizado.
 export const DIAS_VIGENCIA_OSM = 730;
+// La copia del repo y la base de un servidor de Overpass con más de esto de atraso se marcan "viejo" en /estado.
+export const DIAS_VIGENCIA_COPIA = 180;
 
 const M_LAT = 110_540;
 const M_LON = 111_320 * Math.cos((-34.9 * Math.PI) / 180);
@@ -98,12 +105,19 @@ function filasDbf(buf: Uint8Array): Record<string, string>[] {
 
 const TIMEOUT_IM = 10_000;
 
-async function capa(tabla: string) {
+const TABLAS_IM = ["v_ep_banios", "v_ep_bebederos"] as const;
+type TablaIm = (typeof TABLAS_IM)[number];
+
+async function bajarCapa(tabla: TablaIm) {
   // Pedir la generación (deja el zip actualizado en /sit/tmp) y luego descargarlo.
   await fetch(`${GIS}/php/common/datos/generar_zip2.php?nom_tab=${tabla}&tipo=gis`, { signal: AbortSignal.timeout(5000) }).catch(() => null);
   const res = await fetch(`${GIS}/tmp/${tabla}.zip`, { signal: AbortSignal.timeout(TIMEOUT_IM) });
   if (!res.ok) throw new Error(`Servicios IM ${tabla}: ${res.status}`);
-  const zip = unzipSync(new Uint8Array(await res.arrayBuffer()));
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+function leerCapa(tabla: TablaIm, zipBytes: Uint8Array) {
+  const zip = unzipSync(zipBytes);
   const shp = Object.entries(zip).find(([k]) => k.endsWith(".shp"))?.[1];
   const dbf = Object.entries(zip).find(([k]) => k.endsWith(".dbf"))?.[1];
   if (!shp || !dbf) throw new Error(`Servicios IM ${tabla}: zip incompleto`);
@@ -120,7 +134,11 @@ const TIPO_BANO: Record<string, string> = {
 };
 
 async function cargarIm(): Promise<Servicio[]> {
-  const [banos, bebederos] = await Promise.all([capa("v_ep_banios"), capa("v_ep_bebederos")]);
+  const [banos, bebederos] = await Promise.all(TABLAS_IM.map(async (t) => leerCapa(t, await bajarCapa(t))));
+  return serviciosIm(banos, bebederos);
+}
+
+function serviciosIm(banos: ReturnType<typeof leerCapa>, bebederos: ReturnType<typeof leerCapa>): Servicio[] {
   const out: Servicio[] = [];
   for (const { fila, utm } of banos) {
     if (fila.ACTIVO !== "Si" || !utm) continue; // solo activos
@@ -162,11 +180,15 @@ async function cargarIm(): Promise<Servicio[]> {
 
 // ---------- OpenStreetMap (Overpass) ----------
 
-export const OVERPASS = "https://overpass-api.de/api/interpreter";
+// En orden: el segundo solo si el primero no responde.
+export const OVERPASS = [
+  { nombre: "Alemania", url: "https://overpass-api.de/api/interpreter" },
+  { nombre: "Francia", url: "https://overpass.openstreetmap.fr/api/interpreter" },
+] as const;
 // Franja costera de Montevideo (sur, oeste, norte, este).
 const BBOX = "-34.95,-56.45,-34.83,-56.02";
-// La consulta pide `timeout:25` al servidor; unos segundos más para la respuesta.
-const TIMEOUT_OVERPASS = 30_000;
+// La consulta pide `timeout:25` al servidor; tope por servidor (el de Francia respondió en 2,5 s, 06/11/2026).
+const TIMEOUT_OVERPASS = 20_000;
 // Cuánto espera un render a Overpass. Si tarda más, sigue sin frenar la página: todo getPlayas() depende
 // de esto y, con Overpass saturado, cada render tardaba 30 s o más (medido 30/10/2026).
 const ESPERA_OSM = 4000;
@@ -181,23 +203,32 @@ type ElementoOsm = {
   tags: Record<string, string>;
 };
 
-// El servidor público de Overpass a veces responde 504/429 cuando está saturado: un reintento.
-async function consultarOverpass(q: string, intentos = 2): Promise<ElementoOsm[]> {
-  for (let i = 1; ; i++) {
-    const res = await fetch(OVERPASS, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-        "User-Agent": "PlayasUY/1.0 (mapa de playas de Montevideo)",
-      },
-      body: new URLSearchParams({ data: q }),
-      signal: AbortSignal.timeout(TIMEOUT_OVERPASS),
-    });
-    if (res.ok) return ((await res.json()) as { elements: ElementoOsm[] }).elements;
-    if (i >= intentos || !(res.status === 429 || res.status >= 500)) throw new Error(`Overpass: ${res.status}`);
-    await new Promise((r) => setTimeout(r, 2000));
+type RespuestaOverpass = { servidor: string; base: string | null; elementos: ElementoOsm[] };
+
+// Los servidores públicos de Overpass se saturan seguido (502/504/429) o no aceptan conexiones: se prueba
+// cada uno una vez, en orden.
+async function consultarOverpass(q: string): Promise<RespuestaOverpass> {
+  const errores: string[] = [];
+  for (const { nombre, url } of OVERPASS) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+          "User-Agent": "PlayasUY/1.0 (mapa de playas de Montevideo)",
+        },
+        body: new URLSearchParams({ data: q }),
+        signal: AbortSignal.timeout(TIMEOUT_OVERPASS),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const json = (await res.json()) as { osm3s?: { timestamp_osm_base?: string }; elements: ElementoOsm[] };
+      return { servidor: nombre, base: json.osm3s?.timestamp_osm_base ?? null, elementos: json.elements };
+    } catch (e) {
+      errores.push(`${nombre}: ${e instanceof Error ? e.message : e}`);
+    }
   }
+  throw new Error(`Overpass (${errores.join("; ")})`);
 }
 
 function fechaOsm(e: ElementoOsm): Pick<Servicio, "actualizado" | "viejo"> {
@@ -211,11 +242,15 @@ function fechaOsm(e: ElementoOsm): Pick<Servicio, "actualizado" | "viejo"> {
   };
 }
 
-async function cargarOsm(): Promise<Servicio[]> {
+const CONSULTA_OSM = `[out:json][timeout:25];nwr["amenity"~"^(toilets|drinking_water|shower)$"](${BBOX});out center meta;`;
+
+async function cargarOsm(): Promise<{ servicios: Servicio[]; origen: OrigenOsm }> {
   // `out center meta` agrega la fecha de última edición de cada punto.
-  const elements = await consultarOverpass(
-    `[out:json][timeout:25];nwr["amenity"~"^(toilets|drinking_water|shower)$"](${BBOX});out center meta;`,
-  );
+  const { servidor, base, elementos } = await consultarOverpass(CONSULTA_OSM);
+  return { servicios: serviciosOsm(elementos), origen: { tipo: "en-vivo", servidor, base } };
+}
+
+function serviciosOsm(elements: ElementoOsm[]): Servicio[] {
   const out: Servicio[] = [];
   for (const e of elements) {
     const t = e.tags;
@@ -257,14 +292,35 @@ async function cargarOsm(): Promise<Servicio[]> {
   return out;
 }
 
-// Si una fuente falla, se sigue con lo último que respondió de ella (o nada) y se reintenta a los
-// PAUSA_FALLA en vez de esperar las 24 h de caché: Overpass se satura seguido (502/504) y no queremos
+// ---------- copia del repo ----------
+
+// src/data/servicios.json (scripts/servicios.mjs): los zip de la IM tal cual (base64) y los elementos de
+// Overpass, así se procesan con el mismo código que en vivo y las fechas de OSM se calculan al día de hoy.
+type Copia = {
+  im: { generado: string; zips: Record<TablaIm, string> } | null;
+  osm: { generado: string; servidor: string; base: string | null; elementos: ElementoOsm[] } | null;
+};
+const COPIA = copia as unknown as Copia;
+
+export type OrigenIm = { tipo: "en-vivo" } | { tipo: "copia"; generado: string } | null;
+export type OrigenOsm = { tipo: "en-vivo"; servidor: string; base: string | null } | { tipo: "copia"; generado: string } | null;
+
+function imDeCopia(): Servicio[] | undefined {
+  if (!COPIA.im) return undefined;
+  const capas = TABLAS_IM.map((t) => leerCapa(t, Uint8Array.from(Buffer.from(COPIA.im!.zips[t], "base64"))));
+  return serviciosIm(capas[0], capas[1]);
+}
+
+// Si una fuente falla, se sigue con lo último que respondió de ella (o con la copia del repo) y se reintenta a
+// los PAUSA_FALLA en vez de esperar las 24 h de caché: Overpass se satura seguido (502/504) y no queremos
 // quedarnos un día entero sin los baños de la rambla.
 const PAUSA_FALLA = 5 * 60_000;
 
 type Estado = {
   im?: Servicio[];
   osm?: Servicio[];
+  origenIm: OrigenIm;
+  origenOsm: OrigenOsm;
   datos?: Servicio[];
   vence: number;
   promesa?: Promise<Servicio[]>;
@@ -272,8 +328,24 @@ type Estado = {
   osmEnCurso?: Promise<Servicio[] | null>;
 };
 const g = globalThis as unknown as { __servicios?: Estado };
-g.__servicios ??= { vence: 0 };
+g.__servicios ??= iniciar();
 const estado = g.__servicios;
+
+// Cada instancia arranca con la copia (vence: 0, así el primer pedido la actualiza en segundo plano).
+function iniciar(): Estado {
+  const e: Estado = { vence: 0, origenIm: null, origenOsm: null };
+  try {
+    e.im = imDeCopia();
+    if (e.im) e.origenIm = { tipo: "copia", generado: COPIA.im!.generado };
+    if (COPIA.osm) {
+      e.osm = serviciosOsm(COPIA.osm.elementos);
+      e.origenOsm = { tipo: "copia", generado: COPIA.osm.generado };
+    }
+  } catch (err) {
+    console.error("Servicios: no se pudo leer la copia del repo", err);
+  }
+  return e;
+}
 
 // Falla esperable (servidor saturado o caído) y ya manejada: aviso de una línea, no un error.
 const falla = (fuente: string) => (e: unknown) => {
@@ -288,18 +360,19 @@ function combinar() {
   );
   return [...oficiales, ...extra];
 }
+estado.datos ??= estado.im || estado.osm ? combinar() : undefined;
 
 // Una sola consulta en curso. Si responde después de ESPERA_OSM, actualiza los datos para el próximo render.
 function refrescarOsm() {
   estado.osmEnCurso ??= cargarOsm()
     .catch(falla("Overpass"))
-    .then((osm) => {
-      if (osm) {
-        estado.osm = osm;
-        estado.datos = combinar();
-        if (estado.imOk) estado.vence = Date.now() + CACHE_MS;
-      }
-      return osm;
+    .then((r) => {
+      if (!r) return null;
+      estado.osm = r.servicios;
+      estado.origenOsm = r.origen;
+      estado.datos = combinar();
+      if (estado.imOk) estado.vence = Date.now() + CACHE_MS;
+      return r.servicios;
     })
     .finally(() => {
       estado.osmEnCurso = undefined;
@@ -317,7 +390,10 @@ async function cargar(): Promise<Servicio[]> {
     cargarIm().catch(falla("IM")),
     Promise.race([osmEnCurso, new Promise<null>((r) => setTimeout(() => r(null), ESPERA_OSM))]),
   ]);
-  if (im) estado.im = im;
+  if (im) {
+    estado.im = im;
+    estado.origenIm = { tipo: "en-vivo" };
+  }
   estado.imOk = Boolean(im);
   if (!estado.im && !estado.osm) throw new Error("Servicios: no respondió ninguna fuente");
   estado.vence = Date.now() + (im && osm ? CACHE_MS : PAUSA_FALLA);
@@ -338,6 +414,11 @@ export async function getServicios(): Promise<Servicio[]> {
     });
   // Con datos anteriores no se espera: se actualizan para el próximo render.
   return estado.datos ?? estado.promesa;
+}
+
+/** De dónde salieron los servicios que se están mostrando (para /estado). */
+export function getOrigenServicios() {
+  return { im: estado.origenIm, osm: estado.origenOsm, copia: { im: COPIA.im?.generado ?? null, osm: COPIA.osm?.generado ?? null } };
 }
 
 /** Servicios a menos de RADIO_SERVICIOS de alguno de los puntos (casillas), ordenados por distancia. */

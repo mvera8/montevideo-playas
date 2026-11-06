@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { CalidadAgua as Datos, Muestra, PuntoAgua } from "@/lib/calidad-agua";
+import {
+  DIAS_VIGENCIA,
+  LIMITE_MEDIA,
+  LIMITE_MUESTRA,
+  type CalidadAgua as Datos,
+  type Muestra,
+  type PuntoAgua,
+} from "@/lib/calidad-agua-datos";
 import SeccionPlegable from "./SeccionPlegable";
-
-// Mismos valores que en el servidor (Decreto 226/025); se repiten para no importar código server-only.
-const LIMITE_MEDIA = 200;
-const LIMITE_MUESTRA = 500;
-const DIAS_VIGENCIA = 21; // ver DIAS_VIGENCIA en lib/calidad-agua.ts
 
 const haceDias = (n: number) => (n <= 0 ? "hoy" : n === 1 ? "ayer" : `hace ${n} días`);
 

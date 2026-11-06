@@ -29,6 +29,7 @@ import CalidadAgua from "./CalidadAgua";
 import { BotonMeGusta, TotalesDetalle } from "./MeGusta";
 import { BotonFavorita, ModalFavorita } from "./Favorita";
 import { favoritaPrimero, useFavorita } from "@/lib/favorita-cliente";
+import { useAguaNavegador } from "@/lib/agua-cliente";
 import { useBanderasNavegador } from "@/lib/banderas-cliente";
 import BotonCompartir from "./BotonCompartir";
 import FotoPlaya from "./FotoPlaya";
@@ -210,12 +211,14 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
     [playasHtml, esDeDia],
   );
   // Si el servidor no llegó a la IM, el navegador pide las banderas y el UV (src/lib/banderas-cliente.ts).
-  const { playas, climaCiudad, fuente: fuenteBanderas, errorNavegador } = useBanderasNavegador({
+  const { playas: conBanderas, climaCiudad, fuente: fuenteBanderas, errorNavegador } = useBanderasNavegador({
     playas: playasConLuz,
     fuente,
     temporada,
     climaCiudad: climaConLuz,
   });
+  // Lo mismo con la calidad del agua (src/lib/agua-cliente.ts).
+  const playas = useAguaNavegador(conBanderas);
   const contenedor = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const capaRef = useRef<CapaCasillas | null>(null);

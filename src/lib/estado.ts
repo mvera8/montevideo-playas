@@ -7,7 +7,7 @@ import { hasImCredentials } from "./im";
 import { getAlertasInumet } from "./inumet";
 import { DIAS_VIGENCIA_SST } from "./mar";
 import { getMeGusta } from "./me-gusta";
-import { GIS, OVERPASS } from "./servicios";
+import { DIAS_VIGENCIA_COPIA, getOrigenServicios, GIS, OVERPASS } from "./servicios";
 import { versionGtfs } from "./transporte/gtfs";
 import { MONTEVIDEO } from "./sol";
 import { met } from "./weather";
@@ -21,7 +21,7 @@ import { met } from "./weather";
 // - Donde la función se traga el error (devuelve null o "sin datos"), se usa igual para la vigencia
 //   del dato, y el detalle del error queda en los logs de Vercel.
 // - El resto es un pedido mínimo al mismo servidor: HEAD, version.txt, solo el eje `time` de ERDDAP
-//   (~50 B) o /api/status de Overpass (no gasta cupo de consultas).
+//   (~50 B) o /api/timestamp de Overpass (no gasta cupo de consultas).
 // - "viejo": la fuente responde pero el último dato pasó el umbral de vigencia que usa la app.
 
 const TIMEOUT = 8000;
@@ -123,7 +123,7 @@ const DEFS: Def[] = [
     id: "im-calidad-agua",
     nombre: "Datos abiertos de la IM — calidad del agua",
     grupo: "Intendencia de Montevideo",
-    usa: "Enterococos y cianobacterias por playa.",
+    usa: "Enterococos y cianobacterias por playa. Si falla, el navegador de cada visitante los pide a la IM (ver «Desde tu navegador»).",
     async probar() {
       await pedir(URL_MUESTRAS, { method: "HEAD" });
       const ultima = [...(await getCalidadAgua()).values()].map((c) => c.ultimaFecha ?? "").sort().pop();
@@ -139,7 +139,7 @@ const DEFS: Def[] = [
     id: "im-gis",
     nombre: "Datos abiertos de la IM — baños y bebederos",
     grupo: "Intendencia de Montevideo",
-    usa: "Baños y bebederos oficiales. Si falla, quedan los de OpenStreetMap.",
+    usa: "Baños y bebederos oficiales. Si falla, se usa la copia del sitio (ver «Copia de baños y bebederos»).",
     async probar() {
       const res = await pedir(`${GIS}/tmp/v_ep_banios.zip`, { method: "HEAD" });
       const mod = res.headers.get("last-modified");
@@ -191,21 +191,29 @@ const DEFS: Def[] = [
       return { detalle: `Pronóstico hasta el ${fmtFecha.format(new Date(t))}`, viejo: Date.parse(t) < Date.now() + 86_400_000 };
     },
   },
-  {
-    id: "overpass",
-    nombre: "OpenStreetMap (Overpass)",
-    grupo: "Comunidad",
-    usa: "Baños, bebederos y duchas de la rambla. Si falla, se usa lo último que respondió.",
-    async probar() {
-      const texto = await (
-        await pedir(OVERPASS.replace(/interpreter$/, "status"), {
-          headers: { "User-Agent": "PlayasUY/1.0 (mapa de playas de Montevideo)" },
-        })
-      ).text();
-      const libres = texto.match(/(\d+) slots? available now/)?.[1];
-      return { detalle: libres ? `${libres} cupos libres ahora` : "Responde" };
-    },
-  },
+  ...OVERPASS.map(
+    ({ nombre, url }, i): Def => ({
+      id: `overpass-${i}`,
+      nombre: `OpenStreetMap — Overpass (${nombre}${i ? ", respaldo" : ""})`,
+      grupo: "Comunidad",
+      usa: i
+        ? "Se usa si el servidor principal no responde. Sus datos llegan con atraso."
+        : "Baños, bebederos y duchas de la rambla. Si falla, se usa el servidor de respaldo y, si tampoco, la copia del sitio.",
+      async probar() {
+        // /api/timestamp: fecha de los datos del servidor (~20 B, no gasta cupo de consultas).
+        const base = (
+          await (
+            await pedir(url.replace(/interpreter$/, "timestamp"), {
+              headers: { "User-Agent": "PlayasUY/1.0 (mapa de playas de Montevideo)" },
+            })
+          ).text()
+        ).trim();
+        if (Number.isNaN(Date.parse(base))) throw new Error("Respuesta inesperada de /api/timestamp");
+        const d = dias(base);
+        return { detalle: `Datos de OpenStreetMap al ${fmtFecha.format(new Date(base))} (${haceDias(d)})`, viejo: d > DIAS_VIGENCIA_COPIA };
+      },
+    }),
+  ),
   {
     id: "inaturalist",
     nombre: "iNaturalist — aguas vivas",
@@ -235,6 +243,23 @@ const DEFS: Def[] = [
       return {
         detalle: `Versión ${v ? `del ${fmtFecha.format(v)}` : version}${fin ? `, vale hasta el ${fmtFecha.format(fin)}` : ""}`,
         viejo: fin ? fin.getTime() < Date.now() : false,
+      };
+    },
+  },
+  {
+    id: "copia-servicios",
+    nombre: "Copia de baños y bebederos (en el sitio)",
+    grupo: "Sitio",
+    usa: "Baños, bebederos y duchas cuando la IM u OpenStreetMap no responden. Se actualiza a mano con `npm run servicios`.",
+    async probar() {
+      const { im, osm, copia } = getOrigenServicios();
+      const fechas = [copia.im, copia.osm].filter((f): f is string => Boolean(f)).sort();
+      if (!fechas.length) throw new Error("No hay copia (correr `npm run servicios`)");
+      const d = dias(`${fechas[0]}T12:00:00-03:00`);
+      const enUso = [im?.tipo === "copia" && "IM", osm?.tipo === "copia" && "OSM"].filter(Boolean);
+      return {
+        detalle: `Copia del ${fmtFecha.format(new Date(`${fechas[0]}T12:00:00-03:00`))} (${haceDias(d)})${enUso.length ? `; en uso para ${enUso.join(" y ")}` : ""}`,
+        viejo: d > DIAS_VIGENCIA_COPIA,
       };
     },
   },

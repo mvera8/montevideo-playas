@@ -18,6 +18,8 @@ const PRINCIPAL = "https://montevideo.playas.uy";
 // - Supabase (NEXT_PUBLIC_SUPABASE_URL): totales y me gusta, login anónimo.
 // - m.montevideo.gub.uy: banderas y UV pedidos desde el navegador cuando el servidor no llega a la IM
 //   (src/lib/banderas-cliente.ts).
+// - ckan-data.montevideo.gub.uy: calidad del agua pedida desde el navegador en el mismo caso
+//   (src/lib/agua-cliente.ts).
 // - Google Analytics 4: los dominios que pide Google (developers.google.com/tag-platform/security/guides/csp).
 // - blob: el worker de MapLibre y la foto de playa (canvas → blob). El worker vive en /maplibre/ ('self').
 // Si se suma un servicio que corre en el navegador, agregarlo acá o el navegador lo bloquea.
@@ -25,6 +27,7 @@ const PRINCIPAL = "https://montevideo.playas.uy";
 // avisos "[Report Only] Refused to…" al usar el mapa, la foto, los me gusta y GA, cambiar el header de
 // abajo a "Content-Security-Policy" (los checks avisan mientras siga en reporte).
 const IM_MOVIL = "https://m.montevideo.gub.uy";
+const IM_DATOS = "https://ckan-data.montevideo.gub.uy";
 const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : "";
 const GA = "https://*.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com";
 const CSP = [
@@ -34,7 +37,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://tiles.openfreemap.org ${GA}`,
   "font-src 'self'",
-  `connect-src 'self' https://tiles.openfreemap.org ${IM_MOVIL} ${SUPABASE} ${GA}`.replace(/\s+/g, " "),
+  `connect-src 'self' https://tiles.openfreemap.org ${IM_MOVIL} ${IM_DATOS} ${SUPABASE} ${GA}`.replace(/\s+/g, " "),
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
