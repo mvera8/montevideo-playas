@@ -51,10 +51,11 @@ export function BotonOlas({ activo, onCambiar }: { activo: boolean; onCambiar: (
   );
 }
 
-export function LeyendaOlas({ time, vigente }: { time: string | null; vigente: boolean }) {
+export function LeyendaOlas({ time, vigente, actualizando }: { time: string | null; vigente: boolean; actualizando: boolean }) {
   return (
     <LeyendaNiveles
       titulo={vigente && time ? `Olas a las ${time.slice(11, 16)} · metros` : null}
+      actualizando={actualizando}
       niveles={NIVELES_OLAS}
       corte={metros}
       nota="Modelo global, orientativo. El movimiento es un dibujo, no la dirección real."

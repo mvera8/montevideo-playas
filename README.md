@@ -46,13 +46,19 @@ Sin credenciales la página muestra una lista de playas de respaldo con clima pe
 | `GET /api/clima` | Clima actual en Montevideo |
 | `GET /api/clima/[playa]` | Clima en una playa, p. ej. `/api/clima/pocitos` |
 | `GET /api/pronostico/[playa]` | Pronóstico hora a hora (hoy y mañana) y mejor franja para ir |
+| `GET /api/registro` | Foto de banderas, clima y agua para el registro de la temporada (la pide Supabase; ver "Registro de la temporada") |
 | `POST /api/viajes` `{desde:{lat,lon}}` | Minutos y líneas para llegar ahora a cada playa (para el ranking) |
 | `GET /api/viajes` | Solo carga el índice del GTFS en la instancia (204). La app lo llama al pedir la ubicación para que el índice (~2,5 s en frío) se arme mientras el GPS responde; calcular los viajes después tarda ~10-25 ms |
 | `POST /api/como-ir` `{desde, hasta}` | Opciones en ómnibus (directas o con 1 trasbordo) |
 | `GET /api/omnibus/llegadas?tramos=variante:parada,...` | Estimación en vivo de los próximos ómnibus |
 
-Cache: `/api/playas` y `/api/guardavidas` son ISR de 5 min; `/api/clima/[playa]` y
-`/api/pronostico/[playa]` mandan `s-maxage=600` y las sirve el CDN de Vercel sin invocar la función.
+Cache: todas las rutas `GET` de arriba mandan `s-maxage` + `stale-while-revalidate` acotado y las sirve
+el CDN de Vercel sin invocar la función: `/api/playas` y `/api/guardavidas` 5 min (+10 de gracia),
+`/api/clima` 15 (+15), `/api/clima/[playa]` y `/api/pronostico/[playa]` 10 (+30). No usan ISR
+(`export const revalidate`): el ISR le sirve la versión vieja al primero que pide tras un rato, sin tope, y
+como estas rutas casi no se piden llegaron a dar el clima del día del deploy 12 días después (18/11/2026;
+ver `src/lib/cache-api.ts`). Las páginas sí son ISR; el mapa detecta el HTML viejo y pide los datos de
+nuevo (`useRefrescarAlVolver` en `src/components/mapa/Mapa.tsx`).
 Las llamadas a la IM (`imGet` en `src/lib/im.ts`) se cachean 5 min con `unstable_cache`, compartido
 entre instancias. Ojo: `next: { revalidate }` en un `fetch` con `Authorization` no sirve, porque el
 header entra en la clave del cache y el token cambia por instancia y cada ~5 min.
@@ -673,6 +679,39 @@ con la causa real del error (p. ej. `fetch failed — UND_ERR_CONNECT_TIMEOUT: C
   .26 (`prx.montevideo.gub.uy`, el proxy de todos sus hosts) mientras desde Uruguay respondía en
   70 ms: la IM descarta conexiones de las IP de Vercel, no es un error del sitio.
 - **Fuente nueva:** sumarle un chequeo en `DEFS` de `src/lib/estado.ts`.
+
+## Registro de la temporada
+
+Banderas, clima y agua de cada playa cada 30 min, guardados en Supabase para analizar la temporada al final.
+Código en `src/lib/registro.ts` y `src/app/api/registro/`; base en
+`supabase/migrations/20261118115513_registro_temporada.sql` (y `…115652_registro_error_sin_html.sql`).
+Arrancó el 18/11/2026 (la temporada, el 15/11: esos 3 días de banderas no se recuperan).
+
+- **Quién lo dispara:** `pg_cron` en Supabase (job `registro-temporada`, `10,40 11-22 * * *` en UTC = 8:10
+  a 19:40 en Montevideo) corre `public.registrar_hora()`, que hace `GET https://montevideo.playas.uy/api/registro`
+  con la extensión `http` (timeout 60 s) y guarda la respuesta con `public.guardar_registro(jsonb, hora)`.
+  No es un cron de Vercel (en Hobby, una vez por día) y Vercel no escribe en la base: no hay claves de por medio
+  (la `SUPABASE_SECRET_KEY` sigue sin ir a Vercel).
+- **Qué devuelve `/api/registro`:** JSON de ~30 KB con `casillas` (bandera y sanitaria vigentes de cada casilla),
+  `playas` (clima de MET Norway con la hora del paso, temperatura del agua de NOAA, ola de WaveWatch III, estado
+  del agua y cianobacterias) y `muestras` (las últimas 10 muestras de agua de cada punto: la primera corrida ya
+  trae desde julio). Sale de `getPlayas()` con sus cachés: no agrega pedidos a las fuentes. `s-maxage=120`.
+- **Quirk — banderas:** solo se guardan si el servidor llegó a la IM (`fuente: "im"`). Desde Vercel la IM a veces
+  responde y a veces no (filtra IP de fuera de Uruguay): esas corridas quedan con `banderas_ok = false` y solo
+  clima y agua. Si se ven muchas, el arreglo sería que algo en Uruguay mande la foto (no hay hoy).
+- **Tablas** (RLS sin políticas, sin grants a `anon`/`authenticated`: se leen desde el SQL Editor):
+  `registro_casillas` (casilla × hora; `bandera` null = sin bandera vigente), `registro_playas` (playa × hora),
+  `registro_muestras_agua` (una fila por muestra) y `registro_corridas` (cada pedido, con error y duración; se
+  guarda 400 días). Dos fotos por hora: la segunda pisa a la primera.
+- **Vistas para el análisis:** `analisis_banderas_hora` (bandera de la playa = la más restrictiva de sus
+  casillas), `analisis_banderas_dia` (horas por color, peor y predominante), `analisis_clima_dia` (descarta
+  pronósticos de más de 3 h), `analisis_temporada` (resumen por playa; las muestras de agua desde el 15/11:
+  cambiar esa fecha para la próxima temporada) y `analisis_cobertura` (corridas por día, con banderas y errores).
+- **Validar:** `select * from analisis_cobertura order by fecha desc;` debe mostrar ~24 corridas por día y casi
+  todas `ok`. Para probar a mano: `select public.registrar_hora();` y mirar la última fila de `registro_corridas`.
+- **Aguas vivas:** no se guardan; iNaturalist conserva el historial y se puede pedir por fechas al final.
+- **Peso:** 32 casillas + 19 playas por hora (la segunda foto de la hora pisa a la primera), 12 horas por día:
+  ~600 filas por día, ~100.000 en la temporada (unos pocos MB).
 
 ## Analytics (Google Analytics 4)
 

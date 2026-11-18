@@ -1,5 +1,6 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
 import type { ReactNode } from "react";
+import Cargando from "@/components/Cargando";
 
 // Lo que comparten los modos del mapa que dibuja la capa 3D (Viento.tsx, Olas.tsx): botón, leyenda y
 // etiquetas de texto (capa de símbolos de MapLibre, oculta hasta que se activa el modo).
@@ -63,18 +64,23 @@ export function BotonModoMapa({
 
 export type Nivel = { hasta: number; color: string; label: string };
 
-/** Referencia de colores con los cortes entre niveles; sin `titulo`, avisa que no hay datos recientes. */
+/**
+ * Referencia de colores con los cortes entre niveles; sin `titulo`, avisa que no hay datos recientes
+ * (o, con `actualizando`, que se están pidiendo de nuevo: ver `useRefrescarAlVolver` en Mapa.tsx).
+ */
 export function LeyendaNiveles({
   titulo,
   niveles,
   nota,
   sinDatos,
+  actualizando = false,
   corte = String,
 }: {
   titulo: string | null;
   niveles: Nivel[];
   nota: string;
   sinDatos: string;
+  actualizando?: boolean;
   corte?: (hasta: number) => string;
 }) {
   return (
@@ -97,6 +103,11 @@ export function LeyendaNiveles({
           </div>
           <p className="text-slate-400">{nota}</p>
         </>
+      ) : actualizando ? (
+        <p role="status" className="flex items-center gap-2 font-medium text-slate-900 dark:text-white">
+          <Cargando />
+          Actualizando pronóstico…
+        </p>
       ) : (
         <p className="font-medium text-slate-900 dark:text-white">{sinDatos}</p>
       )}
