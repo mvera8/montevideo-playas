@@ -277,6 +277,15 @@ export default function Terminos() {
         cuenta regresiva de la página de inicio usa esa misma fecha aproximada (15 de noviembre).
       </p>
 
+      <h3 id="registro">Registro de la temporada</h3>
+      <p>
+        Guardamos cada media hora, de 8 a 20 h, una copia de lo que publican las fuentes para cada playa (bandera de
+        cada casilla, clima, olas, temperatura y calidad del agua) para hacer estadísticas de la temporada. Es nuestro
+        registro de lo que vimos publicado, no un registro oficial: puede tener huecos (por ejemplo, horas en que no
+        pudimos conectarnos con la Intendencia) y los resúmenes que hagamos con él son cálculos propios. Ante cualquier
+        diferencia, manda la información oficial de cada fuente. No incluye datos de las personas que usan el sitio.
+      </p>
+
       <h3 id="estado">Estado de las fuentes</h3>
       <p>
         La página <Link href="/estado">Estado de las fuentes</Link> muestra si cada fuente de datos respondió en el último

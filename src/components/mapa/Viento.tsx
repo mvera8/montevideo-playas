@@ -56,10 +56,11 @@ export function BotonViento({ activo, onCambiar }: { activo: boolean; onCambiar:
 }
 
 /** Referencia de colores y hora del pronóstico; avisa si no hay datos recientes. */
-export function LeyendaViento({ time, vigente }: { time: string | null; vigente: boolean }) {
+export function LeyendaViento({ time, vigente, actualizando }: { time: string | null; vigente: boolean; actualizando: boolean }) {
   return (
     <LeyendaNiveles
       titulo={vigente && time ? `Viento a las ${time.slice(11, 16)} · km/h` : null}
+      actualizando={actualizando}
       niveles={NIVELES_VIENTO}
       nota="Pronóstico de MET Norway, no es una medición."
       sinDatos="Sin datos recientes de viento"

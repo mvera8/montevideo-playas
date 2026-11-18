@@ -157,8 +157,30 @@ const PRECISION_COMO_IR_M = 100;
 // `router.refresh()` trae solo el payload RSC y no pierde el estado (playa abierta, zoom, búsqueda).
 const REFRESCAR_TRAS_MS = 10 * 60_000;
 
-function useRefrescarAlVolver() {
+// HTML viejo al entrar: el ISR le sirve al primero que entra tras un rato sin visitas la versión vieja
+// (con el clima de hace horas: viento y olas quedaban en "Sin datos recientes") y la regenera de fondo,
+// lo que tarda varios segundos (el pedido a la IM desde Vercel corta a los 10 s). Con la página al día,
+// el paso del pronóstico es la hora en curso (< 60 min + 5 de revalidación): si es más viejo, se piden
+// los datos de nuevo hasta que llegue la versión regenerada, y mientras tanto se muestra "Actualizando".
+const DATOS_VIEJOS_MS = 75 * 60_000;
+const REINTENTOS_MS = [1500, 6000, 14_000, 25_000];
+const ESPERA_MAX_MS = 35_000;
+
+/** `hora` es hora local de Montevideo ("YYYY-MM-DDTHH:mm"; UTC−3 fijo), como el `time` del clima. */
+const datosViejos = (hora: string | null) => hora != null && Date.now() - Date.parse(`${hora}:00-03:00`) > DATOS_VIEJOS_MS;
+
+/** Mantiene los datos del servidor al día; devuelve true mientras los está pidiendo porque el HTML vino viejo. */
+function useRefrescarAlVolver(horaDatos: string | null) {
   const router = useRouter();
+  const viejos = datosViejos(horaDatos);
+  const [rendido, setRendido] = useState(false);
+  useEffect(() => {
+    if (!viejos) return;
+    const timers = REINTENTOS_MS.map((ms) => setTimeout(() => router.refresh(), ms));
+    timers.push(setTimeout(() => setRendido(true), ESPERA_MAX_MS));
+    return () => timers.forEach(clearTimeout);
+  }, [viejos, router]);
+
   useEffect(() => {
     let cargado = Date.now();
     const alVolver = (e?: PageTransitionEvent) => {
@@ -175,6 +197,7 @@ function useRefrescarAlVolver() {
       window.removeEventListener("pageshow", alVolver);
     };
   }, [router]);
+  return viejos && !rendido;
 }
 
 // Si es de día, con la hora del navegador: el `isDay` que trae el HTML es del momento en que se
@@ -203,7 +226,7 @@ function useEsDeDia() {
 
 export default function Mapa({ playas: playasHtml, temporada, fuente, error, climaCiudad: climaHtml, alertas }: Props) {
   const esDeDia = useEsDeDia();
-  useRefrescarAlVolver();
+  const actualizando = useRefrescarAlVolver(climaHtml?.time ?? playasHtml.find((p) => p.clima)?.clima?.time ?? null);
   const climaConLuz = useMemo(() => climaHtml && { ...climaHtml, isDay: esDeDia }, [climaHtml, esDeDia]);
   // Todas las playas están en Montevideo: el amanecer y el atardecer cambian menos de un minuto.
   const playasConLuz = useMemo(
@@ -1008,7 +1031,11 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
 
       {(viento || olas) && (
         <div className={`pointer-events-none absolute right-3 top-[128px] z-20 md:right-4 md:top-20 ${teclado ? "max-md:hidden" : ""}`}>
-          {viento ? <LeyendaViento time={vientoHora} vigente={vientoAlDia} /> : <LeyendaOlas time={vientoHora} vigente={olasAlDia} />}
+          {viento ? (
+            <LeyendaViento time={vientoHora} vigente={vientoAlDia} actualizando={actualizando} />
+          ) : (
+            <LeyendaOlas time={vientoHora} vigente={olasAlDia} actualizando={actualizando} />
+          )}
         </div>
       )}
 
@@ -1057,6 +1084,7 @@ export default function Mapa({ playas: playasHtml, temporada, fuente, error, cli
               fuente={fuenteBanderas}
               error={errorNavegador ?? error}
               climaCiudad={climaCiudad}
+              actualizando={actualizando}
               alertas={alertas}
               busqueda={busqueda}
               buscando={teclado > 0 || busqueda.trim() !== ""}

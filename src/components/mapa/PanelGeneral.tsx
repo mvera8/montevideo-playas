@@ -48,6 +48,7 @@ type Props = {
   fuente: FuenteBanderas; // "cargando": el navegador está pidiendo las banderas, no se avisa nada todavía
   error: string | null;
   climaCiudad: Weather | null;
+  actualizando: boolean; // el HTML vino viejo y se están pidiendo los datos de nuevo (Mapa.tsx)
   alertas: AlertasInumet | null;
   busqueda: string;
   buscando: boolean; // teclado abierto o texto en el buscador: en móvil se muestran solo las playas
@@ -66,6 +67,7 @@ export default function PanelGeneral({
   fuente,
   error,
   climaCiudad,
+  actualizando,
   alertas,
   busqueda,
   buscando,
@@ -88,13 +90,17 @@ export default function PanelGeneral({
       {/* Buscando en móvil, el poco lugar que deja el teclado es para los resultados. */}
       <div className={`space-y-3 ${buscando ? "max-md:hidden" : ""}`}>
         <AlertaInumet alertas={alertas} />
-        {climaCiudad && <ClimaAhora clima={climaCiudad} ciudad={SITIO.nombre} />}
+        {climaCiudad && <ClimaAhora clima={climaCiudad} ciudad={SITIO.nombre} actualizando={actualizando} />}
         {!temporada.activa && <FueraDeTemporada temporada={temporada} />}
         {fuente === "respaldo" && (
           <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200 dark:bg-oscuro-2 dark:text-amber-200 dark:ring-amber-800">
             <strong>Sin datos de la Intendencia.</strong> Se muestran las playas sin banderas.
             {error && <span className="mt-1 block text-xs opacity-80">{error}</span>}
           </div>
+        )}
+        {/* Fuera de temporada no hay banderas (el resumen vuelve el 15/11); en temporada, solo con algún color. */}
+        {temporada.activa && hayBanderas(todas) && (
+          <ResumenBanderas playas={todas} filtro={filtro} onFiltro={onFiltro} />
         )}
         <Recomendador
           playas={todas}
@@ -105,14 +111,13 @@ export default function PanelGeneral({
           onUsarUbicacion={onUsarUbicacion}
           onElegir={onElegir}
         />
-        {/* Fuera de temporada no hay banderas: el resumen vuelve el 15/11. */}
-        {temporada.activa && <ResumenBanderas playas={todas} filtro={filtro} onFiltro={onFiltro} />}
       </div>
 
       {/* En móvil el listado son las píldoras de arriba: el título y las tarjetas van solo en escritorio. */}
       <div className="flex items-center justify-between px-1 pt-1 max-md:hidden">
         <h2 className="text-xs font-medium uppercase tracking-wider text-slate-500">
-          Playas <span className="tabular-nums">({playas.length})</span>
+          {!filtro ? "Playas" : filtro === "sin-datos" ? "Playas sin bandera vigente" : `Playas con bandera ${ESTADOS[filtro].label.toLowerCase()}`}{" "}
+          <span className="tabular-nums">({playas.length})</span>
         </h2>
         {filtro && (
           <button
@@ -133,7 +138,7 @@ export default function PanelGeneral({
         <ul className="grid grid-cols-2 gap-3 max-md:hidden">
           {playas.map((p) => (
             <li key={p.slug}>
-              <TarjetaPlaya playa={p} temporadaActiva={temporada.activa} onClick={() => onElegir(p)} />
+              <TarjetaPlaya playa={p} temporadaActiva={temporada.activa} cargando={fuente === "cargando"} onClick={() => onElegir(p)} />
             </li>
           ))}
         </ul>
@@ -229,6 +234,12 @@ function FueraDeTemporada({ temporada }: { temporada: Temporada }) {
   );
 }
 
+/** Si hay algún color para mostrar: mientras se cargan las banderas o si ninguna playa tiene bandera vigente
+ * (antes de que la IM las publique, después de las 20 h) la tarjeta no aparece, en vez de mostrar todo en 0. */
+function hayBanderas(playas: Playa[]) {
+  return playas.some((p) => estadoPlaya(p) !== "sin-datos");
+}
+
 function ResumenBanderas({
   playas,
   filtro,
@@ -244,7 +255,7 @@ function ResumenBanderas({
   const orden: EstadoBandera[] = ["green", "yellow", "red", "black", "sin-datos"];
 
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 dark:bg-oscuro-1 dark:ring-white/10">
+    <section className="animate-[aparecer_150ms_ease-out] rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 motion-reduce:animate-none dark:bg-oscuro-1 dark:ring-white/10">
       <div className="flex items-baseline justify-between">
         <h2 className="text-sm font-semibold">Banderas ahora</h2>
         <p className="text-xs text-slate-500 tabular-nums">
@@ -289,14 +300,15 @@ function ResumenBanderas({
 function BotonEstado({ estado, n, activo, onClick }: { estado: EstadoBandera; n: number; activo: boolean; onClick: () => void }) {
   const e = ESTADOS[estado];
   return (
+    // Filtra el listado de playas por este color; elegido, toma el color de la bandera.
     <button
       onClick={onClick}
       disabled={n === 0}
-      title={e.texto}
+      aria-pressed={activo}
+      title={activo ? "Ver todas las playas" : `Ver solo playas con bandera ${e.label.toLowerCase()}`}
+      style={activo ? { boxShadow: `inset 0 0 0 2px ${e.color}`, background: `${e.color}1f` } : undefined}
       className={`rounded-xl px-2 py-2 text-left ring-1 transition duration-700 ease-fluido disabled:opacity-40 ${
-        activo
-          ? "bg-slate-100 ring-slate-300 dark:bg-oscuro-3 dark:ring-neutral-600"
-          : "ring-slate-200 enabled:hover:bg-slate-50 dark:ring-neutral-700 dark:enabled:hover:bg-oscuro-3"
+        activo ? "ring-transparent" : "ring-slate-200 enabled:hover:bg-slate-50 dark:ring-neutral-700 dark:enabled:hover:bg-oscuro-3"
       }`}
     >
       <span className="block h-2.5 w-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/20" style={{ background: e.color }} />
@@ -312,7 +324,17 @@ const AGUA = {
   "sin-datos": { label: "Sin análisis", color: "#c9ced4", titulo: "Sin muestreo reciente de la IM" },
 } as const;
 
-function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; temporadaActiva: boolean; onClick: () => void }) {
+function TarjetaPlaya({
+  playa,
+  temporadaActiva,
+  cargando,
+  onClick,
+}: {
+  playa: Playa;
+  temporadaActiva: boolean;
+  cargando: boolean; // banderas todavía en camino: "…" en vez de "Sin datos"
+  onClick: () => void;
+}) {
   const estado = estadoPlaya(playa);
   const agua = playa.agua?.estado ?? "sin-datos";
   const c = playa.clima;
@@ -347,8 +369,11 @@ function TarjetaPlaya({ playa, temporadaActiva, onClick }: { playa: Playa; tempo
         {/* Fuera de temporada no hay banderas: mostramos la calidad del agua. */}
         {temporadaActiva ? (
           <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-oscuro-3 dark:text-neutral-300">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: ESTADOS[estado].color }} />
-            {ESTADOS[estado].label}
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${cargando ? "animate-pulse motion-reduce:animate-none" : ""}`}
+              style={{ background: ESTADOS[estado].color }}
+            />
+            {cargando ? "…" : ESTADOS[estado].label}
             <GotaAgua estado={agua} />
           </span>
         ) : (

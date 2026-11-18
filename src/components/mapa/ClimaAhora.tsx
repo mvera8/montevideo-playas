@@ -1,5 +1,6 @@
 "use client";
 
+import Cargando from "@/components/Cargando";
 import type { Weather } from "@/lib/weather";
 import { nivelUv } from "@/lib/uv";
 import { estadoCielo as estado, GRILLA_ICONO, ICONO_CIELO, type EstadoCielo } from "@/lib/iconos-clima";
@@ -105,7 +106,9 @@ function FilaUv({ clima }: { clima: Weather }) {
   );
 }
 
-export default function ClimaAhora({ clima, ciudad }: { clima: Weather; ciudad: string }) {
+// `actualizando`: el HTML vino viejo y Mapa.tsx está pidiendo el clima de nuevo; se avisa para no
+// mostrar como actual el de hace horas sin decir nada.
+export default function ClimaAhora({ clima, ciudad, actualizando = false }: { clima: Weather; ciudad: string; actualizando?: boolean }) {
   // La ciudad va en la etiqueta accesible: visualmente ya la muestra la marca flotante.
   const e = estado(clima);
   const uv = hayUv(clima);
@@ -129,6 +132,12 @@ export default function ClimaAhora({ clima, ciudad }: { clima: Weather; ciudad: 
             <path d={ICONO_CIELO[e]} />
           </svg>
           <span className="truncate">{clima.description}</span>
+          {actualizando && (
+            <span role="status" className="ml-auto flex shrink-0 items-center gap-1.5 text-xs font-normal text-white/85">
+              <Cargando />
+              Actualizando…
+            </span>
+          )}
         </p>
 
         {/* El viento va a la derecha de la fila de UV; de noche, sin UV, sube a la de la temperatura. */}
